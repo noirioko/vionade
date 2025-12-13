@@ -2,70 +2,12 @@
 import { ref, computed } from 'vue'
 import { useFinanceStore } from '../stores/finance'
 import HelpTip from '../components/HelpTip.vue'
+import EditTransactionModal from '../components/EditTransactionModal.vue'
 
 const store = useFinanceStore()
 
 // Edit transaction state
 const editingTransaction = ref(null)
-const editForm = ref({
-  type: 'expense',
-  amount: '',
-  amountUSD: '',
-  walletId: 'bca',
-  toWalletId: 'bri',
-  category: 'fnb',
-  note: '',
-  date: '',
-})
-
-const editCategories = computed(() => {
-  return editForm.value.type === 'expense'
-    ? store.EXPENSE_CATEGORIES
-    : store.INCOME_CATEGORIES
-})
-
-const editToWallets = computed(() => {
-  return store.wallets.value.filter(w => w.id !== editForm.value.walletId)
-})
-
-function openEditModal(transaction) {
-  editingTransaction.value = transaction
-  editForm.value = {
-    type: transaction.type,
-    amount: transaction.amount,
-    amountUSD: transaction.amountUSD || '',
-    walletId: transaction.walletId,
-    toWalletId: transaction.toWalletId || 'bri',
-    category: transaction.category || 'fnb',
-    note: transaction.note || '',
-    date: transaction.date ? transaction.date.split('T')[0] : new Date().toISOString().split('T')[0],
-  }
-}
-
-function saveEdit() {
-  if (!editingTransaction.value) return
-  if (!editForm.value.amount) return
-
-  store.updateTransaction(editingTransaction.value.id, {
-    type: editForm.value.type,
-    amount: parseFloat(editForm.value.amount),
-    amountUSD: editForm.value.amountUSD ? parseFloat(editForm.value.amountUSD) : null,
-    walletId: editForm.value.walletId,
-    toWalletId: editForm.value.type === 'transfer' ? editForm.value.toWalletId : null,
-    category: editForm.value.type !== 'transfer' ? editForm.value.category : null,
-    note: editForm.value.note || null,
-    date: editForm.value.date,
-  })
-  editingTransaction.value = null
-}
-
-function deleteTransaction() {
-  if (!editingTransaction.value) return
-  if (confirm('Delete this transaction?')) {
-    store.deleteTransaction(editingTransaction.value.id)
-    editingTransaction.value = null
-  }
-}
 
 // Challenge state
 const showChallengeModal = ref(false)
@@ -450,131 +392,11 @@ const recentMonthTransactions = computed(() => {
     </div>
 
     <!-- Edit Transaction Modal -->
-    <div v-if="editingTransaction" class="modal-overlay" @click.self="editingTransaction = null">
-      <div class="modal">
-        <div class="modal-header">
-          <h3 class="modal-title">Edit Transaction</h3>
-          <button class="modal-close" @click="editingTransaction = null">×</button>
-        </div>
-
-        <!-- Transaction Type (display only) -->
-        <div class="input-group">
-          <label class="input-label">Type</label>
-          <div class="type-display">
-            <span v-if="editForm.type === 'income'" class="chip chip-income">💰 Income</span>
-            <span v-else-if="editForm.type === 'expense'" class="chip chip-expense">💸 Expense</span>
-            <span v-else class="chip chip-transfer">↔️ Transfer</span>
-          </div>
-        </div>
-
-        <!-- Date -->
-        <div class="input-group">
-          <label class="input-label">Date</label>
-          <input
-            v-model="editForm.date"
-            type="date"
-            class="input"
-          />
-        </div>
-
-        <!-- Amount in USD (for income) -->
-        <div v-if="editForm.type === 'income'" class="input-group">
-          <label class="input-label">Amount in USD (optional)</label>
-          <input
-            v-model="editForm.amountUSD"
-            type="number"
-            class="input"
-            placeholder="e.g., 50"
-            inputmode="decimal"
-          />
-        </div>
-
-        <!-- Amount -->
-        <div class="input-group">
-          <label class="input-label">Amount (IDR)</label>
-          <input
-            v-model="editForm.amount"
-            type="number"
-            class="input"
-            placeholder="e.g., 500000"
-            inputmode="numeric"
-          />
-        </div>
-
-        <!-- Wallet -->
-        <div class="input-group">
-          <label class="input-label">
-            {{ editForm.type === 'transfer' ? 'From Wallet' : 'Wallet' }}
-          </label>
-          <div class="wallet-grid">
-            <button
-              v-for="wallet in store.wallets.value"
-              :key="wallet.id"
-              class="wallet-mini"
-              :class="{ active: editForm.walletId === wallet.id }"
-              @click="editForm.walletId = wallet.id"
-            >
-              <span class="wallet-mini-icon">{{ wallet.icon }}</span>
-              <div class="wallet-mini-info">
-                <div class="wallet-mini-name">{{ wallet.name }}</div>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        <!-- To Wallet (for transfers) -->
-        <div v-if="editForm.type === 'transfer'" class="input-group">
-          <label class="input-label">To Wallet</label>
-          <div class="wallet-grid">
-            <button
-              v-for="wallet in editToWallets"
-              :key="wallet.id"
-              class="wallet-mini"
-              :class="{ active: editForm.toWalletId === wallet.id }"
-              @click="editForm.toWalletId = wallet.id"
-            >
-              <span class="wallet-mini-icon">{{ wallet.icon }}</span>
-              <div class="wallet-mini-info">
-                <div class="wallet-mini-name">{{ wallet.name }}</div>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        <!-- Category (not for transfers) -->
-        <div v-if="editForm.type !== 'transfer'" class="input-group">
-          <label class="input-label">Category</label>
-          <div class="category-grid">
-            <button
-              v-for="cat in editCategories"
-              :key="cat.id"
-              class="category-btn"
-              :class="{ active: editForm.category === cat.id }"
-              @click="editForm.category = cat.id"
-            >
-              <div class="category-btn-icon">{{ cat.icon }}</div>
-              <div class="category-btn-label">{{ cat.name }}</div>
-            </button>
-          </div>
-        </div>
-
-        <!-- Note -->
-        <div class="input-group">
-          <label class="input-label">Note (optional)</label>
-          <input
-            v-model="editForm.note"
-            type="text"
-            class="input"
-            placeholder="What was this for?"
-          />
-        </div>
-
-        <div class="modal-actions">
-          <button class="btn btn-ghost" @click="deleteTransaction">Delete</button>
-          <button class="btn btn-primary" @click="saveEdit">Save</button>
-        </div>
-      </div>
-    </div>
+    <EditTransactionModal
+      v-if="editingTransaction"
+      :transaction="editingTransaction"
+      @close="editingTransaction = null"
+    />
   </div>
 </template>
 
@@ -840,20 +662,5 @@ const recentMonthTransactions = computed(() => {
 
 .list-item-clickable:active {
   background: var(--gray-200);
-}
-
-/* Modal actions */
-.modal-actions {
-  display: flex;
-  gap: var(--space-sm);
-  margin-top: var(--space-md);
-}
-
-.modal-actions .btn {
-  flex: 1;
-}
-
-.modal-actions .btn-ghost {
-  color: var(--expense-color);
 }
 </style>
