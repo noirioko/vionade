@@ -95,6 +95,8 @@
 
 /* Dark Mode - Purple/Lavender theme */
 [data-theme="dark"] {
+  color-scheme: dark;
+
   --lavender-50: #1E1B2E;
   --lavender-100: #2D2640;
   --lavender-200: #3D3456;
