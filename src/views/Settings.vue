@@ -146,6 +146,27 @@ function clearAllData() {
       <p class="text-xs text-muted mt-sm">Made with 💜 for you</p>
     </div>
 
+    <!-- Appearance -->
+    <div class="section">
+      <div class="section-header">
+        <h3 class="section-title">Appearance</h3>
+      </div>
+      <div class="card">
+        <div class="theme-toggle">
+          <div class="theme-info">
+            <span class="theme-icon">{{ store.settings.value.theme === 'dark' ? '🌙' : '☀️' }}</span>
+            <div>
+              <div class="font-bold text-sm">{{ store.settings.value.theme === 'dark' ? 'Night Mode' : 'Day Mode' }}</div>
+              <div class="text-xs text-muted">{{ store.settings.value.theme === 'dark' ? 'Easy on the eyes' : 'Bright and cheerful' }}</div>
+            </div>
+          </div>
+          <button class="toggle-btn" :class="{ active: store.settings.value.theme === 'dark' }" @click="store.toggleTheme()">
+            <span class="toggle-slider"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Account & Sync -->
     <div class="card section">
       <div class="section-title mb-md">Account</div>
@@ -509,6 +530,54 @@ function clearAllData() {
 .stats-section .card {
   position: relative;
   z-index: 2;
-  background: var(--white);
+  background: var(--bg-card);
+}
+
+/* Theme Toggle */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.theme-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.theme-icon {
+  font-size: 1.5rem;
+}
+
+.toggle-btn {
+  width: 52px;
+  height: 28px;
+  background: var(--gray-200);
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  position: relative;
+  transition: background var(--transition-normal);
+}
+
+.toggle-btn.active {
+  background: var(--lavender-500);
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  background: white;
+  border-radius: 50%;
+  transition: transform var(--transition-normal);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-btn.active .toggle-slider {
+  transform: translateX(24px);
 }
 </style>

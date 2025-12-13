@@ -59,10 +59,19 @@ const state = reactive({
   wallets: loadFromStorage('mochi_wallets', DEFAULT_WALLETS),
   transactions: loadFromStorage('mochi_transactions', []),
   savings: loadFromStorage('mochi_savings', []), // Array of { id, amount, date, type: 'monthly' | 'lifetime', note }
+  wishlist: loadFromStorage('mochi_wishlist', []), // Array of { id, name, price, emoji, saved: 0, priority, createdAt }
+  challenges: loadFromStorage('mochi_challenges', []), // Array of { id, type, target, startDate, endDate, status }
+  vioPass: loadFromStorage('mochi_viopass', {
+    checkins: [], // Array of { date, didSpend, category?, note?, vioReaction }
+    currentStreak: 0,
+    longestStreak: 0,
+    lastCheckinDate: null,
+  }),
   settings: loadFromStorage('mochi_settings', {
     currency: 'IDR',
     hasCompletedOnboarding: false,
     startedAt: null,
+    theme: 'light', // 'light' or 'dark'
     targets: {
       monthlyIncome: 0,
       monthlyExpense: 0,
@@ -122,12 +131,16 @@ async function loadFromFirebase() {
       if (data.transactions) state.transactions = data.transactions
       if (data.settings) state.settings = { ...state.settings, ...data.settings }
       if (data.savings) state.savings = data.savings
+      if (data.wishlist) state.wishlist = data.wishlist
+      if (data.vioPass) state.vioPass = { ...state.vioPass, ...data.vioPass }
 
       // Also save to localStorage as backup
       localStorage.setItem('mochi_wallets', JSON.stringify(state.wallets))
       localStorage.setItem('mochi_transactions', JSON.stringify(state.transactions))
       localStorage.setItem('mochi_settings', JSON.stringify(state.settings))
       localStorage.setItem('mochi_savings', JSON.stringify(state.savings))
+      localStorage.setItem('mochi_wishlist', JSON.stringify(state.wishlist))
+      localStorage.setItem('mochi_viopass', JSON.stringify(state.vioPass))
     } else {
       // First time user - save current data to Firebase
       await saveToFirebase()
@@ -146,6 +159,8 @@ async function saveToFirebase() {
       wallets: state.wallets,
       transactions: state.transactions,
       savings: state.savings,
+      wishlist: state.wishlist,
+      vioPass: state.vioPass,
       settings: state.settings,
       updatedAt: new Date().toISOString(),
     })
@@ -167,6 +182,8 @@ function setupRealtimeSync() {
       if (data.transactions) state.transactions = data.transactions
       if (data.settings) state.settings = { ...state.settings, ...data.settings }
       if (data.savings) state.savings = data.savings
+      if (data.wishlist) state.wishlist = data.wishlist
+      if (data.vioPass) state.vioPass = { ...state.vioPass, ...data.vioPass }
     }
   })
 }
@@ -198,6 +215,21 @@ watch(() => state.settings, (newVal) => {
 
 watch(() => state.savings, (newVal) => {
   localStorage.setItem('mochi_savings', JSON.stringify(newVal))
+  debouncedSaveToFirebase()
+}, { deep: true })
+
+watch(() => state.wishlist, (newVal) => {
+  localStorage.setItem('mochi_wishlist', JSON.stringify(newVal))
+  debouncedSaveToFirebase()
+}, { deep: true })
+
+watch(() => state.challenges, (newVal) => {
+  localStorage.setItem('mochi_challenges', JSON.stringify(newVal))
+  debouncedSaveToFirebase()
+}, { deep: true })
+
+watch(() => state.vioPass, (newVal) => {
+  localStorage.setItem('mochi_viopass', JSON.stringify(newVal))
   debouncedSaveToFirebase()
 }, { deep: true })
 
@@ -462,6 +494,219 @@ function setLifetimeGoal(name, target) {
   }
 }
 
+function toggleTheme() {
+  state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark'
+  applyTheme()
+}
+
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', state.settings.theme || 'light')
+}
+
+// Wishlist functions
+function addWishlistItem(item) {
+  const id = Date.now().toString(36) + Math.random().toString(36).substr(2)
+  state.wishlist.push({
+    id,
+    name: item.name,
+    price: item.price,
+    emoji: item.emoji || '🎁',
+    saved: 0,
+    priority: item.priority || 'want', // 'need', 'want', 'dream'
+    createdAt: new Date().toISOString(),
+  })
+}
+
+function updateWishlistItem(id, updates) {
+  const item = state.wishlist.find(w => w.id === id)
+  if (item) {
+    Object.assign(item, updates)
+  }
+}
+
+function deleteWishlistItem(id) {
+  const index = state.wishlist.findIndex(w => w.id === id)
+  if (index !== -1) {
+    state.wishlist.splice(index, 1)
+  }
+}
+
+function addToWishlistSavings(id, amount) {
+  const item = state.wishlist.find(w => w.id === id)
+  if (item) {
+    item.saved = (item.saved || 0) + amount
+    if (item.saved > item.price) {
+      item.saved = item.price
+    }
+  }
+}
+
+function claimWishlistItem(id) {
+  const item = state.wishlist.find(w => w.id === id)
+  if (item && item.saved >= item.price) {
+    item.claimed = true
+    item.claimedAt = new Date().toISOString()
+  }
+}
+
+// Challenge functions
+function startChallenge(challenge) {
+  const id = Date.now().toString(36) + Math.random().toString(36).substr(2)
+  const now = new Date()
+  let endDate = new Date(now)
+
+  if (challenge.period === 'week') {
+    endDate.setDate(endDate.getDate() + 7)
+  } else if (challenge.period === 'month') {
+    endDate.setMonth(endDate.getMonth() + 1)
+  }
+
+  state.challenges.push({
+    id,
+    type: challenge.type, // 'no-buy', 'limit-spending'
+    target: challenge.target || 0,
+    period: challenge.period,
+    startDate: now.toISOString(),
+    endDate: endDate.toISOString(),
+    status: 'active',
+  })
+}
+
+function endChallenge(id, status) {
+  const challenge = state.challenges.find(c => c.id === id)
+  if (challenge) {
+    challenge.status = status // 'completed' or 'failed'
+    challenge.endedAt = new Date().toISOString()
+  }
+}
+
+function getActiveChallenge() {
+  return state.challenges.find(c => c.status === 'active')
+}
+
+// Vio Pass functions
+const SPENDING_REACTIONS = {
+  // Category reactions: { nice: true } = acceptable, { bad: true } = unnecessary
+  fnb: { nice: true, message: "Food is important! Just don't overdo it~" },
+  groceries: { nice: true, message: "Groceries are essential! Good job being responsible!" },
+  bills: { nice: true, message: "Paying bills on time! Vio is proud of you!" },
+  pets: { nice: true, message: "Taking care of your pets! They're family!" },
+  commissions: { nice: true, message: "Supporting artists! That's so nice of you!" },
+  travel: { neutral: true, message: "Traveling can be good for the soul..." },
+  hotel: { neutral: true, message: "Sometimes you need a place to stay!" },
+  clothes: { bad: true, message: "Hmm... Did you really need new clothes?" },
+  other: { bad: true, message: "What did you buy? Vio is curious..." },
+}
+
+function getDateString(date = new Date()) {
+  return date.toISOString().split('T')[0]
+}
+
+function getTodayCheckin() {
+  const today = getDateString()
+  return state.vioPass.checkins.find(c => c.date === today)
+}
+
+function hasCheckedInToday() {
+  return !!getTodayCheckin()
+}
+
+function performCheckin(didSpend, category = null, note = '') {
+  const today = getDateString()
+
+  // Don't allow duplicate checkins
+  if (hasCheckedInToday()) {
+    return { success: false, message: "You already checked in today!" }
+  }
+
+  // Determine Vio's reaction
+  let vioReaction = 'happy'
+  let vioMessage = "You didn't spend anything today! Amazing self-control!"
+
+  if (didSpend) {
+    const reaction = SPENDING_REACTIONS[category] || SPENDING_REACTIONS.other
+    vioMessage = reaction.message
+    if (reaction.nice) {
+      vioReaction = 'okay'
+    } else if (reaction.neutral) {
+      vioReaction = 'thinking'
+    } else {
+      vioReaction = 'sad'
+    }
+  }
+
+  // Add checkin
+  state.vioPass.checkins.push({
+    date: today,
+    didSpend,
+    category,
+    note,
+    vioReaction,
+    vioMessage,
+  })
+
+  // Update streak
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  const yesterdayString = getDateString(yesterday)
+
+  if (state.vioPass.lastCheckinDate === yesterdayString) {
+    // Consecutive day - increase streak
+    state.vioPass.currentStreak += 1
+  } else if (state.vioPass.lastCheckinDate !== today) {
+    // Streak broken - reset to 1
+    state.vioPass.currentStreak = 1
+  }
+
+  // Update longest streak
+  if (state.vioPass.currentStreak > state.vioPass.longestStreak) {
+    state.vioPass.longestStreak = state.vioPass.currentStreak
+  }
+
+  state.vioPass.lastCheckinDate = today
+
+  return {
+    success: true,
+    vioReaction,
+    vioMessage,
+    streak: state.vioPass.currentStreak,
+  }
+}
+
+function getVioMood() {
+  // Get recent spending behavior
+  const recentCheckins = state.vioPass.checkins.slice(-7)
+  if (recentCheckins.length === 0) return 'neutral'
+
+  const badSpending = recentCheckins.filter(c => c.vioReaction === 'sad').length
+  const goodDays = recentCheckins.filter(c => !c.didSpend || c.vioReaction === 'okay').length
+
+  if (badSpending >= 4) return 'worried'
+  if (badSpending >= 2) return 'concerned'
+  if (goodDays >= 5) return 'happy'
+  return 'neutral'
+}
+
+function getVioPassStats() {
+  const totalCheckins = state.vioPass.checkins.length
+  const noSpendDays = state.vioPass.checkins.filter(c => !c.didSpend).length
+  const thisWeek = state.vioPass.checkins.filter(c => {
+    const checkinDate = new Date(c.date)
+    const weekAgo = new Date()
+    weekAgo.setDate(weekAgo.getDate() - 7)
+    return checkinDate >= weekAgo
+  })
+
+  return {
+    totalCheckins,
+    noSpendDays,
+    currentStreak: state.vioPass.currentStreak,
+    longestStreak: state.vioPass.longestStreak,
+    thisWeekCheckins: thisWeek.length,
+    thisWeekNoSpend: thisWeek.filter(c => !c.didSpend).length,
+  }
+}
+
 function formatCurrency(amount, showSign = false) {
   const formatted = new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -493,6 +738,9 @@ export function useFinanceStore() {
     wallets: computed(() => state.wallets),
     transactions: computed(() => state.transactions),
     savings: computed(() => state.savings),
+    wishlist: computed(() => state.wishlist),
+    challenges: computed(() => state.challenges),
+    vioPass: computed(() => state.vioPass),
     settings: computed(() => state.settings),
     isLoading: computed(() => state.isLoading),
     isSyncing: computed(() => state.isSyncing),
@@ -525,6 +773,24 @@ export function useFinanceStore() {
     deleteSavings,
     setMonthlyTargets,
     setLifetimeGoal,
+    toggleTheme,
+    applyTheme,
+    addWishlistItem,
+    updateWishlistItem,
+    deleteWishlistItem,
+    addToWishlistSavings,
+    claimWishlistItem,
+    startChallenge,
+    endChallenge,
+    getActiveChallenge,
+    performCheckin,
+    getTodayCheckin,
+    hasCheckedInToday,
+    getVioMood,
+    getVioPassStats,
+
+    // Constants
+    SPENDING_REACTIONS,
 
     // Helpers
     formatCurrency,

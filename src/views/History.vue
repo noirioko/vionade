@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useFinanceStore } from '../stores/finance'
 import PieChart from '../components/PieChart.vue'
+import HelpTip from '../components/HelpTip.vue'
 
 const store = useFinanceStore()
 const filter = ref('all') // all, income, expense, transfer
@@ -363,7 +364,10 @@ function deleteTransaction(id) {
     <!-- Monthly Cashflow Recap Grid -->
     <div class="section cashflow-recap">
       <div class="section-header">
-        <h3 class="section-title">Monthly Recap</h3>
+        <h3 class="section-title">
+          Monthly Recap
+          <HelpTip text="Compare your actual income, expenses & savings against your targets! Set targets in Settings. Vio shows happy if you're on track, sad if not." />
+        </h3>
       </div>
 
       <div class="recap-table">
@@ -484,7 +488,10 @@ function deleteTransaction(id) {
       <div class="save-today-card">
         <div class="save-today-header">
           <span class="save-today-icon">🐷</span>
-          <span class="save-today-title">Save today?</span>
+          <span class="save-today-title">
+            Save today?
+            <HelpTip text="Quick-save money! 'This month' adds to your monthly savings goal. 'House fund' goes to your lifetime goal (locked - can't take it out!)." />
+          </span>
         </div>
         <div class="save-today-form">
           <input
@@ -529,7 +536,10 @@ function deleteTransaction(id) {
           <div class="goal-info">
             <span class="goal-icon">🏠</span>
             <div>
-              <div class="goal-name">{{ store.settings.value.lifetimeGoal?.name || 'House Fund' }}</div>
+              <div class="goal-name">
+                {{ store.settings.value.lifetimeGoal?.name || 'House Fund' }}
+                <HelpTip text="Your big dream savings! This money is LOCKED - you promised yourself not to touch it until you reach your goal. Set your target amount in Settings." />
+              </div>
               <div class="goal-subtitle">Locked savings - no withdrawals!</div>
             </div>
           </div>
@@ -1189,5 +1199,58 @@ function deleteTransaction(id) {
 .spending-section .card {
   position: relative;
   z-index: 2;
+}
+
+</style>
+
+<style>
+/* Dark mode overrides (unscoped) */
+[data-theme="dark"] .calendar-book {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .cal-day.has-dot .cal-dot {
+  background: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .save-today-card {
+  background: linear-gradient(135deg, #2D2640 0%, #1A1625 100%) !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .save-today-title {
+  color: #9D8BC2 !important;
+}
+
+[data-theme="dark"] .type-btn {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+  color: #9D8BC2 !important;
+}
+
+[data-theme="dark"] .type-btn.active {
+  background: #2D2640 !important;
+  border-color: #8B5CF6 !important;
+  color: #C4B5FD !important;
+}
+
+[data-theme="dark"] .goal-amount {
+  color: #A78BFA !important;
+}
+
+[data-theme="dark"] .lifetime-goal-card {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .recap-table {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .recap-header {
+  background: #2D2640 !important;
+  border-color: #3D3456 !important;
 }
 </style>

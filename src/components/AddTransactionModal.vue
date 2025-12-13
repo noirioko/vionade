@@ -15,6 +15,27 @@ const selectedCategory = ref('fnb')
 const note = ref('')
 const selectedDate = ref(new Date().toISOString().split('T')[0]) // Default to today
 
+// Date helpers
+function getDateString(date) {
+  return date.toISOString().split('T')[0]
+}
+
+const todayString = getDateString(new Date())
+const yesterdayDate = new Date()
+yesterdayDate.setDate(yesterdayDate.getDate() - 1)
+const yesterdayString = getDateString(yesterdayDate)
+
+const isToday = computed(() => selectedDate.value === todayString)
+const isYesterday = computed(() => selectedDate.value === yesterdayString)
+
+function setToday() {
+  selectedDate.value = todayString
+}
+
+function setYesterday() {
+  selectedDate.value = yesterdayString
+}
+
 const categories = computed(() => {
   return transactionType.value === 'expense'
     ? store.EXPENSE_CATEGORIES
@@ -104,11 +125,25 @@ function setType(type) {
       <!-- Date Picker -->
       <div class="input-group">
         <label class="input-label">Date</label>
-        <input
-          v-model="selectedDate"
-          type="date"
-          class="input"
-        />
+        <div class="date-shortcuts">
+          <button
+            type="button"
+            class="date-btn"
+            :class="{ active: isToday }"
+            @click="setToday"
+          >Today</button>
+          <button
+            type="button"
+            class="date-btn"
+            :class="{ active: isYesterday }"
+            @click="setYesterday"
+          >Yesterday</button>
+          <input
+            v-model="selectedDate"
+            type="date"
+            class="date-input"
+          />
+        </div>
       </div>
 
       <!-- Amount Input -->
@@ -222,3 +257,79 @@ function setType(type) {
     </div>
   </div>
 </template>
+
+<style scoped>
+.date-shortcuts {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.date-btn {
+  padding: var(--space-sm) var(--space-md);
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.date-btn:hover {
+  border-color: var(--lavender-300);
+  color: var(--text-primary);
+}
+
+.date-btn.active {
+  border-color: var(--lavender-500);
+  background: var(--lavender-500);
+  color: white;
+}
+
+.date-input {
+  flex: 1;
+  padding: var(--space-sm) var(--space-md);
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.date-input:focus {
+  outline: none;
+  border-color: var(--lavender-500);
+}
+</style>
+
+<style>
+/* Dark mode for date picker */
+[data-theme="dark"] .date-btn {
+  background: var(--bg-card);
+  border-color: #3D3456;
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .date-btn:hover {
+  border-color: #8B5CF6;
+}
+
+[data-theme="dark"] .date-btn.active {
+  background: #8B5CF6;
+  border-color: #8B5CF6;
+}
+
+[data-theme="dark"] .date-input {
+  background: var(--bg-card);
+  border-color: #3D3456;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .date-input:focus {
+  border-color: #8B5CF6;
+}
+</style>

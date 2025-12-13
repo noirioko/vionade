@@ -1,8 +1,69 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useFinanceStore } from '../stores/finance'
+import HelpTip from '../components/HelpTip.vue'
 
 const store = useFinanceStore()
+
+// Challenge state
+const showChallengeModal = ref(false)
+const newChallenge = ref({
+  type: 'limit-spending',
+  target: '',
+  period: 'week',
+})
+
+const activeChallenge = computed(() => {
+  return store.challenges.value.find(c => c.status === 'active')
+})
+
+const challengeProgress = computed(() => {
+  if (!activeChallenge.value) return 0
+  const challenge = activeChallenge.value
+
+  if (challenge.type === 'limit-spending') {
+    // Get expenses during challenge period
+    const startDate = new Date(challenge.startDate)
+    const expenses = store.transactions.value
+      .filter(t => t.type === 'expense' && new Date(t.date) >= startDate)
+      .reduce((sum, t) => sum + t.amount, 0)
+    return Math.min(100, (expenses / challenge.target) * 100)
+  }
+  return 0
+})
+
+const challengeSpent = computed(() => {
+  if (!activeChallenge.value) return 0
+  const startDate = new Date(activeChallenge.value.startDate)
+  return store.transactions.value
+    .filter(t => t.type === 'expense' && new Date(t.date) >= startDate)
+    .reduce((sum, t) => sum + t.amount, 0)
+})
+
+const daysLeft = computed(() => {
+  if (!activeChallenge.value) return 0
+  const end = new Date(activeChallenge.value.endDate)
+  const now = new Date()
+  const diff = Math.ceil((end - now) / (1000 * 60 * 60 * 24))
+  return Math.max(0, diff)
+})
+
+function startNewChallenge() {
+  if (!newChallenge.value.target) return
+  store.startChallenge({
+    type: newChallenge.value.type,
+    target: parseFloat(newChallenge.value.target),
+    period: newChallenge.value.period,
+  })
+  showChallengeModal.value = false
+  newChallenge.value = { type: 'limit-spending', target: '', period: 'week' }
+}
+
+function giveUpChallenge() {
+  if (activeChallenge.value) {
+    store.endChallenge(activeChallenge.value.id, 'failed')
+  }
+}
 
 // Format the "tracking since" date
 const trackingSince = computed(() => {
@@ -126,6 +187,100 @@ const recentMonthTransactions = computed(() => {
         <div v-if="trackingSince" class="wallet-card-since">Tracking since {{ trackingSince }}</div>
       </div>
       <img src="/images/vio_right.png" alt="" class="wallet-card-vio" />
+    </div>
+
+    <!-- Challenge Section -->
+    <div class="section challenge-section">
+      <div class="section-header">
+        <h3 class="section-title">
+          Challenge
+          <HelpTip text="Set spending limits for yourself! Try to stay under your budget for a week or month. Vio will cheer you on!" />
+        </h3>
+      </div>
+
+      <!-- Active Challenge -->
+      <div v-if="activeChallenge" class="challenge-card" :class="{ danger: challengeProgress > 80 }">
+        <div class="challenge-header">
+          <div class="challenge-info">
+            <span class="challenge-icon">{{ challengeProgress > 80 ? '😰' : '💪' }}</span>
+            <div>
+              <div class="challenge-title">Limit Spending</div>
+              <div class="challenge-subtitle">{{ daysLeft }} days left</div>
+            </div>
+          </div>
+          <button class="btn btn-sm btn-ghost" @click="giveUpChallenge">Give up</button>
+        </div>
+
+        <div class="challenge-progress">
+          <div class="challenge-bar">
+            <div
+              class="challenge-fill"
+              :class="{ danger: challengeProgress > 80 }"
+              :style="{ width: challengeProgress + '%' }"
+            ></div>
+          </div>
+          <div class="challenge-stats">
+            <span>{{ store.formatCurrency(challengeSpent) }} spent</span>
+            <span>Limit: {{ store.formatCurrency(activeChallenge.target) }}</span>
+          </div>
+        </div>
+
+        <div v-if="challengeProgress > 80" class="challenge-warning">
+          Careful! You're close to your limit!
+        </div>
+      </div>
+
+      <!-- No Active Challenge -->
+      <div v-else class="challenge-empty" @click="showChallengeModal = true">
+        <span class="challenge-empty-icon">🎯</span>
+        <div class="challenge-empty-text">Start a challenge!</div>
+        <div class="challenge-empty-hint">Tap to set a spending limit</div>
+      </div>
+    </div>
+
+    <!-- Challenge Modal -->
+    <div v-if="showChallengeModal" class="modal-overlay" @click.self="showChallengeModal = false">
+      <div class="modal">
+        <div class="modal-header">
+          <h3 class="modal-title">Start a Challenge</h3>
+          <button class="modal-close" @click="showChallengeModal = false">x</button>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Spending Limit</label>
+          <input
+            v-model="newChallenge.target"
+            type="number"
+            class="input"
+            placeholder="e.g., 500000"
+            inputmode="numeric"
+          />
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Duration</label>
+          <div class="period-grid">
+            <button
+              class="period-btn"
+              :class="{ active: newChallenge.period === 'week' }"
+              @click="newChallenge.period = 'week'"
+            >
+              1 Week
+            </button>
+            <button
+              class="period-btn"
+              :class="{ active: newChallenge.period === 'month' }"
+              @click="newChallenge.period = 'month'"
+            >
+              1 Month
+            </button>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-lg w-full" @click="startNewChallenge">
+          Start Challenge!
+        </button>
+      </div>
     </div>
 
     <!-- Calendar Box with Header Ribbon -->
@@ -332,5 +487,154 @@ const recentMonthTransactions = computed(() => {
   height: auto;
   margin-bottom: var(--space-md);
   opacity: 0.9;
+}
+
+/* Challenge Section */
+.challenge-section {
+  margin-bottom: var(--space-md);
+}
+
+.challenge-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  border: 2px solid var(--lavender-200);
+}
+
+.challenge-card.danger {
+  border-color: var(--expense-color);
+  background: rgba(244, 63, 94, 0.05);
+}
+
+.challenge-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.challenge-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.challenge-icon {
+  font-size: 1.75rem;
+}
+
+.challenge-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.challenge-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.challenge-progress {
+  margin-bottom: var(--space-sm);
+}
+
+.challenge-bar {
+  height: 12px;
+  background: var(--gray-200);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-bottom: var(--space-xs);
+}
+
+.challenge-fill {
+  height: 100%;
+  background: var(--lavender-500);
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease;
+}
+
+.challenge-fill.danger {
+  background: var(--expense-color);
+}
+
+.challenge-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.challenge-warning {
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
+  background: rgba(244, 63, 94, 0.1);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  color: var(--expense-color);
+  text-align: center;
+  font-weight: 600;
+}
+
+.challenge-empty {
+  background: var(--bg-card);
+  border: 2px dashed var(--lavender-300);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.challenge-empty:hover {
+  border-color: var(--lavender-500);
+  background: var(--lavender-50);
+}
+
+.challenge-empty-icon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: var(--space-sm);
+}
+
+.challenge-empty-text {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.challenge-empty-hint {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.period-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-sm);
+}
+
+.period-btn {
+  padding: var(--space-sm) var(--space-md);
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+}
+
+.period-btn:hover {
+  border-color: var(--lavender-300);
+}
+
+.period-btn.active {
+  border-color: var(--lavender-500);
+  background: var(--lavender-500);
+  color: white;
 }
 </style>

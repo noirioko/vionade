@@ -10,13 +10,13 @@ import {
 } from 'firebase/auth'
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDwI53N1u-VL7JTQHPsdc3wUj-GBCcwYb8",
-  authDomain: "lavender-ledge.firebaseapp.com",
-  projectId: "lavender-ledge",
-  storageBucket: "lavender-ledge.firebasestorage.app",
-  messagingSenderId: "100489858744",
-  appId: "1:100489858744:web:cd177d04b0ec2e5b3f6e4d",
-  measurementId: "G-L8R8V7SRKG"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 }
 
 // Initialize Firebase

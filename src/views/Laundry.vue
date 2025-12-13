@@ -1,8 +1,11 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted, inject } from 'vue'
 
 // Laundry tracking - separate from finance
 const STORAGE_KEY = 'mochi_laundry'
+
+// Register FAB action for this page
+const fabAction = inject('fabAction')
 
 // Location options
 const LOCATIONS = [
@@ -28,6 +31,17 @@ const laundryItems = ref(loadLaundry())
 const showAddModal = ref(false)
 const showEditModal = ref(false)
 const activeTab = ref('pending') // pending, washing, drying, done
+
+// Register FAB action
+onMounted(() => {
+  fabAction.value = () => {
+    showAddModal.value = true
+  }
+})
+
+onUnmounted(() => {
+  fabAction.value = null
+})
 
 // Form state for adding
 const newItem = ref({
@@ -416,11 +430,6 @@ function getLocation(locationId) {
       </div>
     </div>
 
-    <!-- Add Button -->
-    <button class="fab laundry-fab" @click="showAddModal = true">
-      +
-    </button>
-
     <!-- Add Modal -->
     <div v-if="showAddModal" class="modal-overlay" @click.self="showAddModal = false">
       <div class="modal">
@@ -803,23 +812,6 @@ function getLocation(locationId) {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
-}
-
-.laundry-fab {
-  bottom: calc(70px + var(--space-md) + env(safe-area-inset-bottom, 0));
-  background: linear-gradient(135deg, var(--blue-300) 0%, var(--blue-500) 100%);
-  box-shadow: 4px 4px 0 var(--sunshine-400);
-}
-
-.laundry-fab:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 6px 6px 0 var(--sunshine-400);
-}
-
-.laundry-fab:active {
-  transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0 var(--sunshine-400);
-  background: linear-gradient(135deg, var(--blue-400) 0%, var(--blue-600) 100%);
 }
 
 /* Blue theme for tabs */

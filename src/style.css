@@ -84,6 +84,185 @@
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
   --transition-slow: 350ms ease;
+
+  /* Background */
+  --bg-primary: #F0F9FF;
+  --bg-card: #ffffff;
+  --text-primary: #334155;
+  --text-secondary: #64748B;
+  --border-color: var(--lavender-200);
+}
+
+/* Dark Mode - Purple/Lavender theme */
+[data-theme="dark"] {
+  --lavender-50: #1E1B2E;
+  --lavender-100: #2D2640;
+  --lavender-200: #3D3456;
+  --lavender-300: #6D5A9E;
+  --lavender-400: #A78BFA;
+  --lavender-500: #8B5CF6;
+  --lavender-600: #A78BFA;
+  --lavender-700: #C4B5FD;
+
+  /* Purple accents instead of yellow for dark mode */
+  --sunshine-100: #2D2640;
+  --sunshine-200: #3D3456;
+  --sunshine-300: #5B4A82;
+  --sunshine-400: #7C68A6;
+  --sunshine-500: #A78BFA;
+
+  --gray-50: #0F0D1A;
+  --gray-100: #1A1625;
+  --gray-200: #2D2640;
+  --gray-300: #3D3456;
+  --gray-400: #6D5A9E;
+  --gray-500: #9D8BC2;
+  --gray-600: #C4B5FD;
+  --gray-700: #E2DCF5;
+  --gray-800: #F3F0FF;
+
+  --white: #1A1625;
+  --bg-primary: #0F0D1A;
+  --bg-card: #1A1625;
+  --text-primary: #F3F0FF;
+  --text-secondary: #9D8BC2;
+  --border-color: #3D3456;
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+/* Dark mode specific overrides */
+[data-theme="dark"] .wallet-card {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: #3D3456;
+}
+
+[data-theme="dark"] .page-header {
+  position: relative;
+}
+
+[data-theme="dark"] .page-header::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 13, 26, 0.6);
+  pointer-events: none;
+}
+
+[data-theme="dark"] .page-header-logo {
+  position: relative;
+  z-index: 1;
+}
+
+[data-theme="dark"] .save-today-card {
+  background: linear-gradient(135deg, #2D2640 0%, #1A1625 100%) !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .recap-row-savings {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(139, 92, 246, 0.1) 100%);
+}
+
+[data-theme="dark"] .fab {
+  background: #8B5CF6;
+  box-shadow: 4px 4px 0 #3D3456;
+}
+
+[data-theme="dark"] .bottom-nav {
+  background: rgba(15, 13, 26, 0.95);
+  border-top-color: #3D3456;
+}
+
+[data-theme="dark"] .nav-item.active .nav-icon {
+  background: rgba(167, 139, 250, 0.2);
+}
+
+[data-theme="dark"] .calendar-book {
+  background: var(--bg-card);
+  border-color: #3D3456;
+}
+
+[data-theme="dark"] .cal-day.today {
+  background: #2D2640;
+}
+
+[data-theme="dark"] .lifetime-goal-card {
+  background: var(--bg-card);
+  border-color: #3D3456;
+}
+
+[data-theme="dark"] .goal-amount {
+  color: #A78BFA;
+}
+
+[data-theme="dark"] .progress-fill {
+  background: linear-gradient(90deg, #7C3AED, #A78BFA);
+}
+
+[data-theme="dark"] .progress-current {
+  color: #A78BFA;
+}
+
+[data-theme="dark"] .recap-amount.savings {
+  color: #A78BFA;
+}
+
+[data-theme="dark"] .wallet-card {
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .cal-dot {
+  background: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .calendar-book {
+  background: var(--bg-card) !important;
+}
+
+[data-theme="dark"] .challenge-card {
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .challenge-empty {
+  border-color: #3D3456 !important;
+  background: var(--bg-card) !important;
+}
+
+[data-theme="dark"] .challenge-empty:hover {
+  border-color: #8B5CF6 !important;
+  background: rgba(139, 92, 246, 0.1) !important;
+}
+
+[data-theme="dark"] .challenge-bar {
+  background: #2D2640 !important;
+}
+
+[data-theme="dark"] .period-btn {
+  border-color: #3D3456 !important;
+  background: var(--bg-card) !important;
+}
+
+[data-theme="dark"] .period-btn:hover {
+  border-color: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .calendar-box {
+  background: #3D3456 !important;
+}
+
+[data-theme="dark"] .month-nav {
+  background: rgba(26, 22, 37, 0.8) !important;
+  color: #C4B5FD !important;
+}
+
+[data-theme="dark"] .month-label {
+  color: #C4B5FD !important;
+}
+
+[data-theme="dark"] .summary-divider {
+  background: #8B5CF6 !important;
 }
 
 /* Import Google Fonts */
@@ -103,12 +282,13 @@ html {
 
 body {
   font-family: var(--font-primary);
-  background: var(--gray-50);
+  background: var(--bg-primary);
   min-height: 100vh;
-  color: var(--gray-700);
+  color: var(--text-primary);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background var(--transition-normal), color var(--transition-normal);
 }
 
 #app {
@@ -121,7 +301,7 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
   font-weight: 700;
-  color: var(--lavender-800);
+  color: var(--text-primary);
   line-height: 1.3;
 }
 
@@ -202,11 +382,12 @@ h4 { font-size: 1.125rem; }
 
 /* Cards */
 .card {
-  background: var(--white);
+  background: var(--bg-card);
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
   box-shadow: var(--shadow-sm);
-  border: 1px solid var(--lavender-100);
+  border: 1px solid var(--border-color);
+  transition: background var(--transition-normal);
 }
 
 .card-hover {
