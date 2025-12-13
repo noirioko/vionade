@@ -1,10 +1,15 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useFinanceStore } from '../stores/finance'
 
 const store = useFinanceStore()
 const editingWallet = ref(null)
 const newBalance = ref('')
+
+// Show setup hint if all wallets are at 0
+const needsSetup = computed(() => {
+  return store.wallets.value.every(w => w.balance === 0)
+})
 
 function startEdit(wallet) {
   editingWallet.value = wallet.id
@@ -43,6 +48,15 @@ function getWalletTransactions(walletId) {
         <div class="wallet-card-amount">{{ store.formatCurrency(store.totalBalance.value) }}</div>
       </div>
       <img src="/images/vio_right.png" alt="" class="wallet-card-vio" />
+    </div>
+
+    <!-- Setup Hint -->
+    <div v-if="needsSetup" class="setup-hint">
+      <div class="setup-hint-icon">👋</div>
+      <div class="setup-hint-content">
+        <div class="setup-hint-title">First time? Set your starting balances!</div>
+        <div class="setup-hint-text">Tap "Edit" on each wallet below to enter how much money you currently have. This helps track your finances accurately.</div>
+      </div>
     </div>
 
     <!-- Wallet List -->
@@ -106,7 +120,7 @@ function getWalletTransactions(walletId) {
     </div>
 
     <!-- Info Card -->
-    <div class="card text-center" style="background: var(--lavender-50);">
+    <div v-if="!needsSetup" class="card text-center" style="background: var(--lavender-50);">
       <div style="font-size: 1.5rem; margin-bottom: var(--space-sm);">💡</div>
       <p class="text-sm text-muted">
         Tap "Edit" on any wallet to manually adjust its balance.
@@ -115,3 +129,45 @@ function getWalletTransactions(walletId) {
     </div>
   </div>
 </template>
+
+<style scoped>
+.setup-hint {
+  display: flex;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: linear-gradient(135deg, var(--lavender-100) 0%, var(--lavender-50) 100%);
+  border: 2px solid var(--lavender-300);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-md);
+}
+
+.setup-hint-icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.setup-hint-content {
+  flex: 1;
+}
+
+.setup-hint-title {
+  font-weight: 600;
+  color: var(--lavender-700);
+  margin-bottom: var(--space-xs);
+}
+
+.setup-hint-text {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+[data-theme="dark"] .setup-hint {
+  background: linear-gradient(135deg, var(--lavender-900) 0%, rgba(139, 92, 246, 0.1) 100%);
+  border-color: var(--lavender-600);
+}
+
+[data-theme="dark"] .setup-hint-title {
+  color: var(--lavender-300);
+}
+</style>

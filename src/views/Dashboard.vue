@@ -5,6 +5,49 @@ import HelpTip from '../components/HelpTip.vue'
 
 const store = useFinanceStore()
 
+// Edit transaction state
+const editingTransaction = ref(null)
+const editForm = ref({
+  type: 'expense',
+  amount: '',
+  category: '',
+  note: '',
+  date: '',
+})
+
+function openEditModal(transaction) {
+  editingTransaction.value = transaction
+  editForm.value = {
+    type: transaction.type,
+    amount: transaction.amount,
+    category: transaction.category || '',
+    note: transaction.note || '',
+    date: transaction.date ? transaction.date.split('T')[0] : '',
+  }
+}
+
+function saveEdit() {
+  if (!editingTransaction.value) return
+  if (!editForm.value.amount) return
+
+  store.updateTransaction(editingTransaction.value.id, {
+    type: editForm.value.type,
+    amount: parseFloat(editForm.value.amount),
+    category: editForm.value.category,
+    note: editForm.value.note,
+    date: editForm.value.date,
+  })
+  editingTransaction.value = null
+}
+
+function deleteTransaction() {
+  if (!editingTransaction.value) return
+  if (confirm('Delete this transaction?')) {
+    store.deleteTransaction(editingTransaction.value.id)
+    editingTransaction.value = null
+  }
+}
+
 // Challenge state
 const showChallengeModal = ref(false)
 const newChallenge = ref({
@@ -347,7 +390,8 @@ const recentMonthTransactions = computed(() => {
         <div
           v-for="transaction in recentMonthTransactions"
           :key="transaction.id"
-          class="list-item"
+          class="list-item list-item-clickable"
+          @click="openEditModal(transaction)"
         >
           <div
             class="list-item-icon"
@@ -382,6 +426,50 @@ const recentMonthTransactions = computed(() => {
               {{ transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : '' }}{{ store.formatCurrency(transaction.amount) }}
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Transaction Modal -->
+    <div v-if="editingTransaction" class="modal-overlay" @click.self="editingTransaction = null">
+      <div class="modal">
+        <div class="modal-header">
+          <h3 class="modal-title">Edit Transaction</h3>
+          <button class="modal-close" @click="editingTransaction = null">×</button>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Amount</label>
+          <input
+            v-model="editForm.amount"
+            type="number"
+            class="input"
+            inputmode="numeric"
+          />
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Date</label>
+          <input
+            v-model="editForm.date"
+            type="date"
+            class="input"
+          />
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Note</label>
+          <input
+            v-model="editForm.note"
+            type="text"
+            class="input"
+            placeholder="Optional note"
+          />
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-ghost" @click="deleteTransaction">Delete</button>
+          <button class="btn btn-primary" @click="saveEdit">Save</button>
         </div>
       </div>
     </div>
@@ -636,5 +724,34 @@ const recentMonthTransactions = computed(() => {
   border-color: var(--lavender-500);
   background: var(--lavender-500);
   color: white;
+}
+
+/* Clickable list items */
+.list-item-clickable {
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.list-item-clickable:hover {
+  background: var(--gray-100);
+}
+
+.list-item-clickable:active {
+  background: var(--gray-200);
+}
+
+/* Modal actions */
+.modal-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.modal-actions .btn {
+  flex: 1;
+}
+
+.modal-actions .btn-ghost {
+  color: var(--expense-color);
 }
 </style>

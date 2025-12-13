@@ -708,15 +708,17 @@ function getVioPassStats() {
 }
 
 function formatCurrency(amount, showSign = false) {
+  // For normal display, show negative values naturally
   const formatted = new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(Math.abs(amount))
+  }).format(amount) // Removed Math.abs() - show negatives!
 
-  if (showSign && amount !== 0) {
-    return amount > 0 ? `+${formatted}` : `-${formatted}`
+  // If showSign is true, add explicit + for positive
+  if (showSign && amount > 0) {
+    return `+${formatted}`
   }
   return formatted
 }
