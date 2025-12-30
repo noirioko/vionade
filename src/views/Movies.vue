@@ -298,7 +298,8 @@ function handleSave() {
 .movie-meta {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  flex-wrap: wrap;
+  gap: var(--space-xs);
   margin-bottom: var(--space-xs);
 }
 
