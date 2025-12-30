@@ -7,7 +7,7 @@ const showMore = ref(false)
 
 // Check if current route is in the "more" menu
 const isMoreActive = () => {
-  const moreRoutes = ['/viopass', '/laundry', '/settings']
+  const moreRoutes = ['/movies', '/viopass', '/laundry', '/settings']
   return moreRoutes.includes(route.path)
 }
 
@@ -30,8 +30,12 @@ function closeMore() {
       <div v-if="showMore" class="more-sheet">
         <div class="more-handle" @click="closeMore"></div>
         <div class="more-grid">
+          <RouterLink to="/movies" class="more-item" @click="closeMore">
+            <span class="more-item-icon">🎬</span>
+            <span class="more-item-label">Movies</span>
+          </RouterLink>
           <RouterLink to="/viopass" class="more-item" @click="closeMore">
-            <span class="more-item-icon">🎫</span>
+            <span class="more-item-icon">🍋</span>
             <span class="more-item-label">Vio Pass</span>
           </RouterLink>
           <RouterLink to="/laundry" class="more-item" @click="closeMore">
@@ -69,8 +73,13 @@ function closeMore() {
     </RouterLink>
 
     <!-- Desktop only items -->
+    <RouterLink to="/movies" class="nav-item desktop-only">
+      <span class="nav-item-icon">🎬</span>
+      <span>Movies</span>
+    </RouterLink>
+
     <RouterLink to="/viopass" class="nav-item desktop-only">
-      <span class="nav-item-icon">🎫</span>
+      <span class="nav-item-icon">🍋</span>
       <span>Vio Pass</span>
     </RouterLink>
 
@@ -154,7 +163,7 @@ function closeMore() {
 
 .more-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--space-sm);
 }
 

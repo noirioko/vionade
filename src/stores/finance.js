@@ -61,6 +61,7 @@ const state = reactive({
   savings: loadFromStorage('mochi_savings', []), // Array of { id, amount, date, type: 'monthly' | 'lifetime', note }
   wishlist: loadFromStorage('mochi_wishlist', []), // Array of { id, name, price, emoji, saved: 0, priority, createdAt }
   challenges: loadFromStorage('mochi_challenges', []), // Array of { id, type, target, startDate, endDate, status }
+  movies: loadFromStorage('mochi_movies', []), // Array of { id, title, posterUrl, rating, watchedDate, notes, wouldWatchAgain }
   vioPass: loadFromStorage('mochi_viopass', {
     checkins: [], // Array of { date, didSpend, category?, note?, vioReaction }
     currentStreak: 0,
@@ -133,6 +134,7 @@ async function loadFromFirebase() {
       if (data.savings) state.savings = data.savings
       if (data.wishlist) state.wishlist = data.wishlist
       if (data.vioPass) state.vioPass = { ...state.vioPass, ...data.vioPass }
+      if (data.movies) state.movies = data.movies
 
       // Also save to localStorage as backup
       localStorage.setItem('mochi_wallets', JSON.stringify(state.wallets))
@@ -141,6 +143,7 @@ async function loadFromFirebase() {
       localStorage.setItem('mochi_savings', JSON.stringify(state.savings))
       localStorage.setItem('mochi_wishlist', JSON.stringify(state.wishlist))
       localStorage.setItem('mochi_viopass', JSON.stringify(state.vioPass))
+      localStorage.setItem('mochi_movies', JSON.stringify(state.movies))
     } else {
       // First time user - save current data to Firebase
       await saveToFirebase()
@@ -161,6 +164,7 @@ async function saveToFirebase() {
       savings: state.savings,
       wishlist: state.wishlist,
       vioPass: state.vioPass,
+      movies: state.movies,
       settings: state.settings,
       updatedAt: new Date().toISOString(),
     })
@@ -184,6 +188,7 @@ function setupRealtimeSync() {
       if (data.savings) state.savings = data.savings
       if (data.wishlist) state.wishlist = data.wishlist
       if (data.vioPass) state.vioPass = { ...state.vioPass, ...data.vioPass }
+      if (data.movies) state.movies = data.movies
     }
   })
 }
@@ -230,6 +235,11 @@ watch(() => state.challenges, (newVal) => {
 
 watch(() => state.vioPass, (newVal) => {
   localStorage.setItem('mochi_viopass', JSON.stringify(newVal))
+  debouncedSaveToFirebase()
+}, { deep: true })
+
+watch(() => state.movies, (newVal) => {
+  localStorage.setItem('mochi_movies', JSON.stringify(newVal))
   debouncedSaveToFirebase()
 }, { deep: true })
 
@@ -549,6 +559,35 @@ function claimWishlistItem(id) {
   }
 }
 
+// Movie functions
+function addMovie(movie) {
+  const id = Date.now().toString(36) + Math.random().toString(36).substr(2)
+  state.movies.push({
+    id,
+    title: movie.title,
+    posterUrl: movie.posterUrl || null,
+    rating: movie.rating || 5,
+    watchedDate: movie.watchedDate || new Date().toISOString().split('T')[0],
+    notes: movie.notes || '',
+    wouldWatchAgain: movie.wouldWatchAgain !== undefined ? movie.wouldWatchAgain : true,
+    createdAt: new Date().toISOString(),
+  })
+}
+
+function updateMovie(id, updates) {
+  const movie = state.movies.find(m => m.id === id)
+  if (movie) {
+    Object.assign(movie, updates)
+  }
+}
+
+function deleteMovie(id) {
+  const index = state.movies.findIndex(m => m.id === id)
+  if (index !== -1) {
+    state.movies.splice(index, 1)
+  }
+}
+
 // Challenge functions
 function startChallenge(challenge) {
   const id = Date.now().toString(36) + Math.random().toString(36).substr(2)
@@ -742,6 +781,7 @@ async function resetAllData() {
   localStorage.removeItem('mochi_wishlist')
   localStorage.removeItem('mochi_challenges')
   localStorage.removeItem('mochi_viopass')
+  localStorage.removeItem('mochi_movies')
 
   // Reset state to defaults
   state.wallets = JSON.parse(JSON.stringify(DEFAULT_WALLETS))
@@ -749,6 +789,7 @@ async function resetAllData() {
   state.savings = []
   state.wishlist = []
   state.challenges = []
+  state.movies = []
   state.vioPass = {
     checkins: [],
     currentStreak: 0,
@@ -788,6 +829,7 @@ export function useFinanceStore() {
     wishlist: computed(() => state.wishlist),
     challenges: computed(() => state.challenges),
     vioPass: computed(() => state.vioPass),
+    movies: computed(() => state.movies),
     settings: computed(() => state.settings),
     isLoading: computed(() => state.isLoading),
     isSyncing: computed(() => state.isSyncing),
@@ -827,6 +869,9 @@ export function useFinanceStore() {
     deleteWishlistItem,
     addToWishlistSavings,
     claimWishlistItem,
+    addMovie,
+    updateMovie,
+    deleteMovie,
     startChallenge,
     endChallenge,
     getActiveChallenge,
