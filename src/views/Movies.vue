@@ -7,8 +7,12 @@ const store = useFinanceStore()
 const fabAction = inject('fabAction')
 
 const showAddModal = ref(false)
+const showViewModal = ref(false)
 const editingMovie = ref(null)
+const viewingMovie = ref(null)
 const sortBy = ref('date') // 'date', 'rating', 'title'
+const searchQuery = ref('')
+const activeTab = ref('movies') // 'movies', 'series', 'books'
 
 onMounted(() => {
   fabAction.value = () => {
@@ -21,9 +25,16 @@ onUnmounted(() => {
   fabAction.value = null
 })
 
-const sortedMovies = computed(() => {
-  const movies = [...store.movies.value]
+const filteredMovies = computed(() => {
+  let movies = [...store.movies.value]
 
+  // Filter by search
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.toLowerCase()
+    movies = movies.filter(m => m.title.toLowerCase().includes(q))
+  }
+
+  // Sort
   if (sortBy.value === 'date') {
     return movies.sort((a, b) => new Date(b.watchedDate) - new Date(a.watchedDate))
   } else if (sortBy.value === 'rating') {
@@ -34,6 +45,7 @@ const sortedMovies = computed(() => {
 })
 
 function formatDate(dateStr) {
+  if (dateStr === 'unknown') return "Can't remember"
   const date = new Date(dateStr)
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
@@ -44,14 +56,34 @@ function renderStars(rating) {
   return '★'.repeat(filled) + '☆'.repeat(empty)
 }
 
+function openView(movie) {
+  viewingMovie.value = movie
+  showViewModal.value = true
+}
+
 function openEdit(movie) {
-  editingMovie.value = movie
+  showViewModal.value = false
+  editingMovie.value = movie || viewingMovie.value
   showAddModal.value = true
 }
 
 function handleSave() {
   showAddModal.value = false
+  showViewModal.value = false
   editingMovie.value = null
+  viewingMovie.value = null
+}
+
+function getWatchAgainText(value) {
+  if (value === true || value === 'yes') return 'Yes!'
+  if (value === 'maybe') return 'Maybe'
+  return 'Nope'
+}
+
+function getWatchAgainClass(value) {
+  if (value === true || value === 'yes') return 'badge-yes'
+  if (value === 'maybe') return 'badge-maybe'
+  return 'badge-no'
 }
 </script>
 
@@ -61,33 +93,58 @@ function handleSave() {
       <img src="/images/vio-logo.png" alt="Vionade" class="page-header-logo" />
     </div>
 
-    <!-- Header -->
-    <div class="movies-header section">
-      <div class="movies-header-content">
-        <h2 class="movies-title">Movie Journal</h2>
-        <p class="movies-subtitle">{{ store.movies.value.length }} movies watched</p>
-      </div>
-      <img src="/images/vio_sit.png" alt="" class="movies-vio" />
+    <!-- Tabs -->
+    <div class="media-tabs">
+      <button
+        class="media-tab"
+        :class="{ active: activeTab === 'movies' }"
+        @click="activeTab = 'movies'"
+      >Movies</button>
+      <button
+        class="media-tab"
+        :class="{ active: activeTab === 'series' }"
+        @click="activeTab = 'series'"
+      >Series</button>
+      <button
+        class="media-tab"
+        :class="{ active: activeTab === 'books' }"
+        @click="activeTab = 'books'"
+      >Books</button>
     </div>
 
-    <!-- Sort Options -->
-    <div class="sort-bar" v-if="store.movies.value.length > 0">
-      <span class="sort-label">Sort by:</span>
-      <button
-        class="sort-btn"
-        :class="{ active: sortBy === 'date' }"
-        @click="sortBy = 'date'"
-      >Recent</button>
-      <button
-        class="sort-btn"
-        :class="{ active: sortBy === 'rating' }"
-        @click="sortBy = 'rating'"
-      >Rating</button>
-      <button
-        class="sort-btn"
-        :class="{ active: sortBy === 'title' }"
-        @click="sortBy = 'title'"
-      >A-Z</button>
+    <!-- Search & Sort Bar -->
+    <div class="toolbar" v-if="store.movies.value.length > 0">
+      <div class="search-box">
+        <input
+          v-model="searchQuery"
+          type="text"
+          class="search-input"
+          placeholder="Find movie..."
+        />
+        <span v-if="searchQuery" class="search-clear" @click="searchQuery = ''">×</span>
+      </div>
+      <div class="sort-pills">
+        <button
+          class="sort-pill"
+          :class="{ active: sortBy === 'date' }"
+          @click="sortBy = 'date'"
+        >Recent</button>
+        <button
+          class="sort-pill"
+          :class="{ active: sortBy === 'rating' }"
+          @click="sortBy = 'rating'"
+        >Top</button>
+        <button
+          class="sort-pill"
+          :class="{ active: sortBy === 'title' }"
+          @click="sortBy = 'title'"
+        >A-Z</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="media-stats" v-if="store.movies.value.length > 0">
+      <span class="stat-count">{{ filteredMovies.length }} movies</span>
     </div>
 
     <!-- Empty State -->
@@ -97,34 +154,72 @@ function handleSave() {
       <p class="empty-text">Tap + to add your first movie!</p>
     </div>
 
-    <!-- Movie List -->
-    <div v-else class="movie-list">
+    <!-- Poster Grid -->
+    <div v-else class="poster-grid">
       <div
-        v-for="movie in sortedMovies"
+        v-for="movie in filteredMovies"
         :key="movie.id"
-        class="movie-card"
-        @click="openEdit(movie)"
+        class="poster-card"
+        @click="openView(movie)"
       >
-        <div class="movie-poster">
+        <div class="poster-wrapper">
           <img
             v-if="movie.posterUrl"
             :src="movie.posterUrl"
             :alt="movie.title"
             class="poster-img"
           />
-          <div v-else class="poster-placeholder">🎬</div>
-        </div>
-        <div class="movie-info">
-          <h3 class="movie-title">{{ movie.title }}</h3>
-          <div class="movie-stars">{{ renderStars(movie.rating) }}</div>
-          <div class="movie-meta">
-            <span class="movie-date">{{ formatDate(movie.watchedDate) }}</span>
-            <span v-if="movie.didFinish === false" class="movie-badge badge-dnf">Didn't finish</span>
-            <span v-if="movie.wouldWatchAgain === true || movie.wouldWatchAgain === 'yes'" class="movie-badge badge-rewatch">Would rewatch</span>
-            <span v-else-if="movie.wouldWatchAgain === 'maybe'" class="movie-badge badge-maybe">Maybe rewatch</span>
+          <div v-else class="poster-placeholder">
+            <span class="placeholder-emoji">🎬</span>
+            <span class="placeholder-title">{{ movie.title }}</span>
           </div>
-          <p v-if="movie.notes" class="movie-notes">{{ movie.notes }}</p>
+          <div class="poster-rating">{{ movie.rating }}/10</div>
         </div>
+      </div>
+    </div>
+
+    <!-- View Movie Modal -->
+    <div v-if="showViewModal && viewingMovie" class="modal-overlay" @click.self="showViewModal = false">
+      <div class="view-modal">
+        <button class="modal-close" @click="showViewModal = false">×</button>
+
+        <div class="view-content">
+          <div class="view-poster">
+            <img v-if="viewingMovie.posterUrl" :src="viewingMovie.posterUrl" :alt="viewingMovie.title" />
+            <div v-else class="view-poster-placeholder">🎬</div>
+          </div>
+
+          <div class="view-details">
+            <h2 class="view-title">{{ viewingMovie.title }}</h2>
+            <div class="view-stars">{{ renderStars(viewingMovie.rating) }}</div>
+
+            <div class="view-table">
+              <div class="view-row">
+                <span class="view-label">Watched</span>
+                <span class="view-value">{{ formatDate(viewingMovie.watchedDate) }}</span>
+              </div>
+              <div class="view-row">
+                <span class="view-label">Finished</span>
+                <span class="view-value">{{ viewingMovie.didFinish === false ? 'Nope' : 'Yes' }}</span>
+              </div>
+              <div class="view-row">
+                <span class="view-label">Watch again?</span>
+                <span class="view-value" :class="getWatchAgainClass(viewingMovie.wouldWatchAgain)">
+                  {{ getWatchAgainText(viewingMovie.wouldWatchAgain) }}
+                </span>
+              </div>
+            </div>
+
+            <div v-if="viewingMovie.notes" class="view-notes">
+              <span class="view-label">Notes</span>
+              <p class="view-notes-text">{{ viewingMovie.notes }}</p>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary view-edit-btn" @click="openEdit()">
+          Edit
+        </button>
       </div>
     </div>
 
@@ -139,69 +234,109 @@ function handleSave() {
 </template>
 
 <style scoped>
-.movies-header {
+/* Tabs */
+.media-tabs {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: linear-gradient(135deg, #F59E0B20 0%, #FBBF2410 100%);
-  border: 2px solid #F59E0B40;
-  border-radius: var(--radius-lg);
-  padding: var(--space-md);
-}
-
-.movies-header-content {
-  flex: 1;
-}
-
-.movies-title {
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.movies-subtitle {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-.movies-vio {
-  width: 60px;
-  height: auto;
-}
-
-.sort-bar {
-  display: flex;
-  align-items: center;
   gap: var(--space-xs);
   margin-bottom: var(--space-md);
+  background: var(--lavender-50);
+  padding: 4px;
+  border-radius: var(--radius-lg);
 }
 
-.sort-label {
-  font-size: 0.6875rem;
+.media-tab {
+  flex: 1;
+  padding: var(--space-sm);
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  font-size: 0.8125rem;
+  font-weight: 600;
   color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.sort-btn {
-  padding: var(--space-xs) var(--space-sm);
-  border: 1px solid var(--lavender-200);
-  border-radius: var(--radius-full);
+.media-tab.active {
   background: var(--white);
+  color: var(--lavender-600);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.search-box {
+  flex: 1;
+  position: relative;
+}
+
+.search-input {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  padding-right: 32px;
+  border: 2px solid var(--lavender-100);
+  border-radius: var(--radius-full);
+  font-size: 0.8125rem;
+  background: var(--white);
+  transition: border-color 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--lavender-400);
+}
+
+.search-clear {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.25rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.sort-pills {
+  display: flex;
+  gap: 2px;
+  background: var(--lavender-50);
+  padding: 2px;
+  border-radius: var(--radius-full);
+}
+
+.sort-pill {
+  padding: var(--space-xs) var(--space-sm);
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
   font-size: 0.6875rem;
   font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s;
 }
 
-.sort-btn.active {
-  background: var(--lavender-500);
-  border-color: var(--lavender-500);
-  color: white;
+.sort-pill.active {
+  background: var(--white);
+  color: var(--lavender-600);
 }
 
+/* Stats */
+.media-stats {
+  margin-bottom: var(--space-md);
+}
+
+.stat-count {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* Empty State */
 .empty-state {
   text-align: center;
   padding: var(--space-2xl) var(--space-lg);
@@ -228,37 +363,44 @@ function handleSave() {
   margin: 0;
 }
 
-.movie-list {
-  display: flex;
-  flex-direction: column;
+/* Poster Grid */
+.poster-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-sm);
 }
 
-.movie-card {
-  display: flex;
-  gap: var(--space-md);
-  padding: var(--space-md);
-  background: var(--white);
-  border-radius: var(--radius-lg);
-  border: 2px solid var(--lavender-100);
+@media (min-width: 400px) {
+  .poster-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 600px) {
+  .poster-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.poster-card {
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.2s;
 }
 
-.movie-card:hover {
-  border-color: var(--lavender-300);
+.poster-card:hover {
+  transform: scale(1.03);
 }
 
-.movie-poster {
-  flex-shrink: 0;
-  width: 60px;
-  height: 90px;
-  border-radius: var(--radius-sm);
+.poster-wrapper {
+  position: relative;
+  aspect-ratio: 2/3;
+  border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--lavender-100);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-.poster-img {
+.poster-wrapper .poster-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -268,106 +410,190 @@ function handleSave() {
   width: 100%;
   height: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  padding: var(--space-sm);
+  text-align: center;
 }
 
-.movie-info {
+.placeholder-emoji {
+  font-size: 2rem;
+  margin-bottom: var(--space-xs);
+}
+
+.placeholder-title {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.poster-rating {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  background: rgba(0,0,0,0.7);
+  color: #F59E0B;
+  font-size: 0.625rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+/* View Modal */
+.view-modal {
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg);
+  width: calc(100% - 32px);
+  max-width: 400px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.view-content {
+  display: flex;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.view-poster {
+  flex-shrink: 0;
+  width: 100px;
+  aspect-ratio: 2/3;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--lavender-100);
+}
+
+.view-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.view-poster-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+}
+
+.view-details {
   flex: 1;
   min-width: 0;
 }
 
-.movie-title {
-  font-size: 0.875rem;
+.view-title {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
   font-weight: 700;
   color: var(--text-primary);
   margin: 0 0 var(--space-xs);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.movie-stars {
-  font-size: 0.75rem;
+.view-stars {
+  font-size: 0.875rem;
   color: #F59E0B;
   letter-spacing: -1px;
-  margin-bottom: var(--space-xs);
+  margin-bottom: var(--space-md);
 }
 
-.movie-meta {
+.view-table {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: var(--space-xs);
-  margin-bottom: var(--space-xs);
 }
 
-.movie-date {
-  font-size: 0.6875rem;
-  color: var(--text-secondary);
+.view-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-xs) 0;
+  border-bottom: 1px solid var(--lavender-100);
 }
 
-.movie-badge {
-  font-size: 0.625rem;
-  padding: 2px 6px;
-  color: white;
-  border-radius: var(--radius-full);
-  font-weight: 600;
-}
-
-.badge-rewatch {
-  background: var(--income-color);
-}
-
-.badge-maybe {
-  background: #F59E0B;
-}
-
-.badge-dnf {
-  background: var(--gray-400);
-}
-
-.movie-notes {
+.view-label {
   font-size: 0.75rem;
   color: var(--text-secondary);
-  margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+}
+
+.view-value {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.view-value.badge-yes { color: var(--income-color); }
+.view-value.badge-maybe { color: #F59E0B; }
+.view-value.badge-no { color: var(--text-secondary); }
+
+.view-notes {
+  margin-top: var(--space-md);
+}
+
+.view-notes-text {
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+  margin: var(--space-xs) 0 0;
+  line-height: 1.5;
+}
+
+.view-edit-btn {
+  width: 100%;
 }
 </style>
 
 <style>
 /* Dark mode */
-[data-theme="dark"] .movies-header {
-  background: linear-gradient(135deg, #F59E0B15 0%, #1A1625 100%) !important;
-  border-color: #3D3456 !important;
-}
-
-[data-theme="dark"] .sort-btn {
+[data-theme="dark"] .media-tabs {
   background: #1A1625 !important;
-  border-color: #3D3456 !important;
-  color: var(--text-secondary) !important;
 }
 
-[data-theme="dark"] .sort-btn.active {
-  background: #8B5CF6 !important;
-  border-color: #8B5CF6 !important;
-  color: white !important;
-}
-
-[data-theme="dark"] .movie-card {
-  background: #1A1625 !important;
-  border-color: #3D3456 !important;
-}
-
-[data-theme="dark"] .movie-card:hover {
-  border-color: #8B5CF6 !important;
-}
-
-[data-theme="dark"] .movie-poster {
+[data-theme="dark"] .media-tab.active {
   background: #2D2640 !important;
+  color: #C4B5FD !important;
+}
+
+[data-theme="dark"] .search-input {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .search-input:focus {
+  border-color: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .sort-pills {
+  background: #1A1625 !important;
+}
+
+[data-theme="dark"] .sort-pill.active {
+  background: #2D2640 !important;
+  color: #C4B5FD !important;
+}
+
+[data-theme="dark"] .poster-wrapper {
+  background: #2D2640 !important;
+}
+
+[data-theme="dark"] .view-modal {
+  background: #1A1625 !important;
+}
+
+[data-theme="dark"] .view-poster {
+  background: #2D2640 !important;
+}
+
+[data-theme="dark"] .view-row {
+  border-color: #3D3456 !important;
 }
 </style>

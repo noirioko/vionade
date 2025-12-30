@@ -217,11 +217,21 @@ function onSearchInput() {
       <!-- Date Watched -->
       <div class="input-group">
         <label class="input-label">Date Watched</label>
-        <input
-          v-model="watchedDate"
-          type="date"
-          class="input"
-        />
+        <div class="date-options">
+          <input
+            v-model="watchedDate"
+            type="date"
+            class="input date-input"
+            :disabled="watchedDate === 'unknown'"
+          />
+          <button
+            class="date-unknown-btn"
+            :class="{ active: watchedDate === 'unknown' }"
+            @click="watchedDate = watchedDate === 'unknown' ? new Date().toISOString().split('T')[0] : 'unknown'"
+          >
+            {{ watchedDate === 'unknown' ? "Can't remember" : '?' }}
+          </button>
+        </div>
       </div>
 
       <!-- Did I finish it? -->
@@ -429,6 +439,38 @@ function onSearchInput() {
   font-family: inherit;
 }
 
+.date-options {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.date-input {
+  flex: 1;
+}
+
+.date-unknown-btn {
+  padding: var(--space-sm) var(--space-md);
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  background: var(--white);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.date-unknown-btn:hover {
+  border-color: var(--lavender-300);
+}
+
+.date-unknown-btn.active {
+  background: var(--lavender-500);
+  border-color: var(--lavender-500);
+  color: white;
+}
+
 .finish-options,
 .rewatch-options {
   display: flex;
@@ -524,6 +566,20 @@ function onSearchInput() {
 
 [data-theme="dark"] .finish-btn.active,
 [data-theme="dark"] .rewatch-btn.active {
+  background: #8B5CF6 !important;
+  border-color: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .date-unknown-btn {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .date-unknown-btn:hover {
+  border-color: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .date-unknown-btn.active {
   background: #8B5CF6 !important;
   border-color: #8B5CF6 !important;
 }
