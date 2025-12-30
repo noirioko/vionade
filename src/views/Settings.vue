@@ -124,11 +124,9 @@ function importData(event) {
   reader.readAsText(file)
 }
 
-function clearAllData() {
-  localStorage.removeItem('mochi_wallets')
-  localStorage.removeItem('mochi_transactions')
-  localStorage.removeItem('mochi_settings')
-  window.location.reload()
+async function clearAllData() {
+  await store.resetAllData()
+  showClearConfirm.value = false
 }
 </script>
 

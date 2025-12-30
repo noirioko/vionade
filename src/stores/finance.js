@@ -732,6 +732,51 @@ function getCategoryById(id, type = 'expense') {
   return categories.find(c => c.id === id)
 }
 
+// Reset all data - clears localStorage and Firebase
+async function resetAllData() {
+  // Clear all localStorage items
+  localStorage.removeItem('mochi_wallets')
+  localStorage.removeItem('mochi_transactions')
+  localStorage.removeItem('mochi_settings')
+  localStorage.removeItem('mochi_savings')
+  localStorage.removeItem('mochi_wishlist')
+  localStorage.removeItem('mochi_challenges')
+  localStorage.removeItem('mochi_viopass')
+
+  // Reset state to defaults
+  state.wallets = JSON.parse(JSON.stringify(DEFAULT_WALLETS))
+  state.transactions = []
+  state.savings = []
+  state.wishlist = []
+  state.challenges = []
+  state.vioPass = {
+    checkins: [],
+    currentStreak: 0,
+    longestStreak: 0,
+    lastCheckinDate: null,
+  }
+  state.settings = {
+    currency: 'IDR',
+    hasCompletedOnboarding: false,
+    startedAt: null,
+    theme: state.settings.theme, // Keep current theme
+    targets: {
+      monthlyIncome: 0,
+      monthlyExpense: 0,
+      monthlySavings: 0,
+    },
+    lifetimeGoal: {
+      name: 'House Fund',
+      target: 0,
+    },
+  }
+
+  // Save empty state to Firebase to overwrite cloud data
+  await saveToFirebase()
+
+  return true
+}
+
 // Export composable
 export function useFinanceStore() {
   return {
@@ -799,5 +844,6 @@ export function useFinanceStore() {
     getWalletById,
     getCategoryById,
     monthlySavingsForMonth,
+    resetAllData,
   }
 }
