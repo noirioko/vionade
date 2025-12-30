@@ -110,6 +110,23 @@ function getWatchAgainClass(value) {
   if (value === 'maybe') return 'badge-maybe'
   return 'badge-no'
 }
+
+function getFinishText(value) {
+  if (value === 'reading') return 'Still reading'
+  if (value === 'dropped') return 'Dropped'
+  if (value === false || value === 'no') return 'Nope'
+  return 'Yes'
+}
+
+function getFinishClass(value) {
+  if (value === 'reading') return 'badge-maybe'
+  if (value === 'dropped') return 'badge-no'
+  if (value === false || value === 'no') return 'badge-no'
+  return 'badge-yes'
+}
+
+// Check if current tab is books
+const isBookTab = computed(() => activeTab.value === 'books')
 </script>
 
 <template>
@@ -220,15 +237,17 @@ function getWatchAgainClass(value) {
 
             <div class="view-table">
               <div class="view-row">
-                <span class="view-label">Watched</span>
+                <span class="view-label">{{ isBookTab ? 'Read' : 'Watched' }}</span>
                 <span class="view-value">{{ formatDate(viewingMovie.watchedDate) }}</span>
               </div>
               <div class="view-row">
-                <span class="view-label">Finished</span>
-                <span class="view-value">{{ viewingMovie.didFinish === false ? 'Nope' : 'Yes' }}</span>
+                <span class="view-label">{{ isBookTab ? 'Status' : 'Finished' }}</span>
+                <span class="view-value" :class="getFinishClass(viewingMovie.didFinish)">
+                  {{ getFinishText(viewingMovie.didFinish) }}
+                </span>
               </div>
               <div class="view-row">
-                <span class="view-label">Watch again?</span>
+                <span class="view-label">{{ isBookTab ? 'Read again?' : 'Watch again?' }}</span>
                 <span class="view-value" :class="getWatchAgainClass(viewingMovie.wouldWatchAgain)">
                   {{ getWatchAgainText(viewingMovie.wouldWatchAgain) }}
                 </span>

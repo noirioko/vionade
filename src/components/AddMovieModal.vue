@@ -26,7 +26,7 @@ const rating = ref(7)
 const watchedDate = ref(new Date().toISOString().split('T')[0])
 const notes = ref('')
 const wouldWatchAgain = ref('yes') // 'yes', 'maybe', 'no'
-const didFinish = ref(true)
+const didFinish = ref('yes') // 'yes', 'no', 'reading', 'dropped' (for books)
 
 // Search state
 const searchQuery = ref('')
@@ -44,7 +44,12 @@ watch(() => props.movie, (movie) => {
     rating.value = movie.rating
     watchedDate.value = movie.watchedDate
     notes.value = movie.notes || ''
-    didFinish.value = movie.didFinish !== false
+    // Handle didFinish - convert boolean to string if needed
+    if (typeof movie.didFinish === 'boolean') {
+      didFinish.value = movie.didFinish ? 'yes' : 'no'
+    } else {
+      didFinish.value = movie.didFinish || 'yes'
+    }
     if (typeof movie.wouldWatchAgain === 'boolean') {
       wouldWatchAgain.value = movie.wouldWatchAgain ? 'yes' : 'no'
     } else {
@@ -58,7 +63,7 @@ watch(() => props.movie, (movie) => {
     rating.value = 7
     watchedDate.value = new Date().toISOString().split('T')[0]
     notes.value = ''
-    didFinish.value = true
+    didFinish.value = 'yes'
     wouldWatchAgain.value = 'yes'
   }
 }, { immediate: true })
@@ -72,12 +77,36 @@ const hasApiKey = computed(() => {
 // Computed labels based on media type
 const mediaLabels = computed(() => {
   const labels = {
-    movie: { title: 'Movie', search: 'Search TMDB...', poster: 'Poster' },
-    series: { title: 'Series', search: 'Search TV series...', poster: 'Poster' },
-    book: { title: 'Book', search: 'Search Google Books...', poster: 'Cover' }
+    movie: {
+      title: 'Movie',
+      search: 'Search TMDB...',
+      poster: 'Poster',
+      dateLabel: 'Date Watched',
+      finishLabel: 'Did I finish it?',
+      againLabel: 'Would watch again?'
+    },
+    series: {
+      title: 'Series',
+      search: 'Search TV series...',
+      poster: 'Poster',
+      dateLabel: 'Date Watched',
+      finishLabel: 'Did I finish it?',
+      againLabel: 'Would watch again?'
+    },
+    book: {
+      title: 'Book',
+      search: 'Search Google Books...',
+      poster: 'Cover',
+      dateLabel: 'Date Read',
+      finishLabel: 'Reading status',
+      againLabel: 'Would read again?'
+    }
   }
   return labels[props.mediaType] || labels.movie
 })
+
+// Different finish options for books vs movies/series
+const isBook = computed(() => props.mediaType === 'book')
 
 const effectivePosterUrl = computed(() => {
   return useCustomPoster.value ? customPosterUrl.value : posterUrl.value
@@ -365,9 +394,9 @@ function handleImageUpload(event) {
         </div>
       </div>
 
-      <!-- Date Watched -->
+      <!-- Date Watched/Read -->
       <div class="input-group">
-        <label class="input-label">Date Watched</label>
+        <label class="input-label">{{ mediaLabels.dateLabel }}</label>
         <div class="date-options">
           <input
             v-model="watchedDate"
@@ -385,20 +414,37 @@ function handleImageUpload(event) {
         </div>
       </div>
 
-      <!-- Did I finish it? -->
+      <!-- Did I finish it? (different options for books) -->
       <div class="input-group">
-        <label class="input-label">Did I finish it?</label>
-        <div class="finish-options">
+        <label class="input-label">{{ mediaLabels.finishLabel }}</label>
+        <div class="finish-options" v-if="!isBook">
           <button
             class="finish-btn"
-            :class="{ active: didFinish }"
-            @click="didFinish = true"
+            :class="{ active: didFinish === 'yes' }"
+            @click="didFinish = 'yes'"
           >Yep!</button>
           <button
             class="finish-btn"
-            :class="{ active: !didFinish }"
-            @click="didFinish = false"
+            :class="{ active: didFinish === 'no' }"
+            @click="didFinish = 'no'"
           >Nope (fell asleep)</button>
+        </div>
+        <div class="finish-options book-options" v-else>
+          <button
+            class="finish-btn"
+            :class="{ active: didFinish === 'yes' }"
+            @click="didFinish = 'yes'"
+          >Finished</button>
+          <button
+            class="finish-btn"
+            :class="{ active: didFinish === 'reading' }"
+            @click="didFinish = 'reading'"
+          >Still reading</button>
+          <button
+            class="finish-btn"
+            :class="{ active: didFinish === 'dropped' }"
+            @click="didFinish = 'dropped'"
+          >Dropped</button>
         </div>
       </div>
 
@@ -413,9 +459,9 @@ function handleImageUpload(event) {
         ></textarea>
       </div>
 
-      <!-- Would Watch Again -->
+      <!-- Would Watch/Read Again -->
       <div class="input-group">
-        <label class="input-label">Would watch again?</label>
+        <label class="input-label">{{ mediaLabels.againLabel }}</label>
         <div class="rewatch-options">
           <button
             class="rewatch-btn"

@@ -7,7 +7,7 @@ const showMore = ref(false)
 
 // Check if current route is in the "more" menu
 const isMoreActive = () => {
-  const moreRoutes = ['/movies', '/viopass', '/laundry', '/settings']
+  const moreRoutes = ['/media', '/viopass', '/laundry', '/settings']
   return moreRoutes.includes(route.path)
 }
 
@@ -30,7 +30,7 @@ function closeMore() {
       <div v-if="showMore" class="more-sheet">
         <div class="more-handle" @click="closeMore"></div>
         <div class="more-grid">
-          <RouterLink to="/movies" class="more-item" @click="closeMore">
+          <RouterLink to="/media" class="more-item" @click="closeMore">
             <span class="more-item-icon">🎬</span>
             <span class="more-item-label">Media</span>
           </RouterLink>
@@ -73,7 +73,7 @@ function closeMore() {
     </RouterLink>
 
     <!-- Desktop only items -->
-    <RouterLink to="/movies" class="nav-item desktop-only">
+    <RouterLink to="/media" class="nav-item desktop-only">
       <span class="nav-item-icon">🎬</span>
       <span>Media</span>
     </RouterLink>

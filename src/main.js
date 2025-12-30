@@ -11,7 +11,7 @@ import Dashboard from './views/Dashboard.vue'
 import Wallets from './views/Wallets.vue'
 import History from './views/History.vue'
 import Wishlist from './views/Wishlist.vue'
-import Movies from './views/Movies.vue'
+import Media from './views/Movies.vue'
 import VioPass from './views/VioPass.vue'
 import Laundry from './views/Laundry.vue'
 import Settings from './views/Settings.vue'
@@ -23,7 +23,7 @@ const routes = [
   { path: '/wallets', name: 'Wallets', component: Wallets },
   { path: '/history', name: 'History', component: History },
   { path: '/wishlist', name: 'Wishlist', component: Wishlist },
-  { path: '/movies', name: 'Movies', component: Movies },
+  { path: '/media', name: 'Media', component: Media },
   { path: '/viopass', name: 'VioPass', component: VioPass },
   { path: '/laundry', name: 'Laundry', component: Laundry },
   { path: '/settings', name: 'Settings', component: Settings },
