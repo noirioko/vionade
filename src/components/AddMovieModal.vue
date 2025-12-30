@@ -51,6 +51,7 @@ watch(() => props.movie, (movie) => {
 }, { immediate: true })
 
 const isEditing = computed(() => !!props.movie)
+const hasApiKey = computed(() => !!import.meta.env.VITE_TMDB_API_KEY)
 
 // TMDB API search
 async function searchMovies() {
@@ -152,7 +153,7 @@ function onSearchInput() {
             v-model="searchQuery"
             type="text"
             class="input"
-            placeholder="Type movie title..."
+            :placeholder="hasApiKey ? 'Type to search TMDB...' : 'Type movie title (no API key)'"
             @input="onSearchInput"
             @focus="showResults = searchResults.length > 0"
           />
