@@ -119,7 +119,8 @@ function handleSave() {
           <div class="movie-stars">{{ renderStars(movie.rating) }}</div>
           <div class="movie-meta">
             <span class="movie-date">{{ formatDate(movie.watchedDate) }}</span>
-            <span v-if="movie.wouldWatchAgain" class="movie-rewatch">Would rewatch</span>
+            <span v-if="movie.wouldWatchAgain === true || movie.wouldWatchAgain === 'yes'" class="movie-rewatch rewatch-yes">Would rewatch</span>
+            <span v-else-if="movie.wouldWatchAgain === 'maybe'" class="movie-rewatch rewatch-maybe">Maybe rewatch</span>
           </div>
           <p v-if="movie.notes" class="movie-notes">{{ movie.notes }}</p>
         </div>
@@ -308,10 +309,17 @@ function handleSave() {
 .movie-rewatch {
   font-size: 0.625rem;
   padding: 2px 6px;
-  background: var(--income-color);
   color: white;
   border-radius: var(--radius-full);
   font-weight: 600;
+}
+
+.rewatch-yes {
+  background: var(--income-color);
+}
+
+.rewatch-maybe {
+  background: #F59E0B;
 }
 
 .movie-notes {

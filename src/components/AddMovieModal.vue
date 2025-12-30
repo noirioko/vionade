@@ -18,7 +18,7 @@ const posterUrl = ref('')
 const rating = ref(7)
 const watchedDate = ref(new Date().toISOString().split('T')[0])
 const notes = ref('')
-const wouldWatchAgain = ref(true)
+const wouldWatchAgain = ref('yes') // 'yes', 'maybe', 'no'
 
 // TMDB search state
 const searchQuery = ref('')
@@ -34,14 +34,19 @@ watch(() => props.movie, (movie) => {
     rating.value = movie.rating
     watchedDate.value = movie.watchedDate
     notes.value = movie.notes || ''
-    wouldWatchAgain.value = movie.wouldWatchAgain
+    // Handle old boolean values and new string values
+    if (typeof movie.wouldWatchAgain === 'boolean') {
+      wouldWatchAgain.value = movie.wouldWatchAgain ? 'yes' : 'no'
+    } else {
+      wouldWatchAgain.value = movie.wouldWatchAgain || 'yes'
+    }
   } else {
     title.value = ''
     posterUrl.value = ''
     rating.value = 7
     watchedDate.value = new Date().toISOString().split('T')[0]
     notes.value = ''
-    wouldWatchAgain.value = true
+    wouldWatchAgain.value = 'yes'
   }
 }, { immediate: true })
 
@@ -227,16 +232,24 @@ function onSearchInput() {
 
       <!-- Would Watch Again -->
       <div class="input-group">
-        <label class="toggle-row">
-          <span class="toggle-label">Would watch again?</span>
+        <label class="input-label">Would watch again?</label>
+        <div class="rewatch-options">
           <button
-            class="toggle-btn"
-            :class="{ active: wouldWatchAgain }"
-            @click="wouldWatchAgain = !wouldWatchAgain"
-          >
-            {{ wouldWatchAgain ? 'Yes!' : 'Nope' }}
-          </button>
-        </label>
+            class="rewatch-btn"
+            :class="{ active: wouldWatchAgain === 'yes' }"
+            @click="wouldWatchAgain = 'yes'"
+          >Yes!</button>
+          <button
+            class="rewatch-btn"
+            :class="{ active: wouldWatchAgain === 'maybe' }"
+            @click="wouldWatchAgain = 'maybe'"
+          >Maybe</button>
+          <button
+            class="rewatch-btn"
+            :class="{ active: wouldWatchAgain === 'no' }"
+            @click="wouldWatchAgain = 'no'"
+          >Nope</button>
+        </div>
       </div>
 
       <!-- Actions -->
@@ -394,21 +407,16 @@ function onSearchInput() {
   font-family: inherit;
 }
 
-.toggle-row {
+.rewatch-options {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  gap: var(--space-xs);
 }
 
-.toggle-label {
-  font-size: 0.875rem;
-  color: var(--text-primary);
-}
-
-.toggle-btn {
-  padding: var(--space-xs) var(--space-md);
+.rewatch-btn {
+  flex: 1;
+  padding: var(--space-sm);
   border: 2px solid var(--gray-200);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
   background: var(--white);
   font-size: 0.75rem;
   font-weight: 600;
@@ -417,9 +425,13 @@ function onSearchInput() {
   transition: all 0.2s;
 }
 
-.toggle-btn.active {
-  background: var(--income-color);
-  border-color: var(--income-color);
+.rewatch-btn:hover {
+  border-color: var(--lavender-300);
+}
+
+.rewatch-btn.active {
+  background: var(--lavender-500);
+  border-color: var(--lavender-500);
   color: white;
 }
 
@@ -473,13 +485,17 @@ function onSearchInput() {
   color: #F59E0B !important;
 }
 
-[data-theme="dark"] .toggle-btn {
+[data-theme="dark"] .rewatch-btn {
   background: #1A1625 !important;
   border-color: #3D3456 !important;
 }
 
-[data-theme="dark"] .toggle-btn.active {
-  background: var(--income-color) !important;
-  border-color: var(--income-color) !important;
+[data-theme="dark"] .rewatch-btn:hover {
+  border-color: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .rewatch-btn.active {
+  background: #8B5CF6 !important;
+  border-color: #8B5CF6 !important;
 }
 </style>
