@@ -16,13 +16,17 @@ const features = [
 </script>
 
 <template>
-  <div class="home-page">
-    <!-- Header with Vio -->
-    <div class="home-header">
-      <img src="/images/vio_right.png" alt="Vio" class="home-vio" />
-      <div class="home-greeting">
-        <h1 class="home-title">Vionade</h1>
-        <p class="home-subtitle">What would you like to do?</p>
+  <div class="page">
+    <!-- Standard Header -->
+    <div class="page-header">
+      <img src="/images/vio-logo.png" alt="Vionade" class="page-header-logo" />
+    </div>
+
+    <!-- Welcome Section -->
+    <div class="welcome-section section">
+      <img src="/images/vio_right.png" alt="Vio" class="welcome-vio" />
+      <div class="welcome-text">
+        <p class="welcome-greeting">What would you like to do?</p>
       </div>
     </div>
 
@@ -54,43 +58,22 @@ const features = [
 </template>
 
 <style scoped>
-.home-page {
-  min-height: 100vh;
-  padding: var(--space-lg);
-  padding-bottom: calc(var(--space-xl) + 80px);
-  max-width: 480px;
-  margin: 0 auto;
-}
-
-.home-header {
+.welcome-section {
   display: flex;
   align-items: center;
   gap: var(--space-md);
-  margin-bottom: var(--space-xl);
-  padding: var(--space-lg);
+  padding: var(--space-md);
   background: linear-gradient(135deg, var(--lavender-100) 0%, var(--lavender-50) 100%);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   border: 2px solid var(--lavender-200);
 }
 
-.home-vio {
-  width: 80px;
+.welcome-vio {
+  width: 60px;
   height: auto;
 }
 
-.home-greeting {
-  flex: 1;
-}
-
-.home-title {
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--lavender-600);
-  margin: 0;
-}
-
-.home-subtitle {
+.welcome-greeting {
   font-size: 0.875rem;
   color: var(--text-secondary);
   margin: 0;
@@ -192,13 +175,9 @@ const features = [
 
 <style>
 /* Dark mode */
-[data-theme="dark"] .home-header {
+[data-theme="dark"] .welcome-section {
   background: linear-gradient(135deg, #2D2640 0%, #1A1625 100%) !important;
   border-color: #3D3456 !important;
-}
-
-[data-theme="dark"] .home-title {
-  color: #C4B5FD !important;
 }
 
 [data-theme="dark"] .icon-card {

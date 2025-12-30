@@ -1,12 +1,18 @@
 <script setup>
 import { ref, computed, onMounted, provide } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useFinanceStore } from './stores/finance'
 import BottomNav from './components/BottomNav.vue'
 import AddTransactionModal from './components/AddTransactionModal.vue'
 
 const route = useRoute()
+const router = useRouter()
 const store = useFinanceStore()
+
+// Set up sign out callback to redirect to landing
+store.setOnSignOutCallback(() => {
+  router.push('/landing')
+})
 
 const showAddModal = ref(false)
 
@@ -18,6 +24,9 @@ provide('fabAction', fabAction)
 const pagesWithFab = ['/finance', '/wallets', '/history', '/wishlist', '/movies', '/laundry']
 
 const showFab = computed(() => pagesWithFab.includes(route.path))
+
+// Hide nav on landing page
+const showNav = computed(() => route.path !== '/landing')
 
 function handleFabClick() {
   // If the current page registered a custom action, use it
@@ -44,7 +53,7 @@ onMounted(() => {
   </button>
 
   <!-- Bottom Navigation -->
-  <BottomNav />
+  <BottomNav v-if="showNav" />
 
   <!-- Add Transaction Modal (default action) -->
   <AddTransactionModal

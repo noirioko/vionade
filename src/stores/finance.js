@@ -92,6 +92,13 @@ const state = reactive({
 // Firebase sync
 let unsubscribe = null
 
+// Callback for when user signs out (set by App.vue)
+let onSignOutCallback = null
+
+function setOnSignOutCallback(callback) {
+  onSignOutCallback = callback
+}
+
 async function initFirebase() {
   // Set up auth callback to handle user changes (e.g., when signing in/out)
   setAuthCallback((user) => {
@@ -101,8 +108,17 @@ async function initFirebase() {
       loadFromFirebase()
       setupRealtimeSync()
     } else {
+      // User signed out - clean up
+      if (unsubscribe) {
+        unsubscribe()
+        unsubscribe = null
+      }
       state.userId = null
       state.userEmail = null
+      // Trigger the sign out callback (for redirect)
+      if (onSignOutCallback) {
+        onSignOutCallback()
+      }
     }
   })
 
@@ -127,6 +143,7 @@ async function loadFromFirebase() {
   try {
     const userDoc = await getDoc(doc(db, 'users', state.userId))
     if (userDoc.exists()) {
+      // Existing user - load their data
       const data = userDoc.data()
       if (data.wallets) state.wallets = data.wallets
       if (data.transactions) state.transactions = data.transactions
@@ -145,7 +162,28 @@ async function loadFromFirebase() {
       localStorage.setItem('mochi_viopass', JSON.stringify(state.vioPass))
       localStorage.setItem('mochi_movies', JSON.stringify(state.movies))
     } else {
-      // First time user - save current data to Firebase
+      // First time user - start fresh with defaults (don't use old localStorage)
+      state.wallets = [...DEFAULT_WALLETS]
+      state.transactions = []
+      state.savings = []
+      state.wishlist = []
+      state.challenges = []
+      state.movies = []
+      state.vioPass = {
+        checkins: [],
+        currentStreak: 0,
+        longestStreak: 0,
+        lastCheckinDate: null,
+      }
+      state.settings = {
+        currency: 'IDR',
+        hasCompletedOnboarding: false,
+        startedAt: null,
+        theme: state.settings.theme, // Keep current theme preference
+        targets: { monthlyIncome: 0, monthlyExpense: 0, monthlySavings: 0 },
+        lifetimeGoal: { name: 'House Fund', target: 0 },
+      }
+      // Save fresh state to Firebase
       await saveToFirebase()
     }
   } catch (error) {
@@ -890,5 +928,6 @@ export function useFinanceStore() {
     getCategoryById,
     monthlySavingsForMonth,
     resetAllData,
+    setOnSignOutCallback,
   }
 }

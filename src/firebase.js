@@ -24,33 +24,48 @@ const app = initializeApp(firebaseConfig)
 const db = getFirestore(app)
 const auth = getAuth(app)
 
-// Sign in anonymously (no login required, but data is tied to device)
-// You can upgrade to email/password later if you want cross-device sync
 // Auth state listener callback
 let authCallback = null
+let authReady = false
+let authReadyResolve = null
+const authReadyPromise = new Promise((resolve) => {
+  authReadyResolve = resolve
+})
 
 export function setAuthCallback(callback) {
   authCallback = callback
 }
 
+// Wait for auth to be ready, then return current user
+export async function waitForAuth() {
+  if (authReady) return auth.currentUser
+  await authReadyPromise
+  return auth.currentUser
+}
+
+// Initialize auth - just listen for state changes, don't auto sign in
 export async function initAuth() {
   return new Promise((resolve) => {
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        if (authCallback) authCallback(user)
-        resolve(user)
-      } else {
-        try {
-          const result = await signInAnonymously(auth)
-          if (authCallback) authCallback(result.user)
-          resolve(result.user)
-        } catch (error) {
-          console.error('Auth error:', error)
-          resolve(null)
-        }
+    onAuthStateChanged(auth, (user) => {
+      if (!authReady) {
+        authReady = true
+        authReadyResolve(user)
       }
+      if (authCallback) authCallback(user)
+      resolve(user)
     })
   })
+}
+
+// Sign in as guest (anonymous)
+export async function signInAsGuest() {
+  try {
+    const result = await signInAnonymously(auth)
+    return result.user
+  } catch (error) {
+    console.error('Guest sign in error:', error)
+    throw error
+  }
 }
 
 // Google Sign In
@@ -66,13 +81,11 @@ export async function signInWithGoogle() {
   }
 }
 
-// Sign Out
+// Sign Out - truly signs out, returns to landing page
 export async function signOutUser() {
   try {
     await signOut(auth)
-    // Sign in anonymously again after sign out
-    const result = await signInAnonymously(auth)
-    return result.user
+    return null
   } catch (error) {
     console.error('Sign out error:', error)
     throw error

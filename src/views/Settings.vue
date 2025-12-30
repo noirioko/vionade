@@ -1,8 +1,10 @@
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useFinanceStore } from '../stores/finance'
 import { signInWithGoogle, signOutUser } from '../firebase'
 
+const router = useRouter()
 const store = useFinanceStore()
 const showClearConfirm = ref(false)
 const showExportSuccess = ref(false)
@@ -72,6 +74,7 @@ async function handleGoogleSignIn() {
 async function handleSignOut() {
   try {
     await signOutUser()
+    router.push('/landing')
   } catch (error) {
     console.error('Sign out error:', error)
   }
@@ -169,7 +172,7 @@ async function clearAllData() {
     <div class="card section">
       <div class="section-title mb-md">Account</div>
 
-      <!-- Signed in state -->
+      <!-- Signed in with Google -->
       <div v-if="store.userEmail.value" style="display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-md);">
         <div
           style="
@@ -194,8 +197,31 @@ async function clearAllData() {
         </button>
       </div>
 
-      <!-- Not signed in -->
+      <!-- Guest mode -->
       <div v-else style="margin-bottom: var(--space-md);">
+        <div style="display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-md);">
+          <div
+            style="
+              width: 40px;
+              height: 40px;
+              border-radius: 50%;
+              background: var(--gray-100);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 1.25rem;
+            "
+          >
+            👻
+          </div>
+          <div style="flex: 1;">
+            <div class="font-bold text-sm">Guest</div>
+            <div class="text-xs text-muted">Data stored locally only</div>
+          </div>
+          <button class="btn btn-sm btn-ghost" @click="handleSignOut">
+            Sign out
+          </button>
+        </div>
         <button
           class="btn btn-secondary w-full"
           style="display: flex; align-items: center; justify-content: center; gap: var(--space-sm);"
@@ -203,7 +229,7 @@ async function clearAllData() {
           @click="handleGoogleSignIn"
         >
           <span style="font-size: 1.25rem;">🔐</span>
-          {{ isSigningIn ? 'Signing in...' : 'Sign in with Google' }}
+          {{ isSigningIn ? 'Signing in...' : 'Upgrade to Google' }}
         </button>
         <p class="text-xs text-muted text-center mt-sm">Sign in to sync your data across devices</p>
       </div>
