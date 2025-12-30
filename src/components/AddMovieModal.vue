@@ -19,6 +19,7 @@ const rating = ref(7)
 const watchedDate = ref(new Date().toISOString().split('T')[0])
 const notes = ref('')
 const wouldWatchAgain = ref('yes') // 'yes', 'maybe', 'no'
+const didFinish = ref(true)
 
 // TMDB search state
 const searchQuery = ref('')
@@ -34,6 +35,7 @@ watch(() => props.movie, (movie) => {
     rating.value = movie.rating
     watchedDate.value = movie.watchedDate
     notes.value = movie.notes || ''
+    didFinish.value = movie.didFinish !== false // default to true for old movies
     // Handle old boolean values and new string values
     if (typeof movie.wouldWatchAgain === 'boolean') {
       wouldWatchAgain.value = movie.wouldWatchAgain ? 'yes' : 'no'
@@ -46,6 +48,7 @@ watch(() => props.movie, (movie) => {
     rating.value = 7
     watchedDate.value = new Date().toISOString().split('T')[0]
     notes.value = ''
+    didFinish.value = true
     wouldWatchAgain.value = 'yes'
   }
 }, { immediate: true })
@@ -108,6 +111,7 @@ function handleSave() {
     rating: rating.value,
     watchedDate: watchedDate.value,
     notes: notes.value.trim(),
+    didFinish: didFinish.value,
     wouldWatchAgain: wouldWatchAgain.value
   }
 
@@ -145,9 +149,9 @@ function onSearchInput() {
         <button class="modal-close" @click="$emit('close')">×</button>
       </div>
 
-      <!-- Search (only for new movies) -->
-      <div v-if="!isEditing" class="input-group">
-        <label class="input-label">Search Movie</label>
+      <!-- Search (always show so user can re-search) -->
+      <div class="input-group">
+        <label class="input-label">{{ isEditing ? 'Change Movie' : 'Search Movie' }}</label>
         <div class="search-box">
           <input
             v-model="searchQuery"
@@ -218,6 +222,23 @@ function onSearchInput() {
           type="date"
           class="input"
         />
+      </div>
+
+      <!-- Did I finish it? -->
+      <div class="input-group">
+        <label class="input-label">Did I finish it?</label>
+        <div class="finish-options">
+          <button
+            class="finish-btn"
+            :class="{ active: didFinish }"
+            @click="didFinish = true"
+          >Yep!</button>
+          <button
+            class="finish-btn"
+            :class="{ active: !didFinish }"
+            @click="didFinish = false"
+          >Nope (fell asleep)</button>
+        </div>
       </div>
 
       <!-- Notes -->
@@ -408,11 +429,13 @@ function onSearchInput() {
   font-family: inherit;
 }
 
+.finish-options,
 .rewatch-options {
   display: flex;
   gap: var(--space-xs);
 }
 
+.finish-btn,
 .rewatch-btn {
   flex: 1;
   padding: var(--space-sm);
@@ -426,10 +449,12 @@ function onSearchInput() {
   transition: all 0.2s;
 }
 
+.finish-btn:hover,
 .rewatch-btn:hover {
   border-color: var(--lavender-300);
 }
 
+.finish-btn.active,
 .rewatch-btn.active {
   background: var(--lavender-500);
   border-color: var(--lavender-500);
@@ -486,15 +511,18 @@ function onSearchInput() {
   color: #F59E0B !important;
 }
 
+[data-theme="dark"] .finish-btn,
 [data-theme="dark"] .rewatch-btn {
   background: #1A1625 !important;
   border-color: #3D3456 !important;
 }
 
+[data-theme="dark"] .finish-btn:hover,
 [data-theme="dark"] .rewatch-btn:hover {
   border-color: #8B5CF6 !important;
 }
 
+[data-theme="dark"] .finish-btn.active,
 [data-theme="dark"] .rewatch-btn.active {
   background: #8B5CF6 !important;
   border-color: #8B5CF6 !important;

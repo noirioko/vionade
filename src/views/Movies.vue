@@ -119,8 +119,9 @@ function handleSave() {
           <div class="movie-stars">{{ renderStars(movie.rating) }}</div>
           <div class="movie-meta">
             <span class="movie-date">{{ formatDate(movie.watchedDate) }}</span>
-            <span v-if="movie.wouldWatchAgain === true || movie.wouldWatchAgain === 'yes'" class="movie-rewatch rewatch-yes">Would rewatch</span>
-            <span v-else-if="movie.wouldWatchAgain === 'maybe'" class="movie-rewatch rewatch-maybe">Maybe rewatch</span>
+            <span v-if="movie.didFinish === false" class="movie-badge badge-dnf">Didn't finish</span>
+            <span v-if="movie.wouldWatchAgain === true || movie.wouldWatchAgain === 'yes'" class="movie-badge badge-rewatch">Would rewatch</span>
+            <span v-else-if="movie.wouldWatchAgain === 'maybe'" class="movie-badge badge-maybe">Maybe rewatch</span>
           </div>
           <p v-if="movie.notes" class="movie-notes">{{ movie.notes }}</p>
         </div>
@@ -306,7 +307,7 @@ function handleSave() {
   color: var(--text-secondary);
 }
 
-.movie-rewatch {
+.movie-badge {
   font-size: 0.625rem;
   padding: 2px 6px;
   color: white;
@@ -314,12 +315,16 @@ function handleSave() {
   font-weight: 600;
 }
 
-.rewatch-yes {
+.badge-rewatch {
   background: var(--income-color);
 }
 
-.rewatch-maybe {
+.badge-maybe {
   background: #F59E0B;
+}
+
+.badge-dnf {
+  background: var(--gray-400);
 }
 
 .movie-notes {
