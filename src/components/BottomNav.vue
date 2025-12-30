@@ -32,7 +32,7 @@ function closeMore() {
         <div class="more-grid">
           <RouterLink to="/movies" class="more-item" @click="closeMore">
             <span class="more-item-icon">🎬</span>
-            <span class="more-item-label">Movies</span>
+            <span class="more-item-label">Media</span>
           </RouterLink>
           <RouterLink to="/viopass" class="more-item" @click="closeMore">
             <span class="more-item-icon">🍋</span>
@@ -75,7 +75,7 @@ function closeMore() {
     <!-- Desktop only items -->
     <RouterLink to="/movies" class="nav-item desktop-only">
       <span class="nav-item-icon">🎬</span>
-      <span>Movies</span>
+      <span>Media</span>
     </RouterLink>
 
     <RouterLink to="/viopass" class="nav-item desktop-only">

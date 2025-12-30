@@ -8,7 +8,7 @@ const features = [
   { icon: '👛', label: 'Wallets', route: '/wallets', color: '#8B5CF6' },
   { icon: '📖', label: 'History', route: '/history', color: '#0EA5E9' },
   { icon: '🎁', label: 'Wishlist', route: '/wishlist', color: '#F472B6' },
-  { icon: '🎬', label: 'Movies', route: '/movies', color: '#F59E0B' },
+  { icon: '🎬', label: 'Media', route: '/movies', color: '#F59E0B' },
   { icon: '🍋', label: 'Vio Pass', route: '/viopass', color: '#FBBF24' },
   { icon: '🧺', label: 'Laundry', route: '/laundry', color: '#38BDF8' },
   { icon: '⚙️', label: 'Settings', route: '/settings', color: '#94A3B8' },

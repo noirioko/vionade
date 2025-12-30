@@ -25,22 +25,47 @@ onUnmounted(() => {
   fabAction.value = null
 })
 
-const filteredMovies = computed(() => {
-  let movies = [...store.movies.value]
+// Get current data source based on active tab
+const currentItems = computed(() => {
+  if (activeTab.value === 'series') return store.series.value || []
+  if (activeTab.value === 'books') return store.books.value || []
+  return store.movies.value || []
+})
+
+// Get media type for the modal
+const currentMediaType = computed(() => {
+  if (activeTab.value === 'series') return 'series'
+  if (activeTab.value === 'books') return 'book'
+  return 'movie'
+})
+
+// Labels based on current tab
+const tabLabels = computed(() => {
+  const labels = {
+    movies: { singular: 'movie', plural: 'movies', emoji: '🎬', search: 'Find movie...' },
+    series: { singular: 'series', plural: 'series', emoji: '📺', search: 'Find series...' },
+    books: { singular: 'book', plural: 'books', emoji: '📚', search: 'Find book...' }
+  }
+  return labels[activeTab.value] || labels.movies
+})
+
+const filteredItems = computed(() => {
+  const source = currentItems.value || []
+  let items = [...source]
 
   // Filter by search
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase()
-    movies = movies.filter(m => m.title.toLowerCase().includes(q))
+    items = items.filter(m => m.title?.toLowerCase().includes(q))
   }
 
   // Sort
   if (sortBy.value === 'date') {
-    return movies.sort((a, b) => new Date(b.watchedDate) - new Date(a.watchedDate))
+    return items.sort((a, b) => new Date(b.watchedDate) - new Date(a.watchedDate))
   } else if (sortBy.value === 'rating') {
-    return movies.sort((a, b) => b.rating - a.rating)
+    return items.sort((a, b) => (b.rating || 0) - (a.rating || 0))
   } else {
-    return movies.sort((a, b) => a.title.localeCompare(b.title))
+    return items.sort((a, b) => (a.title || '').localeCompare(b.title || ''))
   }
 })
 
@@ -113,13 +138,13 @@ function getWatchAgainClass(value) {
     </div>
 
     <!-- Search & Sort Bar -->
-    <div class="toolbar" v-if="store.movies.value.length > 0">
+    <div class="toolbar" v-if="currentItems.length > 0">
       <div class="search-box">
         <input
           v-model="searchQuery"
           type="text"
           class="search-input"
-          placeholder="Find movie..."
+          :placeholder="tabLabels.search"
         />
         <span v-if="searchQuery" class="search-clear" @click="searchQuery = ''">×</span>
       </div>
@@ -143,42 +168,42 @@ function getWatchAgainClass(value) {
     </div>
 
     <!-- Stats -->
-    <div class="media-stats" v-if="store.movies.value.length > 0">
-      <span class="stat-count">{{ filteredMovies.length }} movies</span>
+    <div class="media-stats" v-if="currentItems.length > 0">
+      <span class="stat-count">{{ filteredItems.length }} {{ tabLabels.plural }}</span>
     </div>
 
     <!-- Empty State -->
-    <div v-if="store.movies.value.length === 0" class="empty-state">
+    <div v-if="currentItems.length === 0" class="empty-state">
       <img src="/images/vio_sit.png" alt="" class="empty-vio" />
-      <h3 class="empty-title">No movies yet</h3>
-      <p class="empty-text">Tap + to add your first movie!</p>
+      <h3 class="empty-title">No {{ tabLabels.plural }} yet</h3>
+      <p class="empty-text">Tap + to add your first {{ tabLabels.singular }}!</p>
     </div>
 
     <!-- Poster Grid -->
     <div v-else class="poster-grid">
       <div
-        v-for="movie in filteredMovies"
-        :key="movie.id"
+        v-for="item in filteredItems"
+        :key="item.id"
         class="poster-card"
-        @click="openView(movie)"
+        @click="openView(item)"
       >
         <div class="poster-wrapper">
           <img
-            v-if="movie.posterUrl"
-            :src="movie.posterUrl"
-            :alt="movie.title"
+            v-if="item.posterUrl"
+            :src="item.posterUrl"
+            :alt="item.title"
             class="poster-img"
           />
           <div v-else class="poster-placeholder">
-            <span class="placeholder-emoji">🎬</span>
-            <span class="placeholder-title">{{ movie.title }}</span>
+            <span class="placeholder-emoji">{{ tabLabels.emoji }}</span>
+            <span class="placeholder-title">{{ item.title }}</span>
           </div>
-          <div class="poster-rating">{{ movie.rating }}/10</div>
+          <div class="poster-rating">{{ item.rating }}/10</div>
         </div>
       </div>
     </div>
 
-    <!-- View Movie Modal -->
+    <!-- View Modal -->
     <div v-if="showViewModal && viewingMovie" class="modal-overlay" @click.self="showViewModal = false">
       <div class="view-modal">
         <button class="modal-close" @click="showViewModal = false">×</button>
@@ -186,7 +211,7 @@ function getWatchAgainClass(value) {
         <div class="view-content">
           <div class="view-poster">
             <img v-if="viewingMovie.posterUrl" :src="viewingMovie.posterUrl" :alt="viewingMovie.title" />
-            <div v-else class="view-poster-placeholder">🎬</div>
+            <div v-else class="view-poster-placeholder">{{ tabLabels.emoji }}</div>
           </div>
 
           <div class="view-details">
@@ -227,6 +252,7 @@ function getWatchAgainClass(value) {
     <AddMovieModal
       v-if="showAddModal"
       :movie="editingMovie"
+      :mediaType="currentMediaType"
       @close="showAddModal = false"
       @save="handleSave"
     />

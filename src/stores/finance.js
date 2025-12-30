@@ -62,6 +62,8 @@ const state = reactive({
   wishlist: loadFromStorage('mochi_wishlist', []), // Array of { id, name, price, emoji, saved: 0, priority, createdAt }
   challenges: loadFromStorage('mochi_challenges', []), // Array of { id, type, target, startDate, endDate, status }
   movies: loadFromStorage('mochi_movies', []), // Array of { id, title, posterUrl, rating, watchedDate, notes, wouldWatchAgain }
+  series: loadFromStorage('mochi_series', []), // Array of { id, title, posterUrl, rating, watchedDate, notes, wouldWatchAgain }
+  books: loadFromStorage('mochi_books', []), // Array of { id, title, posterUrl, rating, watchedDate, notes, wouldWatchAgain }
   vioPass: loadFromStorage('mochi_viopass', {
     checkins: [], // Array of { date, didSpend, category?, note?, vioReaction }
     currentStreak: 0,
@@ -152,6 +154,8 @@ async function loadFromFirebase() {
       if (data.wishlist) state.wishlist = data.wishlist
       if (data.vioPass) state.vioPass = { ...state.vioPass, ...data.vioPass }
       if (data.movies) state.movies = data.movies
+      if (data.series) state.series = data.series
+      if (data.books) state.books = data.books
 
       // Also save to localStorage as backup
       localStorage.setItem('mochi_wallets', JSON.stringify(state.wallets))
@@ -161,6 +165,8 @@ async function loadFromFirebase() {
       localStorage.setItem('mochi_wishlist', JSON.stringify(state.wishlist))
       localStorage.setItem('mochi_viopass', JSON.stringify(state.vioPass))
       localStorage.setItem('mochi_movies', JSON.stringify(state.movies))
+      localStorage.setItem('mochi_series', JSON.stringify(state.series))
+      localStorage.setItem('mochi_books', JSON.stringify(state.books))
     } else {
       // First time user - start fresh with defaults (don't use old localStorage)
       state.wallets = [...DEFAULT_WALLETS]
@@ -169,6 +175,8 @@ async function loadFromFirebase() {
       state.wishlist = []
       state.challenges = []
       state.movies = []
+      state.series = []
+      state.books = []
       state.vioPass = {
         checkins: [],
         currentStreak: 0,
@@ -203,6 +211,8 @@ async function saveToFirebase() {
       wishlist: state.wishlist,
       vioPass: state.vioPass,
       movies: state.movies,
+      series: state.series,
+      books: state.books,
       settings: state.settings,
       updatedAt: new Date().toISOString(),
     })
@@ -227,6 +237,8 @@ function setupRealtimeSync() {
       if (data.wishlist) state.wishlist = data.wishlist
       if (data.vioPass) state.vioPass = { ...state.vioPass, ...data.vioPass }
       if (data.movies) state.movies = data.movies
+      if (data.series) state.series = data.series
+      if (data.books) state.books = data.books
     }
   })
 }
@@ -278,6 +290,16 @@ watch(() => state.vioPass, (newVal) => {
 
 watch(() => state.movies, (newVal) => {
   localStorage.setItem('mochi_movies', JSON.stringify(newVal))
+  debouncedSaveToFirebase()
+}, { deep: true })
+
+watch(() => state.series, (newVal) => {
+  localStorage.setItem('mochi_series', JSON.stringify(newVal))
+  debouncedSaveToFirebase()
+}, { deep: true })
+
+watch(() => state.books, (newVal) => {
+  localStorage.setItem('mochi_books', JSON.stringify(newVal))
   debouncedSaveToFirebase()
 }, { deep: true })
 
@@ -626,6 +648,66 @@ function deleteMovie(id) {
   }
 }
 
+// Series CRUD
+function addSeries(series) {
+  const id = Date.now().toString(36) + Math.random().toString(36).substr(2)
+  state.series.push({
+    id,
+    title: series.title,
+    posterUrl: series.posterUrl || null,
+    rating: series.rating || 5,
+    watchedDate: series.watchedDate || new Date().toISOString().split('T')[0],
+    notes: series.notes || '',
+    didFinish: series.didFinish !== undefined ? series.didFinish : true,
+    wouldWatchAgain: series.wouldWatchAgain !== undefined ? series.wouldWatchAgain : 'yes',
+    createdAt: new Date().toISOString(),
+  })
+}
+
+function updateSeries(id, updates) {
+  const series = state.series.find(s => s.id === id)
+  if (series) {
+    Object.assign(series, updates)
+  }
+}
+
+function deleteSeries(id) {
+  const index = state.series.findIndex(s => s.id === id)
+  if (index !== -1) {
+    state.series.splice(index, 1)
+  }
+}
+
+// Books CRUD
+function addBook(book) {
+  const id = Date.now().toString(36) + Math.random().toString(36).substr(2)
+  state.books.push({
+    id,
+    title: book.title,
+    posterUrl: book.posterUrl || null,
+    rating: book.rating || 5,
+    watchedDate: book.watchedDate || new Date().toISOString().split('T')[0],
+    notes: book.notes || '',
+    didFinish: book.didFinish !== undefined ? book.didFinish : true,
+    wouldWatchAgain: book.wouldWatchAgain !== undefined ? book.wouldWatchAgain : 'yes',
+    createdAt: new Date().toISOString(),
+  })
+}
+
+function updateBook(id, updates) {
+  const book = state.books.find(b => b.id === id)
+  if (book) {
+    Object.assign(book, updates)
+  }
+}
+
+function deleteBook(id) {
+  const index = state.books.findIndex(b => b.id === id)
+  if (index !== -1) {
+    state.books.splice(index, 1)
+  }
+}
+
 // Challenge functions
 function startChallenge(challenge) {
   const id = Date.now().toString(36) + Math.random().toString(36).substr(2)
@@ -820,6 +902,8 @@ async function resetAllData() {
   localStorage.removeItem('mochi_challenges')
   localStorage.removeItem('mochi_viopass')
   localStorage.removeItem('mochi_movies')
+  localStorage.removeItem('mochi_series')
+  localStorage.removeItem('mochi_books')
 
   // Reset state to defaults
   state.wallets = JSON.parse(JSON.stringify(DEFAULT_WALLETS))
@@ -828,6 +912,8 @@ async function resetAllData() {
   state.wishlist = []
   state.challenges = []
   state.movies = []
+  state.series = []
+  state.books = []
   state.vioPass = {
     checkins: [],
     currentStreak: 0,
@@ -868,6 +954,8 @@ export function useFinanceStore() {
     challenges: computed(() => state.challenges),
     vioPass: computed(() => state.vioPass),
     movies: computed(() => state.movies),
+    series: computed(() => state.series),
+    books: computed(() => state.books),
     settings: computed(() => state.settings),
     isLoading: computed(() => state.isLoading),
     isSyncing: computed(() => state.isSyncing),
@@ -910,6 +998,12 @@ export function useFinanceStore() {
     addMovie,
     updateMovie,
     deleteMovie,
+    addSeries,
+    updateSeries,
+    deleteSeries,
+    addBook,
+    updateBook,
+    deleteBook,
     startChallenge,
     endChallenge,
     getActiveChallenge,

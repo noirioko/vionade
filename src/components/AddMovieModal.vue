@@ -6,6 +6,10 @@ const props = defineProps({
   movie: {
     type: Object,
     default: null
+  },
+  mediaType: {
+    type: String,
+    default: 'movie' // 'movie', 'series', 'book'
   }
 })
 
@@ -15,13 +19,16 @@ const store = useFinanceStore()
 // Form state
 const title = ref('')
 const posterUrl = ref('')
+const customPosterUrl = ref('')
+const useCustomPoster = ref(false)
+const isUploadingImage = ref(false)
 const rating = ref(7)
 const watchedDate = ref(new Date().toISOString().split('T')[0])
 const notes = ref('')
 const wouldWatchAgain = ref('yes') // 'yes', 'maybe', 'no'
 const didFinish = ref(true)
 
-// TMDB search state
+// Search state
 const searchQuery = ref('')
 const searchResults = ref([])
 const isSearching = ref(false)
@@ -32,11 +39,12 @@ watch(() => props.movie, (movie) => {
   if (movie) {
     title.value = movie.title
     posterUrl.value = movie.posterUrl || ''
+    customPosterUrl.value = movie.posterUrl || ''
+    useCustomPoster.value = false
     rating.value = movie.rating
     watchedDate.value = movie.watchedDate
     notes.value = movie.notes || ''
-    didFinish.value = movie.didFinish !== false // default to true for old movies
-    // Handle old boolean values and new string values
+    didFinish.value = movie.didFinish !== false
     if (typeof movie.wouldWatchAgain === 'boolean') {
       wouldWatchAgain.value = movie.wouldWatchAgain ? 'yes' : 'no'
     } else {
@@ -45,6 +53,8 @@ watch(() => props.movie, (movie) => {
   } else {
     title.value = ''
     posterUrl.value = ''
+    customPosterUrl.value = ''
+    useCustomPoster.value = false
     rating.value = 7
     watchedDate.value = new Date().toISOString().split('T')[0]
     notes.value = ''
@@ -54,18 +64,42 @@ watch(() => props.movie, (movie) => {
 }, { immediate: true })
 
 const isEditing = computed(() => !!props.movie)
-const hasApiKey = computed(() => !!import.meta.env.VITE_TMDB_API_KEY)
+const hasApiKey = computed(() => {
+  if (props.mediaType === 'book') return true // Google Books doesn't need key
+  return !!import.meta.env.VITE_TMDB_API_KEY
+})
 
-// TMDB API search
-async function searchMovies() {
+// Computed labels based on media type
+const mediaLabels = computed(() => {
+  const labels = {
+    movie: { title: 'Movie', search: 'Search TMDB...', poster: 'Poster' },
+    series: { title: 'Series', search: 'Search TV series...', poster: 'Poster' },
+    book: { title: 'Book', search: 'Search Google Books...', poster: 'Cover' }
+  }
+  return labels[props.mediaType] || labels.movie
+})
+
+const effectivePosterUrl = computed(() => {
+  return useCustomPoster.value ? customPosterUrl.value : posterUrl.value
+})
+
+// Search API based on media type
+async function searchMedia() {
   if (!searchQuery.value.trim()) {
     searchResults.value = []
     return
   }
 
+  if (props.mediaType === 'book') {
+    await searchBooks()
+  } else {
+    await searchTMDB()
+  }
+}
+
+async function searchTMDB() {
   const apiKey = import.meta.env.VITE_TMDB_API_KEY
   if (!apiKey) {
-    // No API key, just use the search query as title
     title.value = searchQuery.value
     showResults.value = false
     return
@@ -73,14 +107,15 @@ async function searchMovies() {
 
   isSearching.value = true
   try {
+    const endpoint = props.mediaType === 'series' ? 'search/tv' : 'search/movie'
     const res = await fetch(
-      `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(searchQuery.value)}`
+      `https://api.themoviedb.org/3/${endpoint}?api_key=${apiKey}&query=${encodeURIComponent(searchQuery.value)}`
     )
     const data = await res.json()
     searchResults.value = data.results?.slice(0, 6).map(m => ({
       id: m.id,
-      title: m.title,
-      year: m.release_date?.slice(0, 4) || '',
+      title: m.title || m.name, // TV shows use 'name'
+      year: (m.release_date || m.first_air_date)?.slice(0, 4) || '',
       posterUrl: m.poster_path
         ? `https://image.tmdb.org/t/p/w200${m.poster_path}`
         : null
@@ -88,6 +123,29 @@ async function searchMovies() {
     showResults.value = true
   } catch (err) {
     console.error('TMDB search error:', err)
+    searchResults.value = []
+  } finally {
+    isSearching.value = false
+  }
+}
+
+async function searchBooks() {
+  isSearching.value = true
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchQuery.value)}&maxResults=6`
+    )
+    const data = await res.json()
+    searchResults.value = data.items?.map(b => ({
+      id: b.id,
+      title: b.volumeInfo.title,
+      year: b.volumeInfo.publishedDate?.slice(0, 4) || '',
+      author: b.volumeInfo.authors?.[0] || '',
+      posterUrl: b.volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || null
+    })) || []
+    showResults.value = true
+  } catch (err) {
+    console.error('Google Books search error:', err)
     searchResults.value = []
   } finally {
     isSearching.value = false
@@ -105,9 +163,9 @@ function selectMovie(result) {
 function handleSave() {
   if (!title.value.trim()) return
 
-  const movieData = {
+  const mediaData = {
     title: title.value.trim(),
-    posterUrl: posterUrl.value || null,
+    posterUrl: effectivePosterUrl.value || null,
     rating: rating.value,
     watchedDate: watchedDate.value,
     notes: notes.value.trim(),
@@ -115,18 +173,40 @@ function handleSave() {
     wouldWatchAgain: wouldWatchAgain.value
   }
 
-  if (isEditing.value) {
-    store.updateMovie(props.movie.id, movieData)
+  if (props.mediaType === 'series') {
+    if (isEditing.value) {
+      store.updateSeries(props.movie.id, mediaData)
+    } else {
+      store.addSeries(mediaData)
+    }
+  } else if (props.mediaType === 'book') {
+    if (isEditing.value) {
+      store.updateBook(props.movie.id, mediaData)
+    } else {
+      store.addBook(mediaData)
+    }
   } else {
-    store.addMovie(movieData)
+    if (isEditing.value) {
+      store.updateMovie(props.movie.id, mediaData)
+    } else {
+      store.addMovie(mediaData)
+    }
   }
 
   emit('save')
 }
 
 function handleDelete() {
-  if (props.movie && confirm('Delete this movie?')) {
-    store.deleteMovie(props.movie.id)
+  if (!props.movie) return
+  const confirmMsg = `Delete this ${mediaLabels.value.title.toLowerCase()}?`
+  if (confirm(confirmMsg)) {
+    if (props.mediaType === 'series') {
+      store.deleteSeries(props.movie.id)
+    } else if (props.mediaType === 'book') {
+      store.deleteBook(props.movie.id)
+    } else {
+      store.deleteMovie(props.movie.id)
+    }
     emit('save')
   }
 }
@@ -136,8 +216,50 @@ let searchTimeout = null
 function onSearchInput() {
   if (searchTimeout) clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
-    searchMovies()
+    searchMedia()
   }, 300)
+}
+
+// Image upload and compression
+function handleImageUpload(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  isUploadingImage.value = true
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    const img = new Image()
+    img.onload = () => {
+      // Compress to max 300px width for thumbnail
+      const maxWidth = 300
+      const maxHeight = 450
+      let { width, height } = img
+
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width
+        width = maxWidth
+      }
+      if (height > maxHeight) {
+        width = (width * maxHeight) / height
+        height = maxHeight
+      }
+
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, width, height)
+
+      // Convert to compressed JPEG base64
+      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7)
+      customPosterUrl.value = compressedBase64
+      useCustomPoster.value = true
+      isUploadingImage.value = false
+    }
+    img.src = e.target.result
+  }
+  reader.readAsDataURL(file)
 }
 </script>
 
@@ -145,19 +267,19 @@ function onSearchInput() {
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal">
       <div class="modal-header">
-        <h3 class="modal-title">{{ isEditing ? 'Edit Movie' : 'Add Movie' }}</h3>
+        <h3 class="modal-title">{{ isEditing ? 'Edit' : 'Add' }} {{ mediaLabels.title }}</h3>
         <button class="modal-close" @click="$emit('close')">×</button>
       </div>
 
-      <!-- Search (always show so user can re-search) -->
+      <!-- Search -->
       <div class="input-group">
-        <label class="input-label">{{ isEditing ? 'Change Movie' : 'Search Movie' }}</label>
+        <label class="input-label">{{ isEditing ? 'Change' : 'Search' }} {{ mediaLabels.title }}</label>
         <div class="search-box">
           <input
             v-model="searchQuery"
             type="text"
             class="input"
-            :placeholder="hasApiKey ? 'Type to search TMDB...' : 'Type movie title (no API key)'"
+            :placeholder="hasApiKey ? mediaLabels.search : `Type ${mediaLabels.title.toLowerCase()} title...`"
             @input="onSearchInput"
             @focus="showResults = searchResults.length > 0"
           />
@@ -174,30 +296,59 @@ function onSearchInput() {
           >
             <div class="result-poster">
               <img v-if="result.posterUrl" :src="result.posterUrl" :alt="result.title" />
-              <span v-else>🎬</span>
+              <span v-else>{{ mediaType === 'book' ? '📚' : '🎬' }}</span>
             </div>
             <div class="result-info">
               <span class="result-title">{{ result.title }}</span>
+              <span v-if="result.author" class="result-author">{{ result.author }}</span>
               <span v-if="result.year" class="result-year">{{ result.year }}</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Selected Movie Preview -->
-      <div v-if="title || posterUrl" class="selected-movie">
+      <!-- Selected Preview -->
+      <div v-if="title || effectivePosterUrl" class="selected-movie">
         <div class="selected-poster">
-          <img v-if="posterUrl" :src="posterUrl" :alt="title" />
-          <span v-else>🎬</span>
+          <img v-if="effectivePosterUrl" :src="effectivePosterUrl" :alt="title" />
+          <span v-else>{{ mediaType === 'book' ? '📚' : '🎬' }}</span>
         </div>
         <div class="selected-info">
           <input
             v-model="title"
             type="text"
             class="input title-input"
-            placeholder="Movie title"
+            :placeholder="`${mediaLabels.title} title`"
           />
         </div>
+      </div>
+
+      <!-- Custom Image Upload -->
+      <div class="input-group">
+        <label class="input-label">Custom {{ mediaLabels.poster }}</label>
+        <div class="upload-options">
+          <label class="upload-btn">
+            <input
+              type="file"
+              accept="image/*"
+              @change="handleImageUpload"
+              hidden
+            />
+            {{ isUploadingImage ? 'Processing...' : 'Upload Image' }}
+          </label>
+          <span class="upload-hint">or paste URL:</span>
+          <input
+            v-model="customPosterUrl"
+            type="url"
+            class="input url-input"
+            placeholder="https://..."
+            @input="useCustomPoster = !!customPosterUrl"
+          />
+        </div>
+        <p v-if="useCustomPoster && customPosterUrl" class="upload-status">
+          Custom image set
+          <button class="clear-custom-btn" @click="customPosterUrl = ''; useCustomPoster = false">Clear</button>
+        </p>
       </div>
 
       <!-- Rating -->
@@ -290,7 +441,7 @@ function onSearchInput() {
           Delete
         </button>
         <button class="btn btn-primary" :class="{ 'btn-full': !isEditing }" @click="handleSave">
-          {{ isEditing ? 'Save' : 'Add Movie' }}
+          {{ isEditing ? 'Save' : `Add ${mediaLabels.title}` }}
         </button>
       </div>
     </div>
@@ -366,9 +517,75 @@ function onSearchInput() {
   text-overflow: ellipsis;
 }
 
+.result-author {
+  font-size: 0.6875rem;
+  color: var(--lavender-500);
+  font-style: italic;
+}
+
 .result-year {
   font-size: 0.6875rem;
   color: var(--text-secondary);
+}
+
+.upload-options {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.upload-btn {
+  padding: var(--space-sm) var(--space-md);
+  border: 2px dashed var(--lavender-300);
+  border-radius: var(--radius-md);
+  background: var(--lavender-50);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--lavender-600);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.upload-btn:hover {
+  border-color: var(--lavender-500);
+  background: var(--lavender-100);
+}
+
+.upload-hint {
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+}
+
+.url-input {
+  flex: 1;
+  min-width: 100px;
+  padding: var(--space-xs) var(--space-sm) !important;
+  font-size: 0.75rem !important;
+}
+
+.upload-status {
+  margin-top: var(--space-xs);
+  font-size: 0.6875rem;
+  color: var(--income-color);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.clear-custom-btn {
+  padding: 2px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--lavender-100);
+  font-size: 0.625rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.clear-custom-btn:hover {
+  background: var(--lavender-200);
 }
 
 .selected-movie {
@@ -582,5 +799,25 @@ function onSearchInput() {
 [data-theme="dark"] .date-unknown-btn.active {
   background: #8B5CF6 !important;
   border-color: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .upload-btn {
+  background: #2D2640 !important;
+  border-color: #3D3456 !important;
+  color: #C4B5FD !important;
+}
+
+[data-theme="dark"] .upload-btn:hover {
+  border-color: #8B5CF6 !important;
+  background: #3D3456 !important;
+}
+
+[data-theme="dark"] .clear-custom-btn {
+  background: #3D3456 !important;
+  color: #C4B5FD !important;
+}
+
+[data-theme="dark"] .clear-custom-btn:hover {
+  background: #4D4466 !important;
 }
 </style>
