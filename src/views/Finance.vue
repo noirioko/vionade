@@ -2,13 +2,11 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFinanceStore } from '../stores'
-import { getCurrentChallenge } from '../data/habitChallenges'
 import HelpTip from '../components/HelpTip.vue'
 import EditTransactionModal from '../components/EditTransactionModal.vue'
 
 const store = useFinanceStore()
 const router = useRouter()
-const habitChallenge = getCurrentChallenge()
 
 // Edit transaction state
 const editingTransaction = ref(null)
@@ -35,10 +33,12 @@ const challengeProgress = computed(() => {
     const expenses = store.transactions.value
       .filter(t => t.type === 'expense' && new Date(t.date) >= startDate)
       .reduce((sum, t) => sum + t.amount, 0)
-    return Math.min(100, (expenses / challenge.target) * 100)
+    return (expenses / challenge.target) * 100
   }
   return 0
 })
+
+const isOverLimit = computed(() => challengeProgress.value >= 100)
 
 const challengeSpent = computed(() => {
   if (!activeChallenge.value) return 0
@@ -197,32 +197,6 @@ const recentMonthTransactions = computed(() => {
       <img src="/images/vio_right.png" alt="" class="wallet-card-vio" />
     </div>
 
-    <!-- Quick Actions with Vio -->
-    <div class="quick-actions-card">
-      <div class="quick-actions-content">
-        <div class="quick-actions-title">What would you like to do?</div>
-        <div class="quick-actions-grid">
-          <router-link to="/wallets" class="quick-action-btn">
-            <span class="quick-action-icon">💰</span>
-            <span class="quick-action-label">Wallets</span>
-          </router-link>
-          <router-link to="/history" class="quick-action-btn">
-            <span class="quick-action-icon">📊</span>
-            <span class="quick-action-label">History</span>
-          </router-link>
-          <router-link to="/wishlist" class="quick-action-btn">
-            <span class="quick-action-icon">🎁</span>
-            <span class="quick-action-label">Wishlist</span>
-          </router-link>
-          <router-link to="/viopass" class="quick-action-btn">
-            <span class="quick-action-icon">✅</span>
-            <span class="quick-action-label">Vio Pass</span>
-          </router-link>
-        </div>
-      </div>
-      <img src="/images/vio_stand1.png" alt="Vio" class="quick-actions-vio" />
-    </div>
-
     <!-- Challenge Section -->
     <div class="section challenge-section">
       <div class="section-header">
@@ -233,10 +207,10 @@ const recentMonthTransactions = computed(() => {
       </div>
 
       <!-- Active Challenge -->
-      <div v-if="activeChallenge" class="challenge-card" :class="{ danger: challengeProgress > 80 }">
+      <div v-if="activeChallenge" class="challenge-card" :class="{ danger: challengeProgress > 80, 'over-limit': isOverLimit }">
         <div class="challenge-header">
           <div class="challenge-info">
-            <span class="challenge-icon">{{ challengeProgress > 80 ? '😰' : '💪' }}</span>
+            <span class="challenge-icon">{{ isOverLimit ? '😱' : challengeProgress > 80 ? '😰' : '💪' }}</span>
             <div>
               <div class="challenge-title">Limit Spending</div>
               <div class="challenge-subtitle">{{ daysLeft }} days left</div>
@@ -249,8 +223,8 @@ const recentMonthTransactions = computed(() => {
           <div class="challenge-bar">
             <div
               class="challenge-fill"
-              :class="{ danger: challengeProgress > 80 }"
-              :style="{ width: challengeProgress + '%' }"
+              :class="{ danger: challengeProgress > 80, 'over-limit': isOverLimit }"
+              :style="{ width: Math.min(challengeProgress, 100) + '%' }"
             ></div>
           </div>
           <div class="challenge-stats">
@@ -259,7 +233,10 @@ const recentMonthTransactions = computed(() => {
           </div>
         </div>
 
-        <div v-if="challengeProgress > 80" class="challenge-warning">
+        <div v-if="isOverLimit" class="challenge-warning over-limit">
+          Whoa, you're WAY past your limit! 😭 Tell me it's for a good cause...
+        </div>
+        <div v-else-if="challengeProgress > 80" class="challenge-warning">
           Careful! You're close to your limit!
         </div>
       </div>
@@ -315,46 +292,6 @@ const recentMonthTransactions = computed(() => {
           Start Challenge!
         </button>
       </div>
-    </div>
-
-    <!-- Habits Banner -->
-    <div
-      class="habits-banner"
-      :style="habitChallenge.bannerBg ? { backgroundImage: `url(${habitChallenge.bannerBg})` } : {}"
-      @click="router.push('/habits')"
-    >
-      <div class="habits-banner-content">
-        <img
-          v-if="habitChallenge.bannerIcon"
-          :src="habitChallenge.bannerIcon"
-          alt=""
-          class="habits-banner-icon"
-        />
-        <div class="habits-banner-text">
-          <div class="habits-banner-title">{{ habitChallenge.name }}</div>
-          <div class="habits-banner-subtitle">{{ habitChallenge.subtitle }}</div>
-        </div>
-      </div>
-      <img
-        v-if="habitChallenge.bannerChar"
-        :src="habitChallenge.bannerChar"
-        alt=""
-        class="habits-banner-char"
-      />
-    </div>
-
-    <!-- Media Tracker Banner -->
-    <div
-      class="media-banner"
-      @click="router.push('/media')"
-    >
-      <div class="media-banner-content">
-        <div class="media-banner-text">
-          <div class="media-banner-title">Media Journal</div>
-          <div class="media-banner-subtitle">Track movies, series & books</div>
-        </div>
-      </div>
-      <img src="/images/vio_banner_full.png" alt="Vio" class="media-banner-vio" />
     </div>
 
     <!-- Calendar Box with Header Ribbon -->
@@ -887,6 +824,21 @@ const recentMonthTransactions = computed(() => {
   color: var(--expense-color);
   text-align: center;
   font-weight: 600;
+}
+
+.challenge-warning.over-limit {
+  background: rgba(220, 38, 38, 0.15);
+  color: #DC2626;
+  font-size: 0.9375rem;
+}
+
+.challenge-card.over-limit {
+  border-color: #DC2626;
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.challenge-fill.over-limit {
+  background: #DC2626;
 }
 
 .challenge-empty {
