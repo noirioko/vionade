@@ -7,25 +7,33 @@ import { auth, waitForAuth } from './firebase'
 // Views
 import Landing from './views/Landing.vue'
 import Home from './views/Home.vue'
-import Dashboard from './views/Dashboard.vue'
+import Finance from './views/Finance.vue'
 import Wallets from './views/Wallets.vue'
 import History from './views/History.vue'
 import Wishlist from './views/Wishlist.vue'
 import Media from './views/Movies.vue'
 import VioPass from './views/VioPass.vue'
 import Laundry from './views/Laundry.vue'
+import Habits from './views/Habits.vue'
+import Passwords from './views/Passwords.vue'
+import PetTracker from './views/PetTracker.vue'
+import AquariumTracker from './views/AquariumTracker.vue'
 import Settings from './views/Settings.vue'
 
 const routes = [
   { path: '/landing', name: 'Landing', component: Landing, meta: { public: true } },
   { path: '/', name: 'Home', component: Home },
-  { path: '/finance', name: 'Finance', component: Dashboard },
+  { path: '/finance', name: 'Finance', component: Finance },
   { path: '/wallets', name: 'Wallets', component: Wallets },
   { path: '/history', name: 'History', component: History },
   { path: '/wishlist', name: 'Wishlist', component: Wishlist },
   { path: '/media', name: 'Media', component: Media },
   { path: '/viopass', name: 'VioPass', component: VioPass },
   { path: '/laundry', name: 'Laundry', component: Laundry },
+  { path: '/habits', name: 'Habits', component: Habits },
+  { path: '/passwords', name: 'Passwords', component: Passwords },
+  { path: '/pets', name: 'Pets', component: PetTracker },
+  { path: '/aquarium', name: 'Aquarium', component: AquariumTracker },
   { path: '/settings', name: 'Settings', component: Settings },
 ]
 

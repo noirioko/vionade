@@ -7,7 +7,7 @@ const showMore = ref(false)
 
 // Check if current route is in the "more" menu
 const isMoreActive = () => {
-  const moreRoutes = ['/media', '/viopass', '/laundry', '/settings']
+  const moreRoutes = ['/media', '/habits', '/passwords', '/viopass', '/laundry', '/pets', '/aquarium', '/settings']
   return moreRoutes.includes(route.path)
 }
 
@@ -34,6 +34,14 @@ function closeMore() {
             <span class="more-item-icon">🎬</span>
             <span class="more-item-label">Media</span>
           </RouterLink>
+          <RouterLink to="/habits" class="more-item" @click="closeMore">
+            <span class="more-item-icon">✨</span>
+            <span class="more-item-label">Habits</span>
+          </RouterLink>
+          <RouterLink to="/passwords" class="more-item" @click="closeMore">
+            <span class="more-item-icon">🔐</span>
+            <span class="more-item-label">Passwords</span>
+          </RouterLink>
           <RouterLink to="/viopass" class="more-item" @click="closeMore">
             <span class="more-item-icon">🍋</span>
             <span class="more-item-label">Vio Pass</span>
@@ -41,6 +49,14 @@ function closeMore() {
           <RouterLink to="/laundry" class="more-item" @click="closeMore">
             <span class="more-item-icon">🧺</span>
             <span class="more-item-label">Laundry</span>
+          </RouterLink>
+          <RouterLink to="/pets" class="more-item" @click="closeMore">
+            <span class="more-item-icon">🐱</span>
+            <span class="more-item-label">Pets</span>
+          </RouterLink>
+          <RouterLink to="/aquarium" class="more-item" @click="closeMore">
+            <span class="more-item-icon">🐟</span>
+            <span class="more-item-label">Aquarium</span>
           </RouterLink>
           <RouterLink to="/settings" class="more-item" @click="closeMore">
             <span class="more-item-icon">⚙️</span>
@@ -55,6 +71,11 @@ function closeMore() {
     <RouterLink to="/" class="nav-item">
       <span class="nav-item-icon">🏠</span>
       <span>Home</span>
+    </RouterLink>
+
+    <RouterLink to="/finance" class="nav-item">
+      <span class="nav-item-icon">💰</span>
+      <span>Finance</span>
     </RouterLink>
 
     <RouterLink to="/wallets" class="nav-item">
@@ -78,6 +99,16 @@ function closeMore() {
       <span>Media</span>
     </RouterLink>
 
+    <RouterLink to="/habits" class="nav-item desktop-only">
+      <span class="nav-item-icon">✨</span>
+      <span>Habits</span>
+    </RouterLink>
+
+    <RouterLink to="/passwords" class="nav-item desktop-only">
+      <span class="nav-item-icon">🔐</span>
+      <span>Passwords</span>
+    </RouterLink>
+
     <RouterLink to="/viopass" class="nav-item desktop-only">
       <span class="nav-item-icon">🍋</span>
       <span>Vio Pass</span>
@@ -86,6 +117,16 @@ function closeMore() {
     <RouterLink to="/laundry" class="nav-item desktop-only">
       <span class="nav-item-icon">🧺</span>
       <span>Laundry</span>
+    </RouterLink>
+
+    <RouterLink to="/pets" class="nav-item desktop-only">
+      <span class="nav-item-icon">🐱</span>
+      <span>Pets</span>
+    </RouterLink>
+
+    <RouterLink to="/aquarium" class="nav-item desktop-only">
+      <span class="nav-item-icon">🐟</span>
+      <span>Aquarium</span>
     </RouterLink>
 
     <RouterLink to="/settings" class="nav-item desktop-only">

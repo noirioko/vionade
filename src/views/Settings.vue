@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useFinanceStore } from '../stores/finance'
+import { useFinanceStore } from '../stores'
 import { signInWithGoogle, signOutUser } from '../firebase'
 
 const router = useRouter()

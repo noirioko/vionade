@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, inject } from 'vue'
-import { useFinanceStore } from '../stores/finance'
+import { useFinanceStore } from '../stores'
 import HelpTip from '../components/HelpTip.vue'
 
 const store = useFinanceStore()
@@ -99,6 +99,18 @@ function claimItem(item) {
   }
 }
 
+function yoloItem(item) {
+  if (confirm(`YOLO! Buy "${item.name}" even though you haven't saved enough?`)) {
+    store.claimWishlistItem(item.id, true)
+  }
+}
+
+function formatClaimedDate(dateStr) {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
 function deleteItem(id) {
   store.deleteWishlistItem(id)
 }
@@ -186,32 +198,53 @@ function getPriorityColor(priority) {
             class="btn btn-sm btn-claim"
             @click="claimItem(item)"
           >
-            Claim!
+            🎉 Claim!
           </button>
-          <button
-            v-else
-            class="btn btn-sm btn-save"
-            @click="openSaveModal(item)"
-          >
-            + Save
-          </button>
+          <template v-else>
+            <button
+              class="btn btn-sm btn-save"
+              @click="openSaveModal(item)"
+            >
+              + Save
+            </button>
+            <button
+              class="btn btn-sm btn-yolo"
+              @click="yoloItem(item)"
+            >
+              YOLO!
+            </button>
+          </template>
           <button class="btn btn-sm btn-ghost" @click="deleteItem(item.id)">
-            Delete
+            🗑️
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Claimed Items -->
-    <div v-if="claimedItems.length > 0" class="section claimed-section">
-      <div class="section-header">
-        <h3 class="section-title">Claimed!</h3>
+    <!-- Achievements Section -->
+    <div v-if="claimedItems.length > 0" class="section achievements-section">
+      <div class="achievements-header">
+        <span class="achievements-icon">🏆</span>
+        <div class="achievements-title">Achievements</div>
+        <span class="achievements-count">{{ claimedItems.length }} item{{ claimedItems.length > 1 ? 's' : '' }}</span>
       </div>
-      <div class="claimed-list">
-        <div v-for="item in claimedItems" :key="item.id" class="claimed-item">
-          <span class="claimed-emoji">{{ item.emoji }}</span>
-          <span class="claimed-name">{{ item.name }}</span>
-          <span class="claimed-check">Done</span>
+      <div class="achievements-grid">
+        <div
+          v-for="item in claimedItems"
+          :key="item.id"
+          class="achievement-card"
+          :class="{ 'was-yolo': item.wasYolo }"
+        >
+          <div class="achievement-emoji">{{ item.emoji }}</div>
+          <div class="achievement-info">
+            <div class="achievement-name">{{ item.name }}</div>
+            <div class="achievement-price">{{ store.formatCurrency(item.price) }}</div>
+            <div class="achievement-meta">
+              <span v-if="item.wasYolo" class="yolo-badge">YOLO'd! 🔥</span>
+              <span v-else class="saved-badge">Saved 100% 💪</span>
+            </div>
+          </div>
+          <div class="achievement-date">{{ formatClaimedDate(item.claimedAt) }}</div>
         </div>
       </div>
     </div>
@@ -442,47 +475,128 @@ function getPriorityColor(priority) {
   animation: pulse 1s infinite;
 }
 
+.btn-yolo {
+  background: linear-gradient(135deg, #F97316 0%, #EF4444 100%);
+  color: white;
+  font-weight: 700;
+  border: none;
+}
+
+.btn-yolo:hover {
+  background: linear-gradient(135deg, #EA580C 0%, #DC2626 100%);
+}
+
 @keyframes pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.02); }
 }
 
-/* Claimed Section */
-.claimed-section {
-  margin-top: var(--space-lg);
-  opacity: 0.7;
+/* Achievements Section */
+.achievements-section {
+  margin-top: var(--space-xl);
 }
 
-.claimed-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.claimed-item {
+.achievements-header {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: var(--space-sm);
-  background: var(--bg-card);
-  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-md);
 }
 
-.claimed-emoji {
-  font-size: 1.25rem;
+.achievements-icon {
+  font-size: 1.5rem;
 }
 
-.claimed-name {
+.achievements-title {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #78350F;
   flex: 1;
-  font-size: 0.875rem;
-  text-decoration: line-through;
+}
+
+.achievements-count {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #92400E;
+  background: rgba(255, 255, 255, 0.4);
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.achievements-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.achievement-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg-card);
+  border: 2px solid var(--income-color);
+  border-radius: var(--radius-lg);
+}
+
+.achievement-card.was-yolo {
+  border-color: #F97316;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.05) 0%, rgba(239, 68, 68, 0.05) 100%);
+}
+
+.achievement-emoji {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.achievement-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.achievement-name {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  margin-bottom: 2px;
+}
+
+.achievement-price {
+  font-size: 0.8125rem;
   color: var(--text-secondary);
 }
 
-.claimed-check {
-  font-size: 0.75rem;
-  color: var(--income-color);
+.achievement-meta {
+  margin-top: var(--space-xs);
+}
+
+.saved-badge {
+  display: inline-block;
+  font-size: 0.6875rem;
   font-weight: 600;
+  padding: 2px 8px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+  border-radius: 10px;
+}
+
+.yolo-badge {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.2) 0%, rgba(239, 68, 68, 0.2) 100%);
+  color: #EA580C;
+  border-radius: 10px;
+}
+
+.achievement-date {
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+  flex-shrink: 0;
 }
 
 /* Modal extras */
@@ -572,5 +686,39 @@ function getPriorityColor(priority) {
   font-size: 0.875rem;
   color: var(--text-secondary);
   margin-bottom: var(--space-lg);
+}
+</style>
+
+<style>
+/* Dark mode */
+[data-theme="dark"] .achievements-header {
+  background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%) !important;
+}
+
+[data-theme="dark"] .achievements-title {
+  color: white !important;
+}
+
+[data-theme="dark"] .achievements-count {
+  color: rgba(255, 255, 255, 0.8) !important;
+  background: rgba(0, 0, 0, 0.2) !important;
+}
+
+[data-theme="dark"] .achievement-card {
+  background: #1A1625 !important;
+  border-color: #22C55E !important;
+}
+
+[data-theme="dark"] .achievement-card.was-yolo {
+  border-color: #F97316 !important;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.1) 0%, rgba(239, 68, 68, 0.1) 100%) !important;
+}
+
+[data-theme="dark"] .saved-badge {
+  background: rgba(16, 185, 129, 0.2) !important;
+}
+
+[data-theme="dark"] .yolo-badge {
+  background: rgba(249, 115, 22, 0.25) !important;
 }
 </style>

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { useFinanceStore } from '../stores/finance'
+import { useFinanceStore } from '../stores'
 
 const props = defineProps({
   movie: {

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, inject, onMounted, onUnmounted } from 'vue'
-import { useFinanceStore } from '../stores/finance'
+import { useFinanceStore } from '../stores'
 import AddMovieModal from '../components/AddMovieModal.vue'
 
 const store = useFinanceStore()
@@ -133,6 +133,15 @@ const isBookTab = computed(() => activeTab.value === 'books')
   <div class="page">
     <div class="page-header">
       <img src="/images/vio-logo.png" alt="Vionade" class="page-header-logo" />
+    </div>
+
+    <!-- Media Banner -->
+    <div class="media-banner">
+      <div class="media-banner-content">
+        <div class="media-banner-title">Media Journal</div>
+        <div class="media-banner-subtitle">Track movies, series & books</div>
+      </div>
+      <img src="/images/vio_banner_full.png" alt="Vio" class="media-banner-vio" />
     </div>
 
     <!-- Tabs -->
@@ -279,6 +288,64 @@ const isBookTab = computed(() => activeTab.value === 'books')
 </template>
 
 <style scoped>
+/* Media Banner */
+.media-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  margin-bottom: var(--space-md);
+  background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 50%, #C4B5FD 100%);
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+  min-height: 120px;
+}
+
+.media-banner-content {
+  flex: 1;
+  padding: var(--space-lg);
+}
+
+.media-banner-title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.media-banner-subtitle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 4px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.media-banner-vio {
+  height: 300px;
+  width: auto;
+  flex-shrink: 0;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+  animation: gentle-bounce 2s ease-in-out infinite;
+  margin-bottom: -180px;
+}
+
+@keyframes gentle-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@media (max-width: 480px) {
+  .media-banner-title {
+    font-size: 1.5rem;
+  }
+
+  .media-banner-vio {
+    height: 220px;
+    margin-bottom: -120px;
+  }
+}
+
 /* Tabs */
 .media-tabs {
   display: flex;
@@ -598,6 +665,10 @@ const isBookTab = computed(() => activeTab.value === 'books')
 
 <style>
 /* Dark mode */
+[data-theme="dark"] .media-banner {
+  background: linear-gradient(135deg, #4C1D95 0%, #6D28D9 50%, #7C3AED 100%) !important;
+}
+
 [data-theme="dark"] .media-tabs {
   background: #1A1625 !important;
 }

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { useFinanceStore } from '../stores/finance'
+import { useFinanceStore } from '../stores'
 import PieChart from '../components/PieChart.vue'
 import HelpTip from '../components/HelpTip.vue'
 import EditTransactionModal from '../components/EditTransactionModal.vue'

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { useFinanceStore } from '../stores/finance'
+import { useFinanceStore } from '../stores'
 
 const emit = defineEmits(['close'])
 const store = useFinanceStore()

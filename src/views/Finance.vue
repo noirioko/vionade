@@ -1,10 +1,14 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { useFinanceStore } from '../stores/finance'
+import { useRouter } from 'vue-router'
+import { useFinanceStore } from '../stores'
+import { getCurrentChallenge } from '../data/habitChallenges'
 import HelpTip from '../components/HelpTip.vue'
 import EditTransactionModal from '../components/EditTransactionModal.vue'
 
 const store = useFinanceStore()
+const router = useRouter()
+const habitChallenge = getCurrentChallenge()
 
 // Edit transaction state
 const editingTransaction = ref(null)
@@ -193,6 +197,32 @@ const recentMonthTransactions = computed(() => {
       <img src="/images/vio_right.png" alt="" class="wallet-card-vio" />
     </div>
 
+    <!-- Quick Actions with Vio -->
+    <div class="quick-actions-card">
+      <div class="quick-actions-content">
+        <div class="quick-actions-title">What would you like to do?</div>
+        <div class="quick-actions-grid">
+          <router-link to="/wallets" class="quick-action-btn">
+            <span class="quick-action-icon">💰</span>
+            <span class="quick-action-label">Wallets</span>
+          </router-link>
+          <router-link to="/history" class="quick-action-btn">
+            <span class="quick-action-icon">📊</span>
+            <span class="quick-action-label">History</span>
+          </router-link>
+          <router-link to="/wishlist" class="quick-action-btn">
+            <span class="quick-action-icon">🎁</span>
+            <span class="quick-action-label">Wishlist</span>
+          </router-link>
+          <router-link to="/viopass" class="quick-action-btn">
+            <span class="quick-action-icon">✅</span>
+            <span class="quick-action-label">Vio Pass</span>
+          </router-link>
+        </div>
+      </div>
+      <img src="/images/vio_stand1.png" alt="Vio" class="quick-actions-vio" />
+    </div>
+
     <!-- Challenge Section -->
     <div class="section challenge-section">
       <div class="section-header">
@@ -285,6 +315,46 @@ const recentMonthTransactions = computed(() => {
           Start Challenge!
         </button>
       </div>
+    </div>
+
+    <!-- Habits Banner -->
+    <div
+      class="habits-banner"
+      :style="habitChallenge.bannerBg ? { backgroundImage: `url(${habitChallenge.bannerBg})` } : {}"
+      @click="router.push('/habits')"
+    >
+      <div class="habits-banner-content">
+        <img
+          v-if="habitChallenge.bannerIcon"
+          :src="habitChallenge.bannerIcon"
+          alt=""
+          class="habits-banner-icon"
+        />
+        <div class="habits-banner-text">
+          <div class="habits-banner-title">{{ habitChallenge.name }}</div>
+          <div class="habits-banner-subtitle">{{ habitChallenge.subtitle }}</div>
+        </div>
+      </div>
+      <img
+        v-if="habitChallenge.bannerChar"
+        :src="habitChallenge.bannerChar"
+        alt=""
+        class="habits-banner-char"
+      />
+    </div>
+
+    <!-- Media Tracker Banner -->
+    <div
+      class="media-banner"
+      @click="router.push('/media')"
+    >
+      <div class="media-banner-content">
+        <div class="media-banner-text">
+          <div class="media-banner-title">Media Journal</div>
+          <div class="media-banner-subtitle">Track movies, series & books</div>
+        </div>
+      </div>
+      <img src="/images/vio_banner_full.png" alt="Vio" class="media-banner-vio" />
     </div>
 
     <!-- Calendar Box with Header Ribbon -->
@@ -401,6 +471,237 @@ const recentMonthTransactions = computed(() => {
 </template>
 
 <style scoped>
+/* Quick Actions Card */
+.quick-actions-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 100%);
+  border-radius: var(--radius-xl);
+  margin-bottom: var(--space-md);
+  border: 2px solid #7DD3FC;
+}
+
+.quick-actions-content {
+  flex: 1;
+}
+
+.quick-actions-title {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0369A1;
+  margin-bottom: var(--space-md);
+}
+
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-sm);
+}
+
+.quick-action-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: white;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  border: 2px solid transparent;
+  transition: all 0.15s;
+}
+
+.quick-action-btn:hover {
+  border-color: #7DD3FC;
+  transform: translateY(-1px);
+}
+
+.quick-action-icon {
+  font-size: 1.25rem;
+}
+
+.quick-action-label {
+  color: #0C4A6E;
+}
+
+.quick-actions-vio {
+  width: 120px;
+  height: auto;
+  flex-shrink: 0;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+@media (max-width: 480px) {
+  .quick-actions-vio {
+    width: 80px;
+  }
+
+  .quick-actions-title {
+    font-size: 1rem;
+  }
+
+  .quick-action-btn {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.75rem;
+  }
+
+  .quick-action-icon {
+    font-size: 1rem;
+  }
+}
+
+/* Habits Banner */
+.habits-banner {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  margin-bottom: var(--space-md);
+  background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 50%, #FCD34D 100%);
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  min-height: 140px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.habits-banner:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.habits-banner-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: linear-gradient(90deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.3) 60%, transparent 100%);
+}
+
+.habits-banner-icon {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.habits-banner-text {
+  flex: 1;
+}
+
+.habits-banner-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.habits-banner-subtitle {
+  font-size: 0.9375rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 4px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.habits-banner-char {
+  height: 140px;
+  width: auto;
+  object-fit: contain;
+  object-position: bottom right;
+  flex-shrink: 0;
+  margin-right: var(--space-md);
+}
+
+@media (max-width: 480px) {
+  .habits-banner-icon {
+    width: 72px;
+    height: 72px;
+  }
+
+  .habits-banner-char {
+    height: 100px;
+    margin-right: var(--space-sm);
+  }
+
+  .habits-banner-title {
+    font-size: 1.25rem;
+  }
+}
+
+/* Media Banner */
+.media-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  margin-bottom: var(--space-md);
+  background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 50%, #C4B5FD 100%);
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+  min-height: 100px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.media-banner:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+}
+
+.media-banner-content {
+  flex: 1;
+  padding: var(--space-lg);
+}
+
+.media-banner-text {
+  flex: 1;
+}
+
+.media-banner-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.media-banner-subtitle {
+  font-size: 0.9375rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 4px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.media-banner-vio {
+  height: 100px;
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+  margin-right: var(--space-md);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+}
+
+@media (max-width: 480px) {
+  .media-banner-title {
+    font-size: 1.25rem;
+  }
+
+  .media-banner-vio {
+    height: 80px;
+    margin-right: var(--space-sm);
+  }
+}
+
 /* Rounded Yellow Box with Header Ribbon */
 .calendar-box {
   background: #FFE135;
@@ -662,5 +963,48 @@ const recentMonthTransactions = computed(() => {
 
 .list-item-clickable:active {
   background: var(--gray-200);
+}
+</style>
+
+<style>
+/* Dark mode */
+[data-theme="dark"] .quick-actions-card {
+  background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%) !important;
+  border-color: #4C1D95 !important;
+}
+
+[data-theme="dark"] .quick-actions-title {
+  color: #C4B5FD !important;
+}
+
+[data-theme="dark"] .quick-action-btn {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .quick-action-btn:hover {
+  border-color: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .quick-action-label {
+  color: #E0E7FF !important;
+}
+
+/* Dark mode for Habits Banner */
+[data-theme="dark"] .habits-banner {
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3) !important;
+}
+
+[data-theme="dark"] .habits-banner-title {
+  color: #F5F3FF !important;
+}
+
+[data-theme="dark"] .habits-banner-subtitle {
+  color: #DDD6FE !important;
+}
+
+/* Dark mode for Media Banner */
+[data-theme="dark"] .media-banner {
+  background: linear-gradient(135deg, #4C1D95 0%, #6D28D9 50%, #7C3AED 100%) !important;
 }
 </style>

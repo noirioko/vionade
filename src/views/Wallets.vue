@@ -1,10 +1,11 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { useFinanceStore } from '../stores/finance'
+import { useFinanceStore } from '../stores'
 
 const store = useFinanceStore()
 const editingWallet = ref(null)
 const newBalance = ref('')
+const newAccountNumber = ref('')
 
 // Show setup hint if all wallets are at 0
 const needsSetup = computed(() => {
@@ -14,18 +15,22 @@ const needsSetup = computed(() => {
 function startEdit(wallet) {
   editingWallet.value = wallet.id
   newBalance.value = wallet.balance.toString()
+  newAccountNumber.value = wallet.accountNumber || ''
 }
 
 function saveBalance(walletId) {
   const balance = parseFloat(newBalance.value) || 0
   store.updateWalletBalance(walletId, balance)
+  store.updateWalletAccountNumber(walletId, newAccountNumber.value)
   editingWallet.value = null
   newBalance.value = ''
+  newAccountNumber.value = ''
 }
 
 function cancelEdit() {
   editingWallet.value = null
   newBalance.value = ''
+  newAccountNumber.value = ''
 }
 
 function getWalletTransactions(walletId) {
@@ -80,7 +85,10 @@ function getWalletTransactions(walletId) {
           </div>
           <div class="list-item-content">
             <div class="list-item-title">{{ wallet.name }}</div>
-            <div class="list-item-subtitle">{{ getWalletTransactions(wallet.id) }} transactions</div>
+            <div class="list-item-subtitle">
+              <span v-if="wallet.accountNumber" class="account-number">{{ wallet.accountNumber }}</span>
+              <span v-else>{{ getWalletTransactions(wallet.id) }} transactions</span>
+            </div>
           </div>
           <div class="list-item-amount">
             <div v-if="editingWallet !== wallet.id">
@@ -102,18 +110,31 @@ function getWalletTransactions(walletId) {
           <!-- Edit Mode -->
           <div
             v-if="editingWallet === wallet.id"
-            style="width: 100%; margin-top: var(--space-md); display: flex; gap: var(--space-sm);"
+            class="edit-panel"
           >
-            <input
-              v-model="newBalance"
-              type="number"
-              class="input"
-              placeholder="New balance"
-              style="flex: 1;"
-              @keyup.enter="saveBalance(wallet.id)"
-            />
-            <button class="btn btn-primary" @click="saveBalance(wallet.id)">Save</button>
-            <button class="btn btn-secondary" @click="cancelEdit">Cancel</button>
+            <div class="edit-row">
+              <label class="edit-label">Balance</label>
+              <input
+                v-model="newBalance"
+                type="number"
+                class="input"
+                placeholder="New balance"
+              />
+            </div>
+            <div class="edit-row">
+              <label class="edit-label">No. Rekening</label>
+              <input
+                v-model="newAccountNumber"
+                type="text"
+                class="input"
+                placeholder="e.g. 1234567890"
+                @keyup.enter="saveBalance(wallet.id)"
+              />
+            </div>
+            <div class="edit-actions">
+              <button class="btn btn-primary" @click="saveBalance(wallet.id)">Save</button>
+              <button class="btn btn-secondary" @click="cancelEdit">Cancel</button>
+            </div>
           </div>
         </div>
       </div>
@@ -169,5 +190,52 @@ function getWalletTransactions(walletId) {
 
 [data-theme="dark"] .setup-hint-title {
   color: var(--lavender-300);
+}
+
+.account-number {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+}
+
+.edit-panel {
+  width: 100%;
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.edit-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.edit-label {
+  width: 90px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.edit-row .input {
+  flex: 1;
+}
+
+.edit-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+  margin-top: var(--space-xs);
+}
+
+[data-theme="dark"] .edit-panel {
+  background: #2D2640;
 }
 </style>

@@ -1,3 +1,6 @@
+/* Import Google Fonts - must be first! */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Quicksand:wght@500;600;700&display=swap');
+
 /* Vionade - ヴィオのためにね 🌿🍋 */
 /* Summer Sky + Sunshine - Blue & Yellow Poppy! */
 
@@ -267,9 +270,6 @@
   background: #8B5CF6 !important;
 }
 
-/* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Quicksand:wght@500;600;700&display=swap');
-
 /* Reset & Base */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -291,6 +291,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background var(--transition-normal), color var(--transition-normal);
+  overflow-x: hidden;
 }
 
 #app {
@@ -648,7 +649,7 @@ h4 { font-size: 1.125rem; }
   bottom: 0;
   left: 0;
   right: 0;
-  background: #00BFFF;
+  background: #7AD7F0;
   border-top: none;
   padding: var(--space-sm) var(--space-md);
   padding-bottom: calc(var(--space-sm) + env(safe-area-inset-bottom, 0));
@@ -656,7 +657,7 @@ h4 { font-size: 1.125rem; }
   justify-content: space-around;
   align-items: center;
   z-index: 100;
-  box-shadow: 0 -4px 16px rgba(0, 191, 255, 0.3);
+  box-shadow: 0 -4px 16px rgba(122, 215, 240, 0.3);
 }
 
 .nav-item {
@@ -668,7 +669,7 @@ h4 { font-size: 1.125rem; }
   width: 56px;
   height: 56px;
   padding: var(--space-xs);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
   color: rgba(255, 255, 255, 0.7);
   text-decoration: none;
   font-size: 0.625rem;
@@ -1051,14 +1052,15 @@ h4 { font-size: 1.125rem; }
   }
 
   .bottom-nav {
-    max-width: 600px;
-    left: 50%;
-    transform: translateX(-50%);
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    /* Full width on desktop - no max-width constraint */
+    left: 0;
+    right: 0;
+    transform: none;
+    border-radius: 0;
   }
 
   .fab {
-    right: calc(50% - 280px);
+    right: var(--space-lg);
   }
 
   .modal {

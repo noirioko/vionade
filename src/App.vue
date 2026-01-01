@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, provide } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useFinanceStore } from './stores/finance'
+import { useFinanceStore } from './stores'
 import BottomNav from './components/BottomNav.vue'
 import AddTransactionModal from './components/AddTransactionModal.vue'
 
@@ -21,7 +21,7 @@ const fabAction = ref(null)
 provide('fabAction', fabAction)
 
 // Pages where we show the FAB
-const pagesWithFab = ['/finance', '/wallets', '/history', '/wishlist', '/media', '/laundry']
+const pagesWithFab = ['/finance', '/wallets', '/history', '/wishlist', '/media', '/laundry', '/passwords', '/pets', '/aquarium']
 
 const showFab = computed(() => pagesWithFab.includes(route.path))
 
