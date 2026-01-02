@@ -5,30 +5,33 @@ export function toggleHabitCompletion(habitId, day) {
   const key = `${habitId}-${day}`
   if (state.habits.completions[key]) {
     delete state.habits.completions[key]
-    state.habits.completions = { ...state.habits.completions }
   } else {
     state.habits.completions[key] = new Date().toISOString()
   }
+  // Trigger reactivity by reassigning the object
+  state.habits.completions = { ...state.habits.completions }
 }
 
 export function toggleWeeklyBonus(bonusId, week) {
   const key = `${bonusId}-${week}`
   if (state.habits.weeklyBonuses[key]) {
     delete state.habits.weeklyBonuses[key]
-    state.habits.weeklyBonuses = { ...state.habits.weeklyBonuses }
   } else {
     state.habits.weeklyBonuses[key] = new Date().toISOString()
   }
+  // Trigger reactivity by reassigning the object
+  state.habits.weeklyBonuses = { ...state.habits.weeklyBonuses }
 }
 
 export function toggleEndOfMonthGoal(goalId) {
   const key = `${goalId}`
   if (state.habits.endOfMonthGoals[key]) {
     delete state.habits.endOfMonthGoals[key]
-    state.habits.endOfMonthGoals = { ...state.habits.endOfMonthGoals }
   } else {
     state.habits.endOfMonthGoals[key] = new Date().toISOString()
   }
+  // Trigger reactivity by reassigning the object
+  state.habits.endOfMonthGoals = { ...state.habits.endOfMonthGoals }
 }
 
 export function isHabitCompleted(habitId, day) {
