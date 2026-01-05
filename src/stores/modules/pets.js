@@ -141,6 +141,80 @@ export function getDaysSinceAction(petId, action) {
   return Math.floor(diffTime / (1000 * 60 * 60 * 24))
 }
 
+// Pet Sessions CRUD
+export function addPetSession(session) {
+  const id = generateId()
+  const pets = session.petIds.map(pid => getPetById(pid)).filter(Boolean)
+
+  state.petSessions.push({
+    id,
+    type: session.type, // 'bath', 'vet', 'flea', 'deworm'
+    petIds: session.petIds,
+    petNames: pets.map(p => p.name),
+    date: session.date || new Date().toISOString().split('T')[0],
+    cost: session.cost || null,
+    provider: session.provider || '',
+    notes: session.notes || '',
+    createdAt: new Date().toISOString(),
+  })
+  return id
+}
+
+export function updatePetSession(id, updates) {
+  const session = state.petSessions.find(s => s.id === id)
+  if (session) {
+    // If petIds changed, update petNames too
+    if (updates.petIds) {
+      const pets = updates.petIds.map(pid => getPetById(pid)).filter(Boolean)
+      updates.petNames = pets.map(p => p.name)
+    }
+    Object.assign(session, updates)
+  }
+}
+
+export function deletePetSession(id) {
+  const index = state.petSessions.findIndex(s => s.id === id)
+  if (index !== -1) {
+    state.petSessions.splice(index, 1)
+  }
+}
+
+export function getPetSessions(options = {}) {
+  const { petId, type, startDate, endDate, limit = 50, offset = 0 } = options
+
+  let sessions = [...state.petSessions]
+
+  // Filter by pet (any session that includes this pet)
+  if (petId) {
+    sessions = sessions.filter(s => s.petIds.includes(petId))
+  }
+
+  // Filter by type
+  if (type) {
+    sessions = sessions.filter(s => s.type === type)
+  }
+
+  // Filter by date range
+  if (startDate) {
+    sessions = sessions.filter(s => s.date >= startDate)
+  }
+  if (endDate) {
+    sessions = sessions.filter(s => s.date <= endDate)
+  }
+
+  // Sort by date (newest first)
+  sessions.sort((a, b) => {
+    if (a.date !== b.date) return b.date.localeCompare(a.date)
+    return b.createdAt.localeCompare(a.createdAt)
+  })
+
+  // Paginate
+  const total = sessions.length
+  sessions = sessions.slice(offset, offset + limit)
+
+  return { sessions, total }
+}
+
 // Parse quick entry text: "[nickname] [action] [optional note]"
 export function parseQuickEntry(text, actionKeywords) {
   const parts = text.trim().split(/\s+/)

@@ -18,6 +18,7 @@ import Habits from './views/Habits.vue'
 import Passwords from './views/Passwords.vue'
 import PetTracker from './views/PetTracker.vue'
 import AquariumTracker from './views/AquariumTracker.vue'
+import Collections from './views/Collections.vue'
 import Settings from './views/Settings.vue'
 
 const routes = [
@@ -34,6 +35,7 @@ const routes = [
   { path: '/passwords', name: 'Passwords', component: Passwords },
   { path: '/pets', name: 'Pets', component: PetTracker },
   { path: '/aquarium', name: 'Aquarium', component: AquariumTracker },
+  { path: '/collections', name: 'Collections', component: Collections },
   { path: '/settings', name: 'Settings', component: Settings },
 ]
 

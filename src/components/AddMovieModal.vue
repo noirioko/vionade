@@ -345,8 +345,17 @@ function handleImageUpload(event) {
         </div>
       </div>
 
-      <!-- Selected Preview -->
-      <div v-if="title || effectivePosterUrl" class="selected-movie">
+      <!-- Manual Entry Option (when search has no results or user wants to skip) -->
+      <button
+        v-if="!title && !effectivePosterUrl && searchQuery && searchResults.length === 0 && !isSearching"
+        class="manual-entry-btn"
+        @click="title = searchQuery; searchQuery = ''"
+      >
+        Can't find it? Add "{{ searchQuery }}" manually
+      </button>
+
+      <!-- Selected Preview / Manual Entry -->
+      <div class="selected-movie" :class="{ 'no-selection': !title && !effectivePosterUrl }">
         <div class="selected-poster">
           <img v-if="effectivePosterUrl" :src="effectivePosterUrl" :alt="title" />
           <span v-else>{{ mediaType === 'book' ? '📚' : '🎬' }}</span>
@@ -356,7 +365,7 @@ function handleImageUpload(event) {
             v-model="title"
             type="text"
             class="input title-input"
-            :placeholder="`${mediaLabels.title} title`"
+            :placeholder="`${mediaLabels.title} title (type or search above)`"
           />
         </div>
       </div>
@@ -683,6 +692,25 @@ function handleImageUpload(event) {
   background: var(--lavender-200);
 }
 
+.manual-entry-btn {
+  width: 100%;
+  padding: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  background: var(--sunshine-100);
+  border: 2px dashed var(--sunshine-400);
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.manual-entry-btn:hover {
+  background: var(--sunshine-200);
+  border-style: solid;
+}
+
 .selected-movie {
   display: flex;
   gap: var(--space-md);
@@ -690,6 +718,11 @@ function handleImageUpload(event) {
   padding: var(--space-md);
   background: var(--lavender-50);
   border-radius: var(--radius-md);
+}
+
+.selected-movie.no-selection {
+  background: var(--gray-50);
+  border: 2px dashed var(--gray-200);
 }
 
 .selected-poster {
@@ -888,6 +921,21 @@ function handleImageUpload(event) {
 
 [data-theme="dark"] .selected-movie {
   background: #2D2640 !important;
+}
+
+[data-theme="dark"] .selected-movie.no-selection {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .manual-entry-btn {
+  background: #2D2640 !important;
+  border-color: #8B5CF6 !important;
+  color: #C4B5FD !important;
+}
+
+[data-theme="dark"] .manual-entry-btn:hover {
+  background: #3D3456 !important;
 }
 
 [data-theme="dark"] .selected-poster {

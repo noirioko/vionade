@@ -108,6 +108,10 @@ import {
   getPetLogs,
   getLastActionDate,
   getDaysSinceAction,
+  addPetSession,
+  updatePetSession,
+  deletePetSession,
+  getPetSessions,
   parseQuickEntry,
 } from './modules/pets'
 
@@ -121,6 +125,23 @@ import {
   getDaysSinceWaterChange,
   getLastTankAction,
 } from './modules/tanks'
+
+// Collections module
+import {
+  COLLECTION_TYPES,
+  addCollection,
+  updateCollection,
+  deleteCollection,
+  getCollectionById,
+  addCollectionItem,
+  updateCollectionItem,
+  deleteCollectionItem,
+  getCollectionItems,
+  getCollectionStats,
+  toggleItemOwned,
+  getCollectionsWithStats,
+  getFilteredCollections,
+} from './modules/collections'
 
 // Export composable
 export function useFinanceStore() {
@@ -139,7 +160,10 @@ export function useFinanceStore() {
     passwords: computed(() => state.passwords),
     pets: computed(() => state.pets),
     petLogs: computed(() => state.petLogs),
+    petSessions: computed(() => state.petSessions),
     tankLogs: computed(() => state.tankLogs),
+    collections: computed(() => state.collections),
+    collectionItems: computed(() => state.collectionItems),
     habits: computed(() => state.habits),
     settings: computed(() => state.settings),
     isLoading: computed(() => state.isLoading),
@@ -161,6 +185,7 @@ export function useFinanceStore() {
     INCOME_CATEGORIES,
     DEFAULT_WALLETS,
     SPENDING_REACTIONS,
+    COLLECTION_TYPES,
 
     // Finance actions
     addTransaction,
@@ -233,6 +258,10 @@ export function useFinanceStore() {
     getPetLogs,
     getLastActionDate,
     getDaysSinceAction,
+    addPetSession,
+    updatePetSession,
+    deletePetSession,
+    getPetSessions,
     parseQuickEntry,
 
     // Tank actions
@@ -243,6 +272,20 @@ export function useFinanceStore() {
     getLastWaterChange,
     getDaysSinceWaterChange,
     getLastTankAction,
+
+    // Collection actions
+    addCollection,
+    updateCollection,
+    deleteCollection,
+    getCollectionById,
+    addCollectionItem,
+    updateCollectionItem,
+    deleteCollectionItem,
+    getCollectionItems,
+    getCollectionStats,
+    toggleItemOwned,
+    getCollectionsWithStats,
+    getFilteredCollections,
 
     // Helpers
     formatCurrency,

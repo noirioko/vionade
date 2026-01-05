@@ -64,7 +64,10 @@ export const state = reactive({
   passwords: loadFromStorage('mochi_passwords', []),
   pets: loadFromStorage('mochi_pets', []),
   petLogs: loadFromStorage('mochi_petlogs', []),
+  petSessions: loadFromStorage('mochi_petsessions', []),
   tankLogs: loadFromStorage('mochi_tanklogs', []),
+  collections: loadFromStorage('mochi_collections', []),
+  collectionItems: loadFromStorage('mochi_collectionitems', []),
   habits: loadFromStorage('mochi_habits', {
     currentChallenge: 'january-2026',
     completions: {},
@@ -125,7 +128,10 @@ export async function saveToFirebase() {
       passwords: state.passwords,
       pets: state.pets,
       petLogs: state.petLogs,
+      petSessions: state.petSessions,
       tankLogs: state.tankLogs,
+      collections: state.collections,
+      collectionItems: state.collectionItems,
       habits: state.habits,
       settings: state.settings,
       updatedAt: new Date().toISOString(),
@@ -165,7 +171,10 @@ async function loadFromFirebase() {
       if (data.passwords) state.passwords = data.passwords
       if (data.pets) state.pets = data.pets
       if (data.petLogs) state.petLogs = data.petLogs
+      if (data.petSessions) state.petSessions = data.petSessions
       if (data.tankLogs) state.tankLogs = data.tankLogs
+      if (data.collections) state.collections = data.collections
+      if (data.collectionItems) state.collectionItems = data.collectionItems
       if (data.habits) state.habits = { ...state.habits, ...data.habits }
 
       // Save to localStorage as backup
@@ -181,7 +190,10 @@ async function loadFromFirebase() {
       localStorage.setItem('mochi_passwords', JSON.stringify(state.passwords))
       localStorage.setItem('mochi_pets', JSON.stringify(state.pets))
       localStorage.setItem('mochi_petlogs', JSON.stringify(state.petLogs))
+      localStorage.setItem('mochi_petsessions', JSON.stringify(state.petSessions))
       localStorage.setItem('mochi_tanklogs', JSON.stringify(state.tankLogs))
+      localStorage.setItem('mochi_collections', JSON.stringify(state.collections))
+      localStorage.setItem('mochi_collectionitems', JSON.stringify(state.collectionItems))
       localStorage.setItem('mochi_habits', JSON.stringify(state.habits))
     } else {
       // First time user - start fresh
@@ -196,7 +208,10 @@ async function loadFromFirebase() {
       state.passwords = []
       state.pets = []
       state.petLogs = []
+      state.petSessions = []
       state.tankLogs = []
+      state.collections = []
+      state.collectionItems = []
       state.habits = {
         currentChallenge: 'january-2026',
         completions: {},
@@ -242,7 +257,10 @@ function setupRealtimeSync() {
       if (data.passwords) state.passwords = data.passwords
       if (data.pets) state.pets = data.pets
       if (data.petLogs) state.petLogs = data.petLogs
+      if (data.petSessions) state.petSessions = data.petSessions
       if (data.tankLogs) state.tankLogs = data.tankLogs
+      if (data.collections) state.collections = data.collections
+      if (data.collectionItems) state.collectionItems = data.collectionItems
       if (data.habits) state.habits = { ...state.habits, ...data.habits }
     }
   })
@@ -298,7 +316,10 @@ const stateKeys = [
   { key: 'passwords', storage: 'mochi_passwords' },
   { key: 'pets', storage: 'mochi_pets' },
   { key: 'petLogs', storage: 'mochi_petlogs' },
+  { key: 'petSessions', storage: 'mochi_petsessions' },
   { key: 'tankLogs', storage: 'mochi_tanklogs' },
+  { key: 'collections', storage: 'mochi_collections' },
+  { key: 'collectionItems', storage: 'mochi_collectionitems' },
   { key: 'habits', storage: 'mochi_habits' },
 ]
 
@@ -329,7 +350,10 @@ export async function resetAllData() {
   state.passwords = []
   state.pets = []
   state.petLogs = []
+  state.petSessions = []
   state.tankLogs = []
+  state.collections = []
+  state.collectionItems = []
   state.habits = {
     currentChallenge: 'january-2026',
     completions: {},

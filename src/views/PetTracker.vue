@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, inject, onMounted, onUnmounted } from 'vue'
 import { useFinanceStore } from '../stores'
-import { petActions, getActionKeywords, getStatusColor, formatDaysAgo } from '../data/petActions'
+import { petActions, getActionKeywords, getStatusColor, formatDaysAgo, sessionTypes, quickLogActions } from '../data/petActions'
 
 const store = useFinanceStore()
 const fabAction = inject('fabAction')
@@ -24,6 +24,18 @@ const displayLimit = ref(20)
 const showAddPetModal = ref(false)
 const editingPet = ref(null)
 const petForm = ref({ name: '', nickname: '', photo: '', notes: '' })
+const isUploadingImage = ref(false)
+
+// Session logging state
+const activeSessionType = ref('bath')
+const selectedPets = ref([])
+const sessionDate = ref(new Date().toISOString().split('T')[0])
+const sessionCost = ref('')
+const sessionProvider = ref('')
+const sessionNotes = ref('')
+
+// View tab state
+const activeTab = ref('logs') // 'logs', 'sessions'
 
 // Compute date range for filter
 const dateRange = computed(() => {
@@ -58,6 +70,29 @@ const groupedLogs = computed(() => {
     const date = log.date
     if (!groups[date]) groups[date] = []
     groups[date].push(log)
+  })
+  return groups
+})
+
+// Filtered sessions
+const filteredSessions = computed(() => {
+  const { sessions, total } = store.getPetSessions({
+    petId: petFilter.value !== 'all' ? petFilter.value : null,
+    startDate: dateRange.value.start,
+    endDate: dateRange.value.end,
+    limit: displayLimit.value,
+    offset: 0
+  })
+  return { sessions, total }
+})
+
+// Group sessions by date
+const groupedSessions = computed(() => {
+  const groups = {}
+  filteredSessions.value.sessions.forEach(session => {
+    const date = session.date
+    if (!groups[date]) groups[date] = []
+    groups[date].push(session)
   })
   return groups
 })
@@ -175,6 +210,91 @@ function deletePet(id) {
   }
 }
 
+// Image upload and compression
+function handleImageUpload(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  isUploadingImage.value = true
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    const img = new Image()
+    img.onload = () => {
+      // Compress to max 200px for avatar
+      const maxSize = 200
+      let { width, height } = img
+
+      if (width > height) {
+        if (width > maxSize) {
+          height = (height * maxSize) / width
+          width = maxSize
+        }
+      } else {
+        if (height > maxSize) {
+          width = (width * maxSize) / height
+          height = maxSize
+        }
+      }
+
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, width, height)
+
+      // Convert to compressed JPEG base64
+      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7)
+      petForm.value.photo = compressedBase64
+      isUploadingImage.value = false
+    }
+    img.src = e.target.result
+  }
+  reader.readAsDataURL(file)
+}
+
+// Session pet selection
+function togglePetSelection(petId) {
+  const idx = selectedPets.value.indexOf(petId)
+  if (idx === -1) {
+    selectedPets.value.push(petId)
+  } else {
+    selectedPets.value.splice(idx, 1)
+  }
+}
+
+function isPetSelected(petId) {
+  return selectedPets.value.includes(petId)
+}
+
+// Submit session
+function submitSession() {
+  if (selectedPets.value.length === 0) return
+
+  store.addPetSession({
+    type: activeSessionType.value,
+    petIds: [...selectedPets.value],
+    date: sessionDate.value,
+    cost: sessionCost.value ? parseFloat(sessionCost.value) : null,
+    provider: sessionProvider.value,
+    notes: sessionNotes.value
+  })
+
+  // Reset form
+  selectedPets.value = []
+  sessionCost.value = ''
+  sessionProvider.value = ''
+  sessionNotes.value = ''
+  sessionDate.value = new Date().toISOString().split('T')[0]
+}
+
+// Delete session
+function deleteSession(id) {
+  if (confirm('Delete this session?')) {
+    store.deletePetSession(id)
+  }
+}
+
 // FAB action
 onMounted(() => {
   fabAction.value = openAddPet
@@ -261,8 +381,102 @@ onUnmounted(() => {
       <!-- Format hint -->
       <div v-else-if="quickInput.length > 0 && !parsedEntry" class="entry-preview hint">
         <span class="preview-emoji">💡</span>
-        <span class="preview-text">Format: [nickname] [action] • Actions: bath, vet, flea, vaccine, deworm, nail, sick, medicine, weight</span>
+        <span class="preview-text">Format: [nickname] [action] • Actions: nail, sick, medicine, weight, vaccine</span>
       </div>
+    </div>
+
+    <!-- Session Logging Section -->
+    <div class="session-section">
+      <div class="session-header">
+        <span class="session-icon">📋</span>
+        <span>Log Session</span>
+        <span class="session-hint">(group activities)</span>
+      </div>
+
+      <!-- Session Type Tabs -->
+      <div class="session-type-tabs">
+        <button
+          v-for="(typeInfo, typeKey) in sessionTypes"
+          :key="typeKey"
+          class="session-type-tab"
+          :class="{ active: activeSessionType === typeKey }"
+          :style="{ '--type-color': typeInfo.color }"
+          @click="activeSessionType = typeKey"
+        >
+          <span class="session-type-emoji">{{ typeInfo.emoji }}</span>
+          <span class="session-type-label">{{ typeInfo.label.split('/')[0] }}</span>
+        </button>
+      </div>
+
+      <!-- Pet Selection Grid -->
+      <div class="pet-select-label">Select cats:</div>
+      <div class="pet-select-grid">
+        <button
+          v-for="pet in store.pets.value"
+          :key="pet.id"
+          class="pet-select-btn"
+          :class="{ selected: isPetSelected(pet.id) }"
+          @click="togglePetSelection(pet.id)"
+        >
+          <div class="pet-select-avatar">
+            <img v-if="pet.photo" :src="pet.photo" :alt="pet.name" />
+            <span v-else>🐱</span>
+          </div>
+          <span class="pet-select-name">{{ pet.nickname || pet.name }}</span>
+          <span v-if="isPetSelected(pet.id)" class="pet-select-check">✓</span>
+        </button>
+      </div>
+
+      <!-- Session Details -->
+      <div class="session-details">
+        <div class="session-row">
+          <input
+            v-model="sessionDate"
+            type="date"
+            class="session-input date"
+          />
+          <input
+            v-model="sessionCost"
+            type="number"
+            class="session-input cost"
+            placeholder="Cost (Rp)"
+          />
+        </div>
+        <input
+          v-model="sessionProvider"
+          type="text"
+          class="session-input provider"
+          :placeholder="sessionTypes[activeSessionType]?.providerLabel || 'Provider'"
+        />
+        <textarea
+          v-model="sessionNotes"
+          class="session-input notes"
+          placeholder="Notes (procedures, meds, etc.)"
+          rows="2"
+        ></textarea>
+      </div>
+
+      <button
+        class="session-submit-btn"
+        :disabled="selectedPets.length === 0"
+        @click="submitSession"
+      >
+        Add {{ sessionTypes[activeSessionType]?.label }} Session
+      </button>
+    </div>
+
+    <!-- View Tabs -->
+    <div class="view-tabs">
+      <button
+        class="view-tab"
+        :class="{ active: activeTab === 'logs' }"
+        @click="activeTab = 'logs'"
+      >Quick Logs</button>
+      <button
+        class="view-tab"
+        :class="{ active: activeTab === 'sessions' }"
+        @click="activeTab = 'sessions'"
+      >Sessions</button>
     </div>
 
     <!-- Filters -->
@@ -317,8 +531,8 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Log Feed -->
-    <div class="log-feed">
+    <!-- Log Feed (Quick Logs) -->
+    <div v-if="activeTab === 'logs'" class="log-feed">
       <div class="log-count">
         Showing {{ filteredLogs.logs.length }} of {{ filteredLogs.total }} logs
       </div>
@@ -349,6 +563,53 @@ onUnmounted(() => {
 
       <button
         v-if="filteredLogs.logs.length < filteredLogs.total"
+        class="load-more-btn"
+        @click="loadMore"
+      >
+        Load More
+      </button>
+    </div>
+
+    <!-- Sessions Feed -->
+    <div v-if="activeTab === 'sessions'" class="log-feed">
+      <div class="log-count">
+        Showing {{ filteredSessions.sessions.length }} of {{ filteredSessions.total }} sessions
+      </div>
+
+      <div v-if="filteredSessions.sessions.length === 0" class="empty-state">
+        <img src="/images/vio_sit.png" alt="Vio" class="empty-vio" />
+        <p>No sessions found. Log your first grooming or vet session above!</p>
+      </div>
+
+      <div v-for="(sessions, date) in groupedSessions" :key="date" class="log-group">
+        <div class="log-date-header">📅 {{ formatDateHeader(date) }}</div>
+
+        <div
+          v-for="session in sessions"
+          :key="session.id"
+          class="session-card"
+          :style="{ '--session-color': sessionTypes[session.type]?.color }"
+        >
+          <div class="session-card-header">
+            <span class="session-card-emoji">{{ sessionTypes[session.type]?.emoji }}</span>
+            <span class="session-card-type">{{ sessionTypes[session.type]?.label }}</span>
+            <span v-if="session.cost" class="session-card-cost">Rp{{ session.cost.toLocaleString() }}</span>
+          </div>
+          <div class="session-card-pets">
+            {{ session.petNames.join(', ') }}
+          </div>
+          <div v-if="session.provider" class="session-card-provider">
+            {{ sessionTypes[session.type]?.providerLabel }}: {{ session.provider }}
+          </div>
+          <div v-if="session.notes" class="session-card-notes">
+            {{ session.notes }}
+          </div>
+          <button class="session-delete" @click="deleteSession(session.id)">×</button>
+        </div>
+      </div>
+
+      <button
+        v-if="filteredSessions.sessions.length < filteredSessions.total"
         class="load-more-btn"
         @click="loadMore"
       >
@@ -394,6 +655,30 @@ onUnmounted(() => {
         </div>
 
         <div class="modal-body">
+          <!-- Photo Preview & Upload -->
+          <div class="photo-upload-section">
+            <div class="photo-preview">
+              <img v-if="petForm.photo" :src="petForm.photo" alt="Pet photo" />
+              <span v-else>🐱</span>
+            </div>
+            <div class="photo-actions">
+              <label class="upload-photo-btn">
+                <input
+                  type="file"
+                  accept="image/*"
+                  @change="handleImageUpload"
+                  hidden
+                />
+                {{ isUploadingImage ? 'Processing...' : 'Upload Photo' }}
+              </label>
+              <button
+                v-if="petForm.photo"
+                class="remove-photo-btn"
+                @click="petForm.photo = ''"
+              >Remove</button>
+            </div>
+          </div>
+
           <div class="form-group">
             <label>Name</label>
             <input v-model="petForm.name" type="text" placeholder="Pong Pong" />
@@ -407,7 +692,7 @@ onUnmounted(() => {
 
           <div class="form-group">
             <label>Photo URL (optional)</label>
-            <input v-model="petForm.photo" type="url" placeholder="https://..." />
+            <input v-model="petForm.photo" type="url" placeholder="https://... or uploaded" />
           </div>
 
           <div class="form-group">
@@ -954,6 +1239,406 @@ onUnmounted(() => {
   background: #FF6B6B;
   color: white;
 }
+
+/* Session Section */
+.session-section {
+  background: linear-gradient(135deg, #f472b6 0%, #c084fc 100%);
+  border: 3px solid #a855f7;
+  border-radius: 16px;
+  padding: var(--space-md);
+  margin-bottom: var(--space-lg);
+  box-shadow: 4px 4px 0 #7c3aed;
+}
+
+.session-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-weight: 700;
+  color: white;
+  margin-bottom: var(--space-md);
+}
+
+.session-icon {
+  font-size: 1.25rem;
+}
+
+.session-hint {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+/* Session Type Tabs */
+.session-type-tabs {
+  display: flex;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.session-type-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-sm);
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.session-type-tab:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.session-type-tab.active {
+  background: white;
+  border-color: var(--type-color, #a855f7);
+}
+
+.session-type-emoji {
+  font-size: 1.25rem;
+}
+
+.session-type-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: white;
+}
+
+.session-type-tab.active .session-type-label {
+  color: var(--type-color, #a855f7);
+}
+
+/* Pet Selection Grid */
+.pet-select-label {
+  font-size: 0.75rem;
+  color: white;
+  margin-bottom: var(--space-xs);
+  font-weight: 600;
+}
+
+.pet-select-grid {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-md);
+}
+
+.pet-select-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-sm);
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  min-width: 60px;
+}
+
+.pet-select-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.pet-select-btn.selected {
+  background: white;
+  border-color: #4ade80;
+}
+
+.pet-select-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  overflow: hidden;
+}
+
+.pet-select-btn.selected .pet-select-avatar {
+  background: #E0F7FA;
+}
+
+.pet-select-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pet-select-name {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: white;
+}
+
+.pet-select-btn.selected .pet-select-name {
+  color: #059669;
+}
+
+.pet-select-check {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
+  background: #4ade80;
+  border-radius: 50%;
+  font-size: 0.6875rem;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+/* Session Details */
+.session-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.session-row {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.session-input {
+  padding: var(--space-sm);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: white;
+}
+
+.session-input.date {
+  flex: 1;
+}
+
+.session-input.cost {
+  flex: 1;
+}
+
+.session-input.provider {
+  width: 100%;
+}
+
+.session-input.notes {
+  width: 100%;
+  resize: none;
+  font-family: inherit;
+}
+
+.session-input:focus {
+  outline: none;
+  border-color: white;
+}
+
+.session-submit-btn {
+  width: 100%;
+  padding: var(--space-sm) var(--space-lg);
+  background: white;
+  border: 3px solid rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #a855f7;
+  transition: all 0.15s;
+}
+
+.session-submit-btn:hover:not(:disabled) {
+  background: #fafafa;
+  transform: translateY(-1px);
+}
+
+.session-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* View Tabs */
+.view-tabs {
+  display: flex;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.view-tab {
+  flex: 1;
+  padding: var(--space-sm);
+  background: white;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: var(--text-secondary);
+}
+
+.view-tab:hover {
+  border-color: #00BFFF;
+}
+
+.view-tab.active {
+  background: #00BFFF;
+  border-color: #0099CC;
+  color: white;
+}
+
+/* Session Cards */
+.session-card {
+  position: relative;
+  padding: var(--space-md);
+  background: white;
+  border: 2px solid var(--border-color);
+  border-left: 4px solid var(--session-color, #a855f7);
+  border-radius: 12px;
+  margin-bottom: var(--space-sm);
+}
+
+.session-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.session-card-emoji {
+  font-size: 1.25rem;
+}
+
+.session-card-type {
+  font-weight: 700;
+  color: var(--session-color, #a855f7);
+}
+
+.session-card-cost {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.session-card-pets {
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+}
+
+.session-card-provider {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xs);
+}
+
+.session-card-notes {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  padding: var(--space-xs);
+  background: var(--background-secondary);
+  border-radius: 6px;
+}
+
+.session-delete {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 1.25rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.session-card:hover .session-delete {
+  opacity: 1;
+}
+
+.session-delete:hover {
+  color: #FF6B6B;
+}
+
+/* Photo Upload in Modal */
+.photo-upload-section {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+  padding: var(--space-md);
+  background: var(--background-secondary);
+  border-radius: 12px;
+}
+
+.photo-preview {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #E0F7FA;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.upload-photo-btn {
+  padding: var(--space-sm) var(--space-md);
+  background: #00BFFF;
+  border: 2px solid #0099CC;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: white;
+  cursor: pointer;
+  text-align: center;
+}
+
+.upload-photo-btn:hover {
+  background: #0099CC;
+}
+
+.remove-photo-btn {
+  padding: var(--space-xs) var(--space-sm);
+  background: transparent;
+  border: 1px solid #FF6B6B;
+  border-radius: 6px;
+  font-size: 0.6875rem;
+  color: #FF6B6B;
+  cursor: pointer;
+}
+
+.remove-photo-btn:hover {
+  background: #FF6B6B;
+  color: white;
+}
 </style>
 
 <style>
@@ -1024,5 +1709,88 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.1) !important;
   border-color: rgba(255, 255, 255, 0.2) !important;
   color: white !important;
+}
+
+/* Session Section Dark Mode */
+[data-theme="dark"] .session-section {
+  background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%) !important;
+  border-color: #6D28D9 !important;
+  box-shadow: 4px 4px 0 #3D3456 !important;
+}
+
+[data-theme="dark"] .session-input {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .session-input:focus {
+  border-color: #A78BFA !important;
+}
+
+[data-theme="dark"] .session-submit-btn {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+}
+
+[data-theme="dark"] .session-type-tab.active {
+  background: #1A1625 !important;
+}
+
+[data-theme="dark"] .pet-select-btn.selected {
+  background: #1A1625 !important;
+  border-color: #4ade80 !important;
+}
+
+[data-theme="dark"] .pet-select-btn.selected .pet-select-avatar {
+  background: #2D2640 !important;
+}
+
+[data-theme="dark"] .pet-select-btn.selected .pet-select-name {
+  color: #4ade80 !important;
+}
+
+/* View Tabs Dark Mode */
+[data-theme="dark"] .view-tab {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .view-tab:hover {
+  border-color: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .view-tab.active {
+  background: #8B5CF6 !important;
+  border-color: #7C3AED !important;
+}
+
+/* Session Cards Dark Mode */
+[data-theme="dark"] .session-card {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .session-card-notes {
+  background: #2D2640 !important;
+}
+
+/* Photo Upload Dark Mode */
+[data-theme="dark"] .photo-upload-section {
+  background: #2D2640 !important;
+}
+
+[data-theme="dark"] .photo-preview {
+  background: #3D3456 !important;
+}
+
+[data-theme="dark"] .upload-photo-btn {
+  background: #8B5CF6 !important;
+  border-color: #7C3AED !important;
+}
+
+[data-theme="dark"] .upload-photo-btn:hover {
+  background: #7C3AED !important;
 }
 </style>

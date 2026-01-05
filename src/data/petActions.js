@@ -11,6 +11,48 @@ export const petActions = {
   weight: { emoji: '⚖️', label: 'Weight Check' },
 }
 
+// Session types - group activities for multiple pets
+export const sessionTypes = {
+  bath: {
+    emoji: '🛁',
+    label: 'Bath/Grooming',
+    color: '#60a5fa',
+    fields: ['cost', 'provider', 'notes'],
+    providerLabel: 'Groomer',
+  },
+  vet: {
+    emoji: '🏥',
+    label: 'Vet Visit',
+    color: '#f472b6',
+    fields: ['cost', 'provider', 'notes'],
+    providerLabel: 'Vet/Clinic',
+  },
+  flea: {
+    emoji: '🐛',
+    label: 'Flea Treatment',
+    color: '#4ade80',
+    fields: ['cost', 'notes'],
+    providerLabel: 'Brand/Product',
+  },
+  deworm: {
+    emoji: '💊',
+    label: 'Deworming',
+    color: '#c084fc',
+    fields: ['cost', 'notes'],
+    providerLabel: 'Brand/Product',
+  },
+  food: {
+    emoji: '🍗',
+    label: 'Food Restock',
+    color: '#fb923c',
+    fields: ['cost', 'provider', 'notes'],
+    providerLabel: 'Store/Brand',
+  },
+}
+
+// Quick log actions - solo activities for individual pets
+export const quickLogActions = ['nail', 'sick', 'medicine', 'weight', 'vaccine']
+
 // Status thresholds (in days) for each action type
 export const petStatusRules = {
   bath: { good: 14, warning: 21, overdue: 30 },
