@@ -438,6 +438,17 @@ h4 { font-size: 1.125rem; }
   color: var(--gray-400);
 }
 
+/* Number inputs - prevent scroll wheel from changing value */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 /* Select */
 .select {
   appearance: none;

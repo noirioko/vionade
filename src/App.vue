@@ -41,6 +41,13 @@ function handleFabClick() {
 // Apply theme on mount
 onMounted(() => {
   store.applyTheme()
+
+  // Prevent scroll wheel from changing number input values
+  document.addEventListener('wheel', (e) => {
+    if (e.target.type === 'number') {
+      e.target.blur()
+    }
+  }, { passive: true })
 })
 </script>
 
