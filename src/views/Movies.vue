@@ -13,6 +13,7 @@ const viewingMovie = ref(null)
 const sortBy = ref('date') // 'date', 'rating', 'title'
 const searchQuery = ref('')
 const activeTab = ref('movies') // 'movies', 'series', 'books'
+const statusFilter = ref('all') // 'all', 'watching', 'hiatus', 'finished', 'dropped' (for series)
 
 onMounted(() => {
   fabAction.value = () => {
@@ -57,6 +58,17 @@ const filteredItems = computed(() => {
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase()
     items = items.filter(m => m.title?.toLowerCase().includes(q))
+  }
+
+  // Filter by status (only for series)
+  if (activeTab.value === 'series' && statusFilter.value !== 'all') {
+    items = items.filter(item => {
+      if (statusFilter.value === 'watching') return item.didFinish === 'watching'
+      if (statusFilter.value === 'hiatus') return item.didFinish === 'hiatus'
+      if (statusFilter.value === 'finished') return item.didFinish === 'yes' || item.didFinish === true
+      if (statusFilter.value === 'dropped') return item.didFinish === 'dropped'
+      return true
+    })
   }
 
   // Sort
@@ -114,14 +126,16 @@ function getWatchAgainClass(value) {
 function getFinishText(value) {
   if (value === 'reading') return 'Still reading'
   if (value === 'watching') return 'Still watching'
+  if (value === 'hiatus') return 'On Hiatus'
   if (value === 'dropped') return 'Dropped'
   if (value === false || value === 'no') return 'Nope'
-  return 'Yes'
+  return 'Finished'
 }
 
 function getFinishClass(value) {
   if (value === 'reading') return 'badge-maybe'
-  if (value === 'watching') return 'badge-maybe'
+  if (value === 'watching') return 'badge-watching'
+  if (value === 'hiatus') return 'badge-hiatus'
   if (value === 'dropped') return 'badge-no'
   if (value === false || value === 'no') return 'badge-no'
   return 'badge-yes'
@@ -154,7 +168,7 @@ const isBookTab = computed(() => activeTab.value === 'books')
       <button
         class="media-tab"
         :class="{ active: activeTab === 'movies' }"
-        @click="activeTab = 'movies'"
+        @click="activeTab = 'movies'; statusFilter = 'all'"
       >Movies</button>
       <button
         class="media-tab"
@@ -164,8 +178,37 @@ const isBookTab = computed(() => activeTab.value === 'books')
       <button
         class="media-tab"
         :class="{ active: activeTab === 'books' }"
-        @click="activeTab = 'books'"
+        @click="activeTab = 'books'; statusFilter = 'all'"
       >Books</button>
+    </div>
+
+    <!-- Status Filter (Series only) -->
+    <div class="status-filters" v-if="activeTab === 'series' && currentItems.length > 0">
+      <button
+        class="status-pill"
+        :class="{ active: statusFilter === 'all' }"
+        @click="statusFilter = 'all'"
+      >All</button>
+      <button
+        class="status-pill watching"
+        :class="{ active: statusFilter === 'watching' }"
+        @click="statusFilter = 'watching'"
+      >Watching</button>
+      <button
+        class="status-pill hiatus"
+        :class="{ active: statusFilter === 'hiatus' }"
+        @click="statusFilter = 'hiatus'"
+      >On Hiatus</button>
+      <button
+        class="status-pill finished"
+        :class="{ active: statusFilter === 'finished' }"
+        @click="statusFilter = 'finished'"
+      >Finished</button>
+      <button
+        class="status-pill dropped"
+        :class="{ active: statusFilter === 'dropped' }"
+        @click="statusFilter = 'dropped'"
+      >Dropped</button>
     </div>
 
     <!-- Search & Sort Bar -->
@@ -230,7 +273,7 @@ const isBookTab = computed(() => activeTab.value === 'books')
             <span class="placeholder-title">{{ item.title }}</span>
           </div>
           <div class="poster-rating">{{ item.rating }}/10</div>
-          <div v-if="item.didFinish === 'watching' && item.currentEpisode" class="poster-episode">
+          <div v-if="(item.didFinish === 'watching' || item.didFinish === 'hiatus') && item.currentEpisode" class="poster-episode" :class="{ hiatus: item.didFinish === 'hiatus' }">
             Ep {{ item.currentEpisode }}
           </div>
         </div>
@@ -263,7 +306,7 @@ const isBookTab = computed(() => activeTab.value === 'books')
                   {{ getFinishText(viewingMovie.didFinish) }}
                 </span>
               </div>
-              <div class="view-row" v-if="isSeriesTab && viewingMovie.didFinish === 'watching' && viewingMovie.currentEpisode">
+              <div class="view-row" v-if="isSeriesTab && (viewingMovie.didFinish === 'watching' || viewingMovie.didFinish === 'hiatus') && viewingMovie.currentEpisode">
                 <span class="view-label">Progress</span>
                 <span class="view-value episode-badge">
                   Episode {{ viewingMovie.currentEpisode }}
@@ -387,6 +430,55 @@ const isBookTab = computed(() => activeTab.value === 'books')
   background: var(--white);
   color: var(--lavender-600);
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Status Filters */
+.status-filters {
+  display: flex;
+  gap: 6px;
+  margin-bottom: var(--space-md);
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.status-pill {
+  padding: 6px 12px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--gray-100);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.status-pill:hover {
+  background: var(--gray-200);
+}
+
+.status-pill.active {
+  background: var(--lavender-500);
+  color: white;
+}
+
+.status-pill.watching.active {
+  background: #10B981;
+}
+
+.status-pill.hiatus.active {
+  background: #F59E0B;
+}
+
+.status-pill.finished.active {
+  background: var(--lavender-500);
+}
+
+.status-pill.dropped.active {
+  background: var(--gray-400);
 }
 
 /* Toolbar */
@@ -574,12 +666,16 @@ const isBookTab = computed(() => activeTab.value === 'books')
   position: absolute;
   top: 4px;
   left: 4px;
-  background: var(--lavender-500);
+  background: #10B981;
   color: white;
   font-size: 0.5625rem;
   font-weight: 700;
   padding: 2px 6px;
   border-radius: var(--radius-sm);
+}
+
+.poster-episode.hiatus {
+  background: #F59E0B;
 }
 
 /* View Modal */
@@ -670,6 +766,8 @@ const isBookTab = computed(() => activeTab.value === 'books')
 }
 
 .view-value.badge-yes { color: var(--income-color); }
+.view-value.badge-watching { color: #10B981; }
+.view-value.badge-hiatus { color: #F59E0B; }
 .view-value.badge-maybe { color: #F59E0B; }
 .view-value.badge-no { color: var(--text-secondary); }
 .view-value.episode-badge {
@@ -741,5 +839,22 @@ const isBookTab = computed(() => activeTab.value === 'books')
 
 [data-theme="dark"] .view-row {
   border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .status-filters {
+  background: transparent !important;
+}
+
+[data-theme="dark"] .status-pill {
+  background: #2D2640 !important;
+  color: #A3A3A3 !important;
+}
+
+[data-theme="dark"] .status-pill:hover {
+  background: #3D3456 !important;
+}
+
+[data-theme="dark"] .status-pill.active {
+  color: white !important;
 }
 </style>

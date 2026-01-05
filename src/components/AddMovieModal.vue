@@ -439,7 +439,7 @@ function handleImageUpload(event) {
             @click="didFinish = 'no'"
           >Nope (fell asleep)</button>
         </div>
-        <!-- Series: finished/watching/dropped -->
+        <!-- Series: finished/watching/hiatus/dropped -->
         <div class="finish-options series-options" v-else-if="isSeries">
           <button
             class="finish-btn"
@@ -450,7 +450,12 @@ function handleImageUpload(event) {
             class="finish-btn"
             :class="{ active: didFinish === 'watching' }"
             @click="didFinish = 'watching'"
-          >Still watching</button>
+          >Watching</button>
+          <button
+            class="finish-btn"
+            :class="{ active: didFinish === 'hiatus' }"
+            @click="didFinish = 'hiatus'"
+          >On Hiatus</button>
           <button
             class="finish-btn"
             :class="{ active: didFinish === 'dropped' }"
@@ -477,8 +482,8 @@ function handleImageUpload(event) {
         </div>
       </div>
 
-      <!-- Episode tracker for series (only when still watching) -->
-      <div class="input-group" v-if="isSeries && didFinish === 'watching'">
+      <!-- Episode tracker for series (when watching or on hiatus) -->
+      <div class="input-group" v-if="isSeries && (didFinish === 'watching' || didFinish === 'hiatus')">
         <label class="input-label">On Episode</label>
         <div class="episode-input-row">
           <button class="episode-btn" @click="currentEpisode = Math.max(1, currentEpisode - 1)">-</button>
