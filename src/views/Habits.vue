@@ -665,6 +665,8 @@ function handleGoalClick(goalId) {
 .category-content {
   padding: var(--space-sm);
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
 }
 
 /* Collapse animation */
@@ -692,10 +694,8 @@ function handleGoalClick(goalId) {
 .days-header {
   display: flex;
   margin-bottom: var(--space-xs);
-  position: sticky;
-  top: 0;
   background: var(--bg-card);
-  z-index: 1;
+  position: relative;
 }
 
 .habit-name-space {
@@ -763,6 +763,8 @@ function handleGoalClick(goalId) {
 .habit-checkboxes {
   display: flex;
   gap: 2px;
+  position: relative;
+  z-index: 2;
 }
 
 .habit-checkbox {
@@ -778,6 +780,17 @@ function handleGoalClick(goalId) {
   transition: all 0.15s ease;
   flex-shrink: 0;
   padding: 0;
+  margin: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  z-index: 1;
+  line-height: 1;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
 }
 
 .habit-checkbox:hover:not(:disabled) {
@@ -804,6 +817,34 @@ function handleGoalClick(goalId) {
 
 .habit-checkbox:active:not(:disabled) {
   transform: scale(0.9);
+}
+
+/* Mobile touch improvements */
+@media (max-width: 640px) {
+  .habit-checkbox {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+  }
+
+  .day-number {
+    width: 32px;
+  }
+
+  .habit-row {
+    touch-action: pan-x;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .habit-checkboxes {
+    touch-action: pan-x;
+  }
+
+  .category-content {
+    touch-action: pan-x pan-y;
+  }
 }
 
 /* Weekly Bonuses */
@@ -912,6 +953,11 @@ function handleGoalClick(goalId) {
   justify-content: center;
   transition: all 0.15s ease;
   padding: 0;
+  margin: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .bonus-checkbox:hover:not(:disabled) {
@@ -973,6 +1019,11 @@ function handleGoalClick(goalId) {
   transition: all 0.15s ease;
   flex-shrink: 0;
   padding: 0;
+  margin: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .goal-checkbox:hover:not(:disabled) {
