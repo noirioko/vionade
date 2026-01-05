@@ -26,7 +26,8 @@ const rating = ref(7)
 const watchedDate = ref(new Date().toISOString().split('T')[0])
 const notes = ref('')
 const wouldWatchAgain = ref('yes') // 'yes', 'maybe', 'no'
-const didFinish = ref('yes') // 'yes', 'no', 'reading', 'dropped' (for books)
+const didFinish = ref('yes') // 'yes', 'no', 'reading', 'dropped' (for books), 'watching' (for series)
+const currentEpisode = ref(1) // Episode tracker for series
 
 // Search state
 const searchQuery = ref('')
@@ -44,6 +45,7 @@ watch(() => props.movie, (movie) => {
     rating.value = movie.rating
     watchedDate.value = movie.watchedDate
     notes.value = movie.notes || ''
+    currentEpisode.value = movie.currentEpisode || 1
     // Handle didFinish - convert boolean to string if needed
     if (typeof movie.didFinish === 'boolean') {
       didFinish.value = movie.didFinish ? 'yes' : 'no'
@@ -65,6 +67,7 @@ watch(() => props.movie, (movie) => {
     notes.value = ''
     didFinish.value = 'yes'
     wouldWatchAgain.value = 'yes'
+    currentEpisode.value = 1
   }
 }, { immediate: true })
 
@@ -107,6 +110,7 @@ const mediaLabels = computed(() => {
 
 // Different finish options for books vs movies/series
 const isBook = computed(() => props.mediaType === 'book')
+const isSeries = computed(() => props.mediaType === 'series')
 
 const effectivePosterUrl = computed(() => {
   return useCustomPoster.value ? customPosterUrl.value : posterUrl.value
@@ -200,6 +204,11 @@ function handleSave() {
     notes: notes.value.trim(),
     didFinish: didFinish.value,
     wouldWatchAgain: wouldWatchAgain.value
+  }
+
+  // Add episode tracking for series
+  if (props.mediaType === 'series') {
+    mediaData.currentEpisode = currentEpisode.value
   }
 
   if (props.mediaType === 'series') {
@@ -414,10 +423,11 @@ function handleImageUpload(event) {
         </div>
       </div>
 
-      <!-- Did I finish it? (different options for books) -->
+      <!-- Did I finish it? (different options for books and series) -->
       <div class="input-group">
         <label class="input-label">{{ mediaLabels.finishLabel }}</label>
-        <div class="finish-options" v-if="!isBook">
+        <!-- Movies: simple yes/no -->
+        <div class="finish-options" v-if="!isBook && !isSeries">
           <button
             class="finish-btn"
             :class="{ active: didFinish === 'yes' }"
@@ -429,6 +439,25 @@ function handleImageUpload(event) {
             @click="didFinish = 'no'"
           >Nope (fell asleep)</button>
         </div>
+        <!-- Series: finished/watching/dropped -->
+        <div class="finish-options series-options" v-else-if="isSeries">
+          <button
+            class="finish-btn"
+            :class="{ active: didFinish === 'yes' }"
+            @click="didFinish = 'yes'"
+          >Finished</button>
+          <button
+            class="finish-btn"
+            :class="{ active: didFinish === 'watching' }"
+            @click="didFinish = 'watching'"
+          >Still watching</button>
+          <button
+            class="finish-btn"
+            :class="{ active: didFinish === 'dropped' }"
+            @click="didFinish = 'dropped'"
+          >Dropped</button>
+        </div>
+        <!-- Books: finished/reading/dropped -->
         <div class="finish-options book-options" v-else>
           <button
             class="finish-btn"
@@ -445,6 +474,21 @@ function handleImageUpload(event) {
             :class="{ active: didFinish === 'dropped' }"
             @click="didFinish = 'dropped'"
           >Dropped</button>
+        </div>
+      </div>
+
+      <!-- Episode tracker for series (only when still watching) -->
+      <div class="input-group" v-if="isSeries && didFinish === 'watching'">
+        <label class="input-label">On Episode</label>
+        <div class="episode-input-row">
+          <button class="episode-btn" @click="currentEpisode = Math.max(1, currentEpisode - 1)">-</button>
+          <input
+            v-model.number="currentEpisode"
+            type="number"
+            class="input episode-input"
+            min="1"
+          />
+          <button class="episode-btn" @click="currentEpisode++">+</button>
         </div>
       </div>
 
@@ -766,6 +810,43 @@ function handleImageUpload(event) {
   color: white;
 }
 
+/* Episode input */
+.episode-input-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.episode-btn {
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--lavender-300);
+  border-radius: var(--radius-md);
+  background: var(--lavender-50);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--lavender-600);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.episode-btn:hover {
+  background: var(--lavender-100);
+  border-color: var(--lavender-500);
+}
+
+.episode-btn:active {
+  transform: scale(0.95);
+}
+
+.episode-input {
+  width: 80px;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  padding: var(--space-sm) !important;
+}
+
 .modal-actions {
   display: flex;
   gap: var(--space-sm);
@@ -865,5 +946,16 @@ function handleImageUpload(event) {
 
 [data-theme="dark"] .clear-custom-btn:hover {
   background: #4D4466 !important;
+}
+
+[data-theme="dark"] .episode-btn {
+  background: #2D2640 !important;
+  border-color: #3D3456 !important;
+  color: #C4B5FD !important;
+}
+
+[data-theme="dark"] .episode-btn:hover {
+  background: #3D3456 !important;
+  border-color: #8B5CF6 !important;
 }
 </style>

@@ -113,6 +113,7 @@ function getWatchAgainClass(value) {
 
 function getFinishText(value) {
   if (value === 'reading') return 'Still reading'
+  if (value === 'watching') return 'Still watching'
   if (value === 'dropped') return 'Dropped'
   if (value === false || value === 'no') return 'Nope'
   return 'Yes'
@@ -120,10 +121,14 @@ function getFinishText(value) {
 
 function getFinishClass(value) {
   if (value === 'reading') return 'badge-maybe'
+  if (value === 'watching') return 'badge-maybe'
   if (value === 'dropped') return 'badge-no'
   if (value === false || value === 'no') return 'badge-no'
   return 'badge-yes'
 }
+
+// Check if current tab is series
+const isSeriesTab = computed(() => activeTab.value === 'series')
 
 // Check if current tab is books
 const isBookTab = computed(() => activeTab.value === 'books')
@@ -225,6 +230,9 @@ const isBookTab = computed(() => activeTab.value === 'books')
             <span class="placeholder-title">{{ item.title }}</span>
           </div>
           <div class="poster-rating">{{ item.rating }}/10</div>
+          <div v-if="item.didFinish === 'watching' && item.currentEpisode" class="poster-episode">
+            Ep {{ item.currentEpisode }}
+          </div>
         </div>
       </div>
     </div>
@@ -253,6 +261,12 @@ const isBookTab = computed(() => activeTab.value === 'books')
                 <span class="view-label">{{ isBookTab ? 'Status' : 'Finished' }}</span>
                 <span class="view-value" :class="getFinishClass(viewingMovie.didFinish)">
                   {{ getFinishText(viewingMovie.didFinish) }}
+                </span>
+              </div>
+              <div class="view-row" v-if="isSeriesTab && viewingMovie.didFinish === 'watching' && viewingMovie.currentEpisode">
+                <span class="view-label">Progress</span>
+                <span class="view-value episode-badge">
+                  Episode {{ viewingMovie.currentEpisode }}
                 </span>
               </div>
               <div class="view-row">
@@ -556,6 +570,18 @@ const isBookTab = computed(() => activeTab.value === 'books')
   border-radius: var(--radius-sm);
 }
 
+.poster-episode {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: var(--lavender-500);
+  color: white;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
 /* View Modal */
 .view-modal {
   background: var(--bg-card);
@@ -646,6 +672,10 @@ const isBookTab = computed(() => activeTab.value === 'books')
 .view-value.badge-yes { color: var(--income-color); }
 .view-value.badge-maybe { color: #F59E0B; }
 .view-value.badge-no { color: var(--text-secondary); }
+.view-value.episode-badge {
+  color: var(--lavender-600);
+  font-weight: 700;
+}
 
 .view-notes {
   margin-top: var(--space-md);
