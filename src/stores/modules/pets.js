@@ -1,13 +1,25 @@
 // Pets module - Pet management + Pet logs
 import { state, generateId } from '../core'
 
+// Helper to parse nicknames (supports comma or space separated)
+function parseNicknames(nicknameStr) {
+  if (!nicknameStr) return []
+  return nicknameStr
+    .toLowerCase()
+    .split(/[,\s]+/)
+    .map(n => n.trim())
+    .filter(n => n.length > 0)
+}
+
 // Pet CRUD
 export function addPet(pet) {
   const id = generateId()
+  const nicknames = parseNicknames(pet.nickname || pet.name || '')
   state.pets.push({
     id,
     name: pet.name || '',
-    nickname: (pet.nickname || pet.name || '').toLowerCase().trim(),
+    nickname: nicknames[0] || '', // Primary nickname for display
+    nicknames: nicknames, // All nicknames for matching
     photo: pet.photo || null,
     notes: pet.notes || '',
     createdAt: new Date().toISOString(),
@@ -18,8 +30,10 @@ export function addPet(pet) {
 export function updatePet(id, updates) {
   const pet = state.pets.find(p => p.id === id)
   if (pet) {
+    const nicknames = parseNicknames(updates.nickname || pet.nickname || '')
     Object.assign(pet, updates, {
-      nickname: (updates.nickname || pet.nickname || '').toLowerCase().trim(),
+      nickname: nicknames[0] || pet.nickname || '',
+      nicknames: nicknames.length > 0 ? nicknames : pet.nicknames || [pet.nickname],
     })
   }
 }
@@ -33,7 +47,13 @@ export function deletePet(id) {
 
 export function getPetByNickname(nickname) {
   const lower = nickname.toLowerCase().trim()
-  return state.pets.find(p => p.nickname === lower)
+  return state.pets.find(p => {
+    // Check primary nickname
+    if (p.nickname === lower) return true
+    // Check all nicknames array
+    if (p.nicknames && p.nicknames.includes(lower)) return true
+    return false
+  })
 }
 
 export function getPetById(id) {

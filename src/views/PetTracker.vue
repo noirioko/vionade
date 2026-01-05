@@ -68,7 +68,15 @@ const suggestions = computed(() => {
   if (!input) return []
 
   return store.pets.value
-    .filter(p => p.nickname.startsWith(input) || p.name.toLowerCase().startsWith(input))
+    .filter(p => {
+      // Check primary nickname
+      if (p.nickname?.startsWith(input)) return true
+      // Check all nicknames
+      if (p.nicknames?.some(n => n.startsWith(input))) return true
+      // Check name
+      if (p.name?.toLowerCase().startsWith(input)) return true
+      return false
+    })
     .slice(0, 5)
 })
 
@@ -141,7 +149,11 @@ function openAddPet() {
 
 function openEditPet(pet) {
   editingPet.value = pet
-  petForm.value = { ...pet }
+  petForm.value = {
+    ...pet,
+    // Join nicknames array back to string for editing
+    nickname: pet.nicknames?.join(', ') || pet.nickname || ''
+  }
   showAddPetModal.value = true
 }
 
@@ -388,8 +400,9 @@ onUnmounted(() => {
           </div>
 
           <div class="form-group">
-            <label>Nickname (for quick entry)</label>
-            <input v-model="petForm.nickname" type="text" placeholder="pong" />
+            <label>Nicknames (for quick entry)</label>
+            <input v-model="petForm.nickname" type="text" placeholder="pong, pongie, pp" />
+            <span class="form-hint">Separate multiple nicknames with commas or spaces</span>
           </div>
 
           <div class="form-group">
@@ -895,6 +908,13 @@ onUnmounted(() => {
 .form-group textarea {
   min-height: 80px;
   resize: vertical;
+}
+
+.form-hint {
+  display: block;
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
 }
 
 .modal-footer {
