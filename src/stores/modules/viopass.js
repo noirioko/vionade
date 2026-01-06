@@ -10,6 +10,7 @@ export const SPENDING_REACTIONS = {
   travel: { neutral: true, message: "Traveling can be good for the soul..." },
   hotel: { neutral: true, message: "Sometimes you need a place to stay!" },
   clothes: { bad: true, message: "Hmm... Did you really need new clothes?" },
+  shopping: { bad: true, message: "Another blind box? What did you get?!" },
   other: { bad: true, message: "What did you buy? Vio is curious..." },
 }
 
