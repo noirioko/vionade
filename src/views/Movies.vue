@@ -60,11 +60,21 @@ const filteredItems = computed(() => {
     items = items.filter(m => m.title?.toLowerCase().includes(q))
   }
 
-  // Filter by status (only for series)
+  // Filter by status (for series)
   if (activeTab.value === 'series' && statusFilter.value !== 'all') {
     items = items.filter(item => {
       if (statusFilter.value === 'watching') return item.didFinish === 'watching'
       if (statusFilter.value === 'hiatus') return item.didFinish === 'hiatus'
+      if (statusFilter.value === 'finished') return item.didFinish === 'yes' || item.didFinish === true
+      if (statusFilter.value === 'dropped') return item.didFinish === 'dropped'
+      return true
+    })
+  }
+
+  // Filter by status (for books)
+  if (activeTab.value === 'books' && statusFilter.value !== 'all') {
+    items = items.filter(item => {
+      if (statusFilter.value === 'reading') return item.didFinish === 'reading'
       if (statusFilter.value === 'finished') return item.didFinish === 'yes' || item.didFinish === true
       if (statusFilter.value === 'dropped') return item.didFinish === 'dropped'
       return true
@@ -182,7 +192,7 @@ const isBookTab = computed(() => activeTab.value === 'books')
       >Books</button>
     </div>
 
-    <!-- Status Filter (Series only) -->
+    <!-- Status Filter (Series) -->
     <div class="status-filters" v-if="activeTab === 'series' && currentItems.length > 0">
       <button
         class="status-pill"
@@ -199,6 +209,30 @@ const isBookTab = computed(() => activeTab.value === 'books')
         :class="{ active: statusFilter === 'hiatus' }"
         @click="statusFilter = 'hiatus'"
       >On Hiatus</button>
+      <button
+        class="status-pill finished"
+        :class="{ active: statusFilter === 'finished' }"
+        @click="statusFilter = 'finished'"
+      >Finished</button>
+      <button
+        class="status-pill dropped"
+        :class="{ active: statusFilter === 'dropped' }"
+        @click="statusFilter = 'dropped'"
+      >Dropped</button>
+    </div>
+
+    <!-- Status Filter (Books) -->
+    <div class="status-filters" v-if="activeTab === 'books' && currentItems.length > 0">
+      <button
+        class="status-pill"
+        :class="{ active: statusFilter === 'all' }"
+        @click="statusFilter = 'all'"
+      >All</button>
+      <button
+        class="status-pill reading"
+        :class="{ active: statusFilter === 'reading' }"
+        @click="statusFilter = 'reading'"
+      >Reading</button>
       <button
         class="status-pill finished"
         :class="{ active: statusFilter === 'finished' }"
@@ -466,6 +500,10 @@ const isBookTab = computed(() => activeTab.value === 'books')
 }
 
 .status-pill.watching.active {
+  background: #10B981;
+}
+
+.status-pill.reading.active {
   background: #10B981;
 }
 
