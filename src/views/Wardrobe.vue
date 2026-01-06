@@ -76,12 +76,22 @@ function openEditItem(item) {
 }
 
 function saveItem() {
-  if (!itemForm.value.name.trim()) return
+  const trimmedName = itemForm.value.name.trim()
+  if (!trimmedName) return
+
+  const dataToSave = {
+    ...itemForm.value,
+    name: trimmedName,
+    location: itemForm.value.location.trim(),
+    color: itemForm.value.color.trim(),
+    brand: itemForm.value.brand.trim(),
+    notes: itemForm.value.notes.trim(),
+  }
 
   if (editingItem.value) {
-    store.updateWardrobeItem(editingItem.value.id, itemForm.value)
+    store.updateWardrobeItem(editingItem.value.id, dataToSave)
   } else {
-    store.addWardrobeItem(itemForm.value)
+    store.addWardrobeItem(dataToSave)
   }
   showItemModal.value = false
 }
@@ -135,7 +145,15 @@ function handleImageUpload(event) {
       itemForm.value.photo = compressedBase64
       isUploadingImage.value = false
     }
+    img.onerror = () => {
+      isUploadingImage.value = false
+      alert('Could not load image. Please try a different file.')
+    }
     img.src = e.target.result
+  }
+  reader.onerror = () => {
+    isUploadingImage.value = false
+    alert('Could not read file. Please try again.')
   }
   reader.readAsDataURL(file)
 }
@@ -222,7 +240,9 @@ onUnmounted(() => {
     <!-- Empty State -->
     <div v-if="filteredItems.length === 0" class="empty-state">
       <img src="/images/vio_sit.png" alt="Vio" class="empty-vio" />
-      <p v-if="searchQuery">No items match "{{ searchQuery }}"</p>
+      <p v-if="searchQuery || categoryFilter !== 'all' || locationFilter !== 'all' || showFavoritesOnly">
+        No items match your filters
+      </p>
       <p v-else>No clothes yet! Tap + to add your first item.</p>
     </div>
 
