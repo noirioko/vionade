@@ -68,6 +68,7 @@ export const state = reactive({
   tankLogs: loadFromStorage('mochi_tanklogs', []),
   collections: loadFromStorage('mochi_collections', []),
   collectionItems: loadFromStorage('mochi_collectionitems', []),
+  wardrobe: loadFromStorage('mochi_wardrobe', []),
   habits: loadFromStorage('mochi_habits', {
     currentChallenge: 'january-2026',
     completions: {},
@@ -132,6 +133,7 @@ export async function saveToFirebase() {
       tankLogs: state.tankLogs,
       collections: state.collections,
       collectionItems: state.collectionItems,
+      wardrobe: state.wardrobe,
       habits: state.habits,
       settings: state.settings,
       updatedAt: new Date().toISOString(),
@@ -175,6 +177,7 @@ async function loadFromFirebase() {
       if (data.tankLogs) state.tankLogs = data.tankLogs
       if (data.collections) state.collections = data.collections
       if (data.collectionItems) state.collectionItems = data.collectionItems
+      if (data.wardrobe) state.wardrobe = data.wardrobe
       if (data.habits) state.habits = { ...state.habits, ...data.habits }
 
       // Save to localStorage as backup
@@ -194,6 +197,7 @@ async function loadFromFirebase() {
       localStorage.setItem('mochi_tanklogs', JSON.stringify(state.tankLogs))
       localStorage.setItem('mochi_collections', JSON.stringify(state.collections))
       localStorage.setItem('mochi_collectionitems', JSON.stringify(state.collectionItems))
+      localStorage.setItem('mochi_wardrobe', JSON.stringify(state.wardrobe))
       localStorage.setItem('mochi_habits', JSON.stringify(state.habits))
     } else {
       // First time user - start fresh
@@ -212,6 +216,7 @@ async function loadFromFirebase() {
       state.tankLogs = []
       state.collections = []
       state.collectionItems = []
+      state.wardrobe = []
       state.habits = {
         currentChallenge: 'january-2026',
         completions: {},
@@ -261,6 +266,7 @@ function setupRealtimeSync() {
       if (data.tankLogs) state.tankLogs = data.tankLogs
       if (data.collections) state.collections = data.collections
       if (data.collectionItems) state.collectionItems = data.collectionItems
+      if (data.wardrobe) state.wardrobe = data.wardrobe
       if (data.habits) state.habits = { ...state.habits, ...data.habits }
     }
   })
@@ -320,6 +326,7 @@ const stateKeys = [
   { key: 'tankLogs', storage: 'mochi_tanklogs' },
   { key: 'collections', storage: 'mochi_collections' },
   { key: 'collectionItems', storage: 'mochi_collectionitems' },
+  { key: 'wardrobe', storage: 'mochi_wardrobe' },
   { key: 'habits', storage: 'mochi_habits' },
 ]
 
@@ -354,6 +361,7 @@ export async function resetAllData() {
   state.tankLogs = []
   state.collections = []
   state.collectionItems = []
+  state.wardrobe = []
   state.habits = {
     currentChallenge: 'january-2026',
     completions: {},

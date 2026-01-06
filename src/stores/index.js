@@ -143,6 +143,19 @@ import {
   getFilteredCollections,
 } from './modules/collections'
 
+// Wardrobe module
+import {
+  WARDROBE_CATEGORIES,
+  addWardrobeItem,
+  updateWardrobeItem,
+  deleteWardrobeItem,
+  getWardrobeItemById,
+  toggleWardrobeFavorite,
+  getWardrobeLocations,
+  getFilteredWardrobe,
+  getWardrobeStats,
+} from './modules/wardrobe'
+
 // Export composable
 export function useFinanceStore() {
   return {
@@ -164,6 +177,7 @@ export function useFinanceStore() {
     tankLogs: computed(() => state.tankLogs),
     collections: computed(() => state.collections),
     collectionItems: computed(() => state.collectionItems),
+    wardrobe: computed(() => state.wardrobe),
     habits: computed(() => state.habits),
     settings: computed(() => state.settings),
     isLoading: computed(() => state.isLoading),
@@ -186,6 +200,7 @@ export function useFinanceStore() {
     DEFAULT_WALLETS,
     SPENDING_REACTIONS,
     COLLECTION_TYPES,
+    WARDROBE_CATEGORIES,
 
     // Finance actions
     addTransaction,
@@ -286,6 +301,16 @@ export function useFinanceStore() {
     toggleItemOwned,
     getCollectionsWithStats,
     getFilteredCollections,
+
+    // Wardrobe actions
+    addWardrobeItem,
+    updateWardrobeItem,
+    deleteWardrobeItem,
+    getWardrobeItemById,
+    toggleWardrobeFavorite,
+    getWardrobeLocations,
+    getFilteredWardrobe,
+    getWardrobeStats,
 
     // Helpers
     formatCurrency,
