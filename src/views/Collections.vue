@@ -94,12 +94,19 @@ function openEditCollection(collection) {
 }
 
 function saveCollection() {
-  if (!collectionForm.value.name.trim()) return
+  const trimmedName = collectionForm.value.name.trim()
+  if (!trimmedName) return
+
+  const parsedPrice = parseFloat(collectionForm.value.pricePerItem)
+  const parsedTotal = parseInt(collectionForm.value.totalItems)
 
   const data = {
     ...collectionForm.value,
-    pricePerItem: collectionForm.value.pricePerItem ? parseFloat(collectionForm.value.pricePerItem) : null,
-    totalItems: parseInt(collectionForm.value.totalItems) || 0,
+    name: trimmedName,
+    location: collectionForm.value.location.trim(),
+    notes: collectionForm.value.notes.trim(),
+    pricePerItem: !isNaN(parsedPrice) ? parsedPrice : null,
+    totalItems: !isNaN(parsedTotal) ? parsedTotal : 0,
   }
 
   if (editingCollection.value) {
@@ -147,12 +154,18 @@ function openEditItem(item, collectionId) {
 }
 
 function saveItem() {
-  if (!itemForm.value.name.trim()) return
+  const trimmedName = itemForm.value.name.trim()
+  if (!trimmedName) return
+
+  const parsedPrice = parseFloat(itemForm.value.pricePaid)
 
   const data = {
     ...itemForm.value,
+    name: trimmedName,
+    location: itemForm.value.location.trim(),
+    notes: itemForm.value.notes.trim(),
     collectionId: activeCollectionId.value,
-    pricePaid: itemForm.value.pricePaid ? parseFloat(itemForm.value.pricePaid) : null,
+    pricePaid: !isNaN(parsedPrice) ? parsedPrice : null,
   }
 
   if (editingItem.value) {
@@ -215,7 +228,15 @@ function handleImageUpload(event, target) {
       }
       isUploadingImage.value = false
     }
+    img.onerror = () => {
+      isUploadingImage.value = false
+      alert('Could not load image. Please try a different file.')
+    }
     img.src = e.target.result
+  }
+  reader.onerror = () => {
+    isUploadingImage.value = false
+    alert('Could not read file. Please try again.')
   }
   reader.readAsDataURL(file)
 }
@@ -281,7 +302,9 @@ onUnmounted(() => {
     <!-- Empty State -->
     <div v-if="filteredCollections.length === 0" class="empty-state">
       <img src="/images/vio_sit.png" alt="Vio" class="empty-vio" />
-      <p v-if="searchQuery">No collections match "{{ searchQuery }}"</p>
+      <p v-if="searchQuery || typeFilter !== 'all' || !showComplete">
+        No collections match your filters
+      </p>
       <p v-else>No collections yet! Tap + to add your first one.</p>
     </div>
 
