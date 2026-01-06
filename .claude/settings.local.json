@@ -12,7 +12,8 @@
       "Bash(npm run build:*)",
       "Bash(ls:*)",
       "Bash(curl:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(git revert:*)"
     ]
   }
 }

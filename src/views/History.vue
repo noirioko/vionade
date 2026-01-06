@@ -268,10 +268,15 @@ function deleteTransaction(id) {
 </script>
 
 <template>
-  <div class="page">
+  <div class="page history-page">
     <div class="page-header">
       <img src="/images/vio-logo.png" alt="Vionade" class="page-header-logo" />
     </div>
+
+    <!-- Desktop Two-Column Layout -->
+    <div class="history-layout">
+      <!-- Left: Calendar & Overview -->
+      <div class="history-left">
 
     <!-- Calendar Book -->
     <div class="calendar-book section">
@@ -525,6 +530,16 @@ function deleteTransaction(id) {
       <img src="/images/vio.png" alt="" class="vio-mascot" />
     </div>
 
+      </div><!-- End history-left -->
+
+      <!-- Right: Transaction List -->
+      <div class="history-right">
+        <div class="transactions-panel">
+          <div class="transactions-header">
+            <h3 class="section-title">Transactions</h3>
+            <span class="transaction-count">{{ filteredTransactions.length }} total</span>
+          </div>
+
     <!-- Filter Tabs -->
     <div class="tabs">
       <button class="tab" :class="{ active: filter === 'all' }" @click="filter = 'all'">All</button>
@@ -567,6 +582,10 @@ function deleteTransaction(id) {
         </div>
       </div>
     </div>
+
+        </div><!-- End transactions-panel -->
+      </div><!-- End history-right -->
+    </div><!-- End history-layout -->
 
     <!-- Edit Modal -->
     <EditTransactionModal
@@ -1027,6 +1046,74 @@ function deleteTransaction(id) {
   z-index: 2;
 }
 
+/* Desktop Two-Column Layout */
+.history-page {
+  max-width: 1400px;
+}
+
+.history-layout {
+  display: block;
+}
+
+@media (min-width: 900px) {
+  .history-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+    align-items: start;
+  }
+
+  .history-left {
+    position: sticky;
+    top: var(--space-md);
+  }
+
+  .history-right {
+    min-height: 0;
+  }
+
+  .transactions-panel {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md);
+    border: 2px solid var(--border-color);
+  }
+
+  .transactions-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-sm);
+  }
+
+  .transaction-count {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+  }
+
+  .transaction-list {
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+  }
+}
+
+@media (min-width: 1200px) {
+  .history-layout {
+    grid-template-columns: 1fr 1.2fr;
+  }
+}
+
+/* Hide header on mobile */
+.transactions-header {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .transactions-header {
+    display: flex;
+  }
+}
+
 </style>
 
 <style>
@@ -1077,6 +1164,11 @@ function deleteTransaction(id) {
 
 [data-theme="dark"] .recap-header {
   background: #2D2640 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .transactions-panel {
+  background: #1A1625 !important;
   border-color: #3D3456 !important;
 }
 </style>
