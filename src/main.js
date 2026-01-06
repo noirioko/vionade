@@ -21,6 +21,7 @@ import PetDetail from './views/PetDetail.vue'
 import AquariumTracker from './views/AquariumTracker.vue'
 import Collections from './views/Collections.vue'
 import Wardrobe from './views/Wardrobe.vue'
+import Subscriptions from './views/Subscriptions.vue'
 import Settings from './views/Settings.vue'
 
 const routes = [
@@ -40,6 +41,7 @@ const routes = [
   { path: '/aquarium', name: 'Aquarium', component: AquariumTracker },
   { path: '/collections', name: 'Collections', component: Collections },
   { path: '/wardrobe', name: 'Wardrobe', component: Wardrobe },
+  { path: '/subscriptions', name: 'Subscriptions', component: Subscriptions },
   { path: '/settings', name: 'Settings', component: Settings },
 ]
 

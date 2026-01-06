@@ -5,6 +5,7 @@ export const SPENDING_REACTIONS = {
   fnb: { nice: true, message: "Food is important! Just don't overdo it~" },
   groceries: { nice: true, message: "Groceries are essential! Good job being responsible!" },
   bills: { nice: true, message: "Paying bills on time! Vio is proud of you!" },
+  subscription: { neutral: true, message: "Subscriptions add up... make sure you're using them!" },
   pets: { nice: true, message: "Taking care of your pets! They're family!" },
   commissions: { nice: true, message: "Supporting artists! That's so nice of you!" },
   travel: { neutral: true, message: "Traveling can be good for the soul..." },

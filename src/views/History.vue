@@ -233,6 +233,20 @@ function formatDate(dateString) {
   }
 }
 
+function formatDateHeader(date) {
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+
+  if (date.toDateString() === today.toDateString()) {
+    return 'Today'
+  } else if (date.toDateString() === yesterday.toDateString()) {
+    return 'Yesterday'
+  } else {
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  }
+}
+
 function getTransactionIcon(transaction) {
   if (transaction.type === 'transfer') return '↔️'
   if (transaction.type === 'income') {
@@ -276,317 +290,258 @@ function deleteTransaction(id) {
     <!-- Desktop Grid Layout -->
     <div class="history-grid">
 
-      <!-- Row 1: Calendar + Recap side by side -->
-      <div class="grid-row grid-row-top">
-        <!-- Calendar Book -->
-    <div class="calendar-book section">
-      <div class="calendar-nav">
-        <button class="cal-nav-btn" @click="prevMonth">←</button>
-        <div class="cal-month">{{ monthYearLabel }}</div>
-        <button class="cal-nav-btn" @click="nextMonth">→</button>
-      </div>
-      <div class="calendar-weekdays">
-        <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
-      </div>
-      <div class="calendar-grid">
-        <div
-          v-for="(item, idx) in calendarDays"
-          :key="idx"
-          class="cal-day"
-          :class="{
-            empty: !item.day,
-            today: isToday(item.date),
-            selected: isSelected(item.date),
-            'has-dot': hasDot(item.date)
-          }"
-          @click="selectDate(item.date)"
-        >
-          <span v-if="item.day">{{ item.day }}</span>
-          <span v-if="hasDot(item.date)" class="cal-dot"></span>
-        </div>
-      </div>
-      <button v-if="selectedDate" class="btn btn-ghost btn-sm clear-date" @click="selectedDate = null">
-        Clear selection
-      </button>
-    </div>
-
-        <!-- Monthly Cashflow Recap Grid -->
-    <div class="section cashflow-recap">
-      <div class="section-header">
-        <h3 class="section-title">
-          Monthly Recap
-          <HelpTip text="Compare your actual income, expenses & savings against your targets! Set targets in Settings. Vio shows happy if you're on track, sad if not." />
-        </h3>
-      </div>
-
-      <div class="recap-table">
-        <!-- Header Row -->
-        <div class="recap-header">
-          <div class="recap-cell recap-label-cell"></div>
-          <div class="recap-cell">Reality</div>
-          <div class="recap-cell">Target</div>
-          <div class="recap-cell">Vio</div>
-        </div>
-
-        <!-- Income Row -->
-        <div class="recap-row">
-          <div class="recap-cell recap-label-cell">
-            <span class="recap-icon">💰</span>
-            Income
+      <!-- Section 1: Calendar + Transaction Log side by side -->
+      <div class="main-section">
+        <!-- Compact Calendar -->
+        <div class="calendar-book">
+          <div class="calendar-nav">
+            <button class="cal-nav-btn" @click="prevMonth">←</button>
+            <div class="cal-month">{{ monthYearLabel }}</div>
+            <button class="cal-nav-btn" @click="nextMonth">→</button>
           </div>
-          <div class="recap-cell recap-amount income">
-            {{ store.formatCurrency(monthIncome) }}
+          <div class="calendar-weekdays">
+            <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
           </div>
-          <div class="recap-cell recap-target">
-            {{ store.settings.value.targets?.monthlyIncome ? store.formatCurrency(store.settings.value.targets.monthlyIncome) : '-' }}
-          </div>
-          <div class="recap-cell recap-mood">
-            <img
-              v-if="incomeMood === 'happy'"
-              src="/images/vio_happy.png"
-              class="recap-vio"
-              alt="Happy"
-            />
-            <img
-              v-else-if="incomeMood === 'sad'"
-              src="/images/vio_fall.png"
-              class="recap-vio"
-              alt="Sad"
-            />
-            <img
-              v-else
-              src="/images/vio_sit.png"
-              class="recap-vio"
-              alt="Neutral"
-            />
-          </div>
-        </div>
-
-        <!-- Expense Row -->
-        <div class="recap-row">
-          <div class="recap-cell recap-label-cell">
-            <span class="recap-icon">💸</span>
-            Expense
-          </div>
-          <div class="recap-cell recap-amount expense">
-            {{ store.formatCurrency(monthExpense) }}
-          </div>
-          <div class="recap-cell recap-target">
-            {{ store.settings.value.targets?.monthlyExpense ? store.formatCurrency(store.settings.value.targets.monthlyExpense) : '-' }}
-          </div>
-          <div class="recap-cell recap-mood">
-            <img
-              v-if="expenseMood === 'happy'"
-              src="/images/vio_happy.png"
-              class="recap-vio"
-              alt="Happy"
-            />
-            <img
-              v-else-if="expenseMood === 'sad'"
-              src="/images/vio_fall.png"
-              class="recap-vio"
-              alt="Sad"
-            />
-            <img
-              v-else
-              src="/images/vio_sit.png"
-              class="recap-vio"
-              alt="Neutral"
-            />
-          </div>
-        </div>
-
-        <!-- Savings Row -->
-        <div class="recap-row recap-row-savings">
-          <div class="recap-cell recap-label-cell">
-            <span class="recap-icon">🐷</span>
-            Savings
-          </div>
-          <div class="recap-cell recap-amount savings">
-            {{ store.formatCurrency(monthSavings) }}
-          </div>
-          <div class="recap-cell recap-target">
-            {{ store.settings.value.targets?.monthlySavings ? store.formatCurrency(store.settings.value.targets.monthlySavings) : '-' }}
-          </div>
-          <div class="recap-cell recap-mood">
-            <img
-              v-if="savingsMood === 'happy'"
-              src="/images/vio_happy.png"
-              class="recap-vio"
-              alt="Happy"
-            />
-            <img
-              v-else-if="savingsMood === 'sad'"
-              src="/images/vio_fall.png"
-              class="recap-vio"
-              alt="Sad"
-            />
-            <img
-              v-else
-              src="/images/vio_sit.png"
-              class="recap-vio"
-              alt="Neutral"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-      </div><!-- End grid-row-top -->
-
-      <!-- Row 2: Save Today + House Fund side by side -->
-      <div class="grid-row grid-row-middle">
-    <!-- Save Today Quick Input -->
-    <div class="section save-today-section">
-      <div class="save-today-card">
-        <div class="save-today-header">
-          <span class="save-today-icon">🐷</span>
-          <span class="save-today-title">
-            Save today?
-            <HelpTip text="Quick-save money! 'This month' adds to your monthly savings goal. 'House fund' goes to your lifetime goal (locked - can't take it out!)." />
-          </span>
-        </div>
-        <div class="save-today-form">
-          <input
-            v-model="saveTodayAmount"
-            type="number"
-            class="input save-today-input"
-            placeholder="Amount to save"
-            inputmode="numeric"
-            @keyup.enter="saveToday"
-          />
-          <div class="save-today-type">
-            <button
-              class="type-btn"
-              :class="{ active: savingsType === 'monthly' }"
-              @click="savingsType = 'monthly'"
+          <div class="calendar-grid">
+            <div
+              v-for="(item, idx) in calendarDays"
+              :key="idx"
+              class="cal-day"
+              :class="{
+                empty: !item.day,
+                today: isToday(item.date),
+                selected: isSelected(item.date),
+                'has-dot': hasDot(item.date)
+              }"
+              @click="selectDate(item.date)"
             >
-              This month
-            </button>
-            <button
-              class="type-btn"
-              :class="{ active: savingsType === 'lifetime' }"
-              @click="savingsType = 'lifetime'"
-            >
-              House fund
-            </button>
-          </div>
-          <button
-            class="btn btn-primary save-today-btn"
-            :disabled="!saveTodayAmount"
-            @click="saveToday"
-          >
-            Save!
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Lifetime Savings Goal (House Fund) -->
-    <div class="section lifetime-goal-section">
-      <div class="lifetime-goal-card">
-        <div class="goal-header">
-          <div class="goal-info">
-            <span class="goal-icon">🏠</span>
-            <div>
-              <div class="goal-name">
-                {{ store.settings.value.lifetimeGoal?.name || 'House Fund' }}
-                <HelpTip text="Your big dream savings! This money is LOCKED - you promised yourself not to touch it until you reach your goal. Set your target amount in Settings." />
-              </div>
-              <div class="goal-subtitle">Locked savings - no withdrawals!</div>
+              <span v-if="item.day">{{ item.day }}</span>
+              <span v-if="hasDot(item.date)" class="cal-dot"></span>
             </div>
           </div>
-          <div class="goal-amount">
-            {{ store.formatCurrency(store.lifetimeSavingsTotal.value) }}
-          </div>
+          <button v-if="selectedDate" class="btn btn-ghost btn-sm clear-date" @click="selectedDate = null">
+            Clear selection
+          </button>
         </div>
-        <div v-if="store.settings.value.lifetimeGoal?.target > 0" class="goal-progress">
-          <div class="progress-bar">
+
+        <!-- Transaction Log (larger, scrollable) -->
+        <div class="transactions-panel">
+          <div class="transactions-header">
+            <h3 class="section-title">{{ selectedDate ? formatDateHeader(selectedDate) : 'All Transactions' }}</h3>
+            <span class="transaction-count">{{ filteredTransactions.length }} total</span>
+          </div>
+
+          <!-- Filter Tabs -->
+          <div class="tabs">
+            <button class="tab" :class="{ active: filter === 'all' }" @click="filter = 'all'">All</button>
+            <button class="tab" :class="{ active: filter === 'income' }" @click="filter = 'income'">In</button>
+            <button class="tab" :class="{ active: filter === 'expense' }" @click="filter = 'expense'">Out</button>
+            <button class="tab" :class="{ active: filter === 'transfer' }" @click="filter = 'transfer'">Move</button>
+          </div>
+
+          <!-- Transaction List -->
+          <div v-if="filteredTransactions.length === 0" class="empty-state">
+            <img src="/images/vio_sit.png" alt="" class="empty-state-vio" />
+            <div class="empty-state-title">No transactions</div>
+            <div class="empty-state-text">
+              {{ selectedDate ? 'Nothing on this day' : (filter === 'all' ? "Add your first transaction!" : `No ${filter} transactions yet.`) }}
+            </div>
+          </div>
+
+          <!-- Grouped by date when no date selected -->
+          <div v-else-if="!selectedDate" class="transaction-list grouped">
+            <template v-for="(transactions, dateKey) in groupedTransactions" :key="dateKey">
+              <div class="date-header">{{ dateKey }}</div>
+              <div
+                v-for="transaction in transactions"
+                :key="transaction.id"
+                class="tx-item"
+                @click="editingTransaction = transaction"
+              >
+                <div class="tx-icon" :class="transaction.type">
+                  {{ getTransactionIcon(transaction) }}
+                </div>
+                <div class="tx-info">
+                  <div class="tx-title">{{ getTransactionTitle(transaction) }}</div>
+                  <div class="tx-meta">{{ store.getWalletById(transaction.walletId)?.name }}</div>
+                </div>
+                <div class="tx-amount" :class="transaction.type">
+                  {{ transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : '' }}{{ store.formatCurrency(transaction.amount) }}
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <!-- Flat list when date is selected -->
+          <div v-else class="transaction-list">
             <div
-              class="progress-fill"
-              :style="{ width: Math.min(100, (store.lifetimeSavingsTotal.value / store.settings.value.lifetimeGoal.target) * 100) + '%' }"
-            ></div>
-          </div>
-          <div class="progress-labels">
-            <span class="progress-current">{{ Math.round((store.lifetimeSavingsTotal.value / store.settings.value.lifetimeGoal.target) * 100) }}%</span>
-            <span class="progress-target">Goal: {{ store.formatCurrency(store.settings.value.lifetimeGoal.target) }}</span>
+              v-for="transaction in filteredTransactions"
+              :key="transaction.id"
+              class="tx-item"
+              @click="editingTransaction = transaction"
+            >
+              <div class="tx-icon" :class="transaction.type">
+                {{ getTransactionIcon(transaction) }}
+              </div>
+              <div class="tx-info">
+                <div class="tx-title">{{ getTransactionTitle(transaction) }}</div>
+                <div class="tx-meta">{{ store.getWalletById(transaction.walletId)?.name }}</div>
+              </div>
+              <div class="tx-amount" :class="transaction.type">
+                {{ transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : '' }}{{ store.formatCurrency(transaction.amount) }}
+              </div>
+            </div>
           </div>
         </div>
-        <div v-else class="goal-empty">
-          <p class="text-sm text-muted">Set a goal in Settings to track your progress!</p>
+      </div><!-- End main-section -->
+
+      <!-- Section 2: Monthly Recap (full width) -->
+      <div class="section cashflow-recap">
+        <div class="section-header">
+          <h3 class="section-title">
+            Monthly Recap
+            <HelpTip text="Compare your actual income, expenses & savings against your targets! Set targets in Settings. Vio shows happy if you're on track, sad if not." />
+          </h3>
+        </div>
+
+        <div class="recap-table">
+          <div class="recap-header">
+            <div class="recap-cell recap-label-cell"></div>
+            <div class="recap-cell">Reality</div>
+            <div class="recap-cell">Target</div>
+            <div class="recap-cell">Vio</div>
+          </div>
+
+          <div class="recap-row">
+            <div class="recap-cell recap-label-cell">
+              <span class="recap-icon">💰</span>
+              Income
+            </div>
+            <div class="recap-cell recap-amount income">
+              {{ store.formatCurrency(monthIncome) }}
+            </div>
+            <div class="recap-cell recap-target">
+              {{ store.settings.value.targets?.monthlyIncome ? store.formatCurrency(store.settings.value.targets.monthlyIncome) : '-' }}
+            </div>
+            <div class="recap-cell recap-mood">
+              <img v-if="incomeMood === 'happy'" src="/images/vio_happy.png" class="recap-vio" alt="Happy" />
+              <img v-else-if="incomeMood === 'sad'" src="/images/vio_fall.png" class="recap-vio" alt="Sad" />
+              <img v-else src="/images/vio_sit.png" class="recap-vio" alt="Neutral" />
+            </div>
+          </div>
+
+          <div class="recap-row">
+            <div class="recap-cell recap-label-cell">
+              <span class="recap-icon">💸</span>
+              Expense
+            </div>
+            <div class="recap-cell recap-amount expense">
+              {{ store.formatCurrency(monthExpense) }}
+            </div>
+            <div class="recap-cell recap-target">
+              {{ store.settings.value.targets?.monthlyExpense ? store.formatCurrency(store.settings.value.targets.monthlyExpense) : '-' }}
+            </div>
+            <div class="recap-cell recap-mood">
+              <img v-if="expenseMood === 'happy'" src="/images/vio_happy.png" class="recap-vio" alt="Happy" />
+              <img v-else-if="expenseMood === 'sad'" src="/images/vio_fall.png" class="recap-vio" alt="Sad" />
+              <img v-else src="/images/vio_sit.png" class="recap-vio" alt="Neutral" />
+            </div>
+          </div>
+
+          <div class="recap-row recap-row-savings">
+            <div class="recap-cell recap-label-cell">
+              <span class="recap-icon">🐷</span>
+              Savings
+            </div>
+            <div class="recap-cell recap-amount savings">
+              {{ store.formatCurrency(monthSavings) }}
+            </div>
+            <div class="recap-cell recap-target">
+              {{ store.settings.value.targets?.monthlySavings ? store.formatCurrency(store.settings.value.targets.monthlySavings) : '-' }}
+            </div>
+            <div class="recap-cell recap-mood">
+              <img v-if="savingsMood === 'happy'" src="/images/vio_happy.png" class="recap-vio" alt="Happy" />
+              <img v-else-if="savingsMood === 'sad'" src="/images/vio_fall.png" class="recap-vio" alt="Sad" />
+              <img v-else src="/images/vio_sit.png" class="recap-vio" alt="Neutral" />
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-      </div><!-- End grid-row-middle -->
+
+      <!-- Section 3: Save Today + House Fund + Spending -->
+      <div class="bottom-section">
+        <!-- Save Today -->
+        <div class="save-today-card">
+          <div class="save-today-header">
+            <span class="save-today-icon">🐷</span>
+            <span class="save-today-title">
+              Save today?
+              <HelpTip text="Quick-save money! 'This month' adds to your monthly savings goal. 'House fund' goes to your lifetime goal (locked - can't take it out!)." />
+            </span>
+          </div>
+          <div class="save-today-form">
+            <input
+              v-model="saveTodayAmount"
+              type="number"
+              class="input save-today-input"
+              placeholder="Amount to save"
+              inputmode="numeric"
+              @keyup.enter="saveToday"
+            />
+            <div class="save-today-type">
+              <button class="type-btn" :class="{ active: savingsType === 'monthly' }" @click="savingsType = 'monthly'">
+                This month
+              </button>
+              <button class="type-btn" :class="{ active: savingsType === 'lifetime' }" @click="savingsType = 'lifetime'">
+                House fund
+              </button>
+            </div>
+            <button class="btn btn-primary save-today-btn" :disabled="!saveTodayAmount" @click="saveToday">
+              Save!
+            </button>
+          </div>
+        </div>
+
+        <!-- House Fund -->
+        <div class="lifetime-goal-card">
+          <div class="goal-header">
+            <div class="goal-info">
+              <span class="goal-icon">🏠</span>
+              <div>
+                <div class="goal-name">
+                  {{ store.settings.value.lifetimeGoal?.name || 'House Fund' }}
+                  <HelpTip text="Your big dream savings! This money is LOCKED - you promised yourself not to touch it until you reach your goal." />
+                </div>
+                <div class="goal-subtitle">Locked savings</div>
+              </div>
+            </div>
+            <div class="goal-amount">
+              {{ store.formatCurrency(store.lifetimeSavingsTotal.value) }}
+            </div>
+          </div>
+          <div v-if="store.settings.value.lifetimeGoal?.target > 0" class="goal-progress">
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: Math.min(100, (store.lifetimeSavingsTotal.value / store.settings.value.lifetimeGoal.target) * 100) + '%' }"></div>
+            </div>
+            <div class="progress-labels">
+              <span class="progress-current">{{ Math.round((store.lifetimeSavingsTotal.value / store.settings.value.lifetimeGoal.target) * 100) }}%</span>
+              <span class="progress-target">Goal: {{ store.formatCurrency(store.settings.value.lifetimeGoal.target) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Spending Breakdown -->
+        <div class="spending-card">
+          <h3 class="section-title">Spending Breakdown</h3>
+          <PieChart :data="expensesByCategory" :size="160" />
+        </div>
+      </div>
 
     <!-- Save Success Toast -->
     <div v-if="showSaveSuccess" class="save-toast">
       Saved!
     </div>
 
-    <!-- Row 3: Spending Breakdown + Transactions -->
-      <div class="grid-row grid-row-bottom">
-        <!-- Spending Breakdown Pie Chart -->
-        <div class="section spending-section">
-          <div class="section-header section-header-wide">
-            <h3 class="section-title">Spending Breakdown</h3>
-          </div>
-          <div class="card">
-            <PieChart :data="expensesByCategory" :size="180" />
-          </div>
-        </div>
-
-        <!-- Transaction List Panel -->
-        <div class="transactions-panel">
-          <div class="transactions-header">
-            <h3 class="section-title">Transactions</h3>
-            <span class="transaction-count">{{ filteredTransactions.length }} total</span>
-          </div>
-
-    <!-- Filter Tabs -->
-    <div class="tabs">
-      <button class="tab" :class="{ active: filter === 'all' }" @click="filter = 'all'">All</button>
-      <button class="tab" :class="{ active: filter === 'income' }" @click="filter = 'income'">In</button>
-      <button class="tab" :class="{ active: filter === 'expense' }" @click="filter = 'expense'">Out</button>
-      <button class="tab" :class="{ active: filter === 'transfer' }" @click="filter = 'transfer'">Move</button>
-    </div>
-
-    <!-- Transaction List -->
-    <div v-if="filteredTransactions.length === 0" class="empty-state">
-      <img src="/images/vio_sit.png" alt="" class="empty-state-vio" />
-      <div class="empty-state-title">No transactions</div>
-      <div class="empty-state-text">
-        {{ selectedDate ? 'Nothing on this day' : (filter === 'all' ? "Add your first transaction!" : `No ${filter} transactions yet.`) }}
-      </div>
-    </div>
-
-    <div v-else class="transaction-list">
-      <div
-        v-for="transaction in filteredTransactions"
-        :key="transaction.id"
-        class="tx-item"
-        @click="editingTransaction = transaction"
-      >
-        <div
-          class="tx-icon"
-          :class="transaction.type"
-        >
-          {{ getTransactionIcon(transaction) }}
-        </div>
-        <div class="tx-info">
-          <div class="tx-title">{{ getTransactionTitle(transaction) }}</div>
-          <div class="tx-meta">{{ store.getWalletById(transaction.walletId)?.name }} · {{ formatDate(transaction.date) }}</div>
-        </div>
-        <div
-          class="tx-amount"
-          :class="transaction.type"
-        >
-          {{ transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : '' }}{{ store.formatCurrency(transaction.amount) }}
-        </div>
-      </div>
-    </div>
-
-        </div><!-- End transactions-panel -->
-      </div><!-- End grid-row-bottom -->
     </div><!-- End history-grid -->
 
     <!-- Edit Modal -->
@@ -599,7 +554,25 @@ function deleteTransaction(id) {
 </template>
 
 <style scoped>
-/* Calendar Book */
+/* Page Layout */
+.history-page {
+  max-width: 1200px;
+}
+
+.history-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* Section 1: Calendar + Transactions */
+.main-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* Calendar - Compact */
 .calendar-book {
   background: var(--white);
   border-radius: var(--radius-lg);
@@ -629,6 +602,7 @@ function deleteTransaction(id) {
   font-family: var(--font-display);
   font-weight: 700;
   color: var(--lavender-600);
+  font-size: 0.9rem;
 }
 
 .calendar-weekdays {
@@ -652,26 +626,16 @@ function deleteTransaction(id) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   border-radius: var(--radius-sm);
   cursor: pointer;
   position: relative;
   color: var(--gray-600);
 }
 
-.cal-day.empty {
-  cursor: default;
-}
-
-.cal-day.today {
-  background: var(--lavender-100);
-  font-weight: 700;
-}
-
-.cal-day.selected {
-  background: var(--lavender-500);
-  color: white;
-}
+.cal-day.empty { cursor: default; }
+.cal-day.today { background: var(--lavender-100); font-weight: 700; }
+.cal-day.selected { background: var(--lavender-500); color: white; }
 
 .cal-day.has-dot .cal-dot {
   width: 4px;
@@ -682,20 +646,52 @@ function deleteTransaction(id) {
   bottom: 2px;
 }
 
-.cal-day.selected .cal-dot {
-  background: white;
-}
+.cal-day.selected .cal-dot { background: white; }
 
 .clear-date {
   width: 100%;
   margin-top: var(--space-sm);
+  font-size: 0.75rem;
 }
 
-/* Compact Transaction List */
+/* Transactions Panel */
+.transactions-panel {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  border: 2px solid var(--border-color);
+}
+
+.transactions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.transaction-count {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* Transaction List */
 .transaction-list {
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
+}
+
+.date-header {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--lavender-600);
+  padding: var(--space-sm) 0 var(--space-xs);
+  border-bottom: 1px solid var(--lavender-100);
+  margin-top: var(--space-sm);
+}
+
+.date-header:first-child {
+  margin-top: 0;
 }
 
 .tx-item {
@@ -706,6 +702,11 @@ function deleteTransaction(id) {
   background: var(--white);
   border-radius: var(--radius-md);
   cursor: pointer;
+  transition: background 0.15s;
+}
+
+.tx-item:hover {
+  background: var(--lavender-50);
 }
 
 .tx-icon {
@@ -753,17 +754,16 @@ function deleteTransaction(id) {
 .tx-amount.expense { color: var(--expense-color); }
 .tx-amount.transfer { color: var(--gray-500); }
 
-/* Vio sitting in empty state */
 .empty-state-vio {
-  width: 120px;
+  width: 100px;
   height: auto;
   margin-bottom: var(--space-md);
   opacity: 0.9;
 }
 
-/* Monthly Cashflow Recap Grid */
+/* Monthly Recap */
 .cashflow-recap {
-  margin-bottom: var(--space-md);
+  margin-bottom: 0;
 }
 
 .recap-table {
@@ -795,9 +795,7 @@ function deleteTransaction(id) {
   border-bottom: 1px solid var(--lavender-100);
 }
 
-.recap-row:last-child {
-  border-bottom: none;
-}
+.recap-row:last-child { border-bottom: none; }
 
 .recap-row-savings {
   background: linear-gradient(135deg, rgba(255, 225, 53, 0.1) 0%, rgba(255, 225, 53, 0.05) 100%);
@@ -818,9 +816,7 @@ function deleteTransaction(id) {
   color: var(--gray-700);
 }
 
-.recap-icon {
-  font-size: 1rem;
-}
+.recap-icon { font-size: 1rem; }
 
 .recap-amount {
   font-family: var(--font-display);
@@ -828,33 +824,26 @@ function deleteTransaction(id) {
   font-size: 0.8125rem;
 }
 
-.recap-amount.income {
-  color: var(--income-color);
-}
-
-.recap-amount.expense {
-  color: var(--expense-color);
-}
-
-.recap-amount.savings {
-  color: #F59E0B;
-}
+.recap-amount.income { color: var(--income-color); }
+.recap-amount.expense { color: var(--expense-color); }
+.recap-amount.savings { color: #F59E0B; }
 
 .recap-target {
   color: var(--gray-400);
   font-size: 0.6875rem;
 }
 
-.recap-mood {
-  padding: var(--space-xs);
+.recap-mood { padding: var(--space-xs); }
+.recap-vio { width: 32px; height: auto; }
+
+/* Bottom Section: 3 cards */
+.bottom-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
 }
 
-.recap-vio {
-  width: 32px;
-  height: auto;
-}
-
-/* Save Today Section */
+/* Save Today Card */
 .save-today-card {
   background: linear-gradient(135deg, #FFE135 0%, #FFF176 100%);
   border-radius: var(--radius-lg);
@@ -869,14 +858,12 @@ function deleteTransaction(id) {
   margin-bottom: var(--space-md);
 }
 
-.save-today-icon {
-  font-size: 1.5rem;
-}
+.save-today-icon { font-size: 1.5rem; }
 
 .save-today-title {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1.125rem;
+  font-size: 1rem;
   color: var(--gray-800);
 }
 
@@ -888,7 +875,7 @@ function deleteTransaction(id) {
 
 .save-today-input {
   background: var(--white);
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 600;
   text-align: center;
 }
@@ -918,11 +905,11 @@ function deleteTransaction(id) {
 }
 
 .save-today-btn {
-  font-size: 1rem;
+  font-size: 0.875rem;
   font-weight: 700;
 }
 
-/* Lifetime Savings Goal */
+/* House Fund Card */
 .lifetime-goal-card {
   background: var(--white);
   border-radius: var(--radius-lg);
@@ -934,7 +921,6 @@ function deleteTransaction(id) {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: var(--space-md);
 }
 
 .goal-info {
@@ -943,14 +929,12 @@ function deleteTransaction(id) {
   gap: var(--space-sm);
 }
 
-.goal-icon {
-  font-size: 2rem;
-}
+.goal-icon { font-size: 1.5rem; }
 
 .goal-name {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 0.9rem;
   color: var(--gray-800);
 }
 
@@ -962,16 +946,14 @@ function deleteTransaction(id) {
 .goal-amount {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1.125rem;
+  font-size: 1rem;
   color: #F59E0B;
 }
 
-.goal-progress {
-  margin-top: var(--space-sm);
-}
+.goal-progress { margin-top: var(--space-sm); }
 
 .progress-bar {
-  height: 12px;
+  height: 10px;
   background: var(--lavender-100);
   border-radius: var(--radius-full);
   overflow: hidden;
@@ -991,21 +973,23 @@ function deleteTransaction(id) {
   font-size: 0.6875rem;
 }
 
-.progress-current {
-  font-weight: 700;
-  color: #F59E0B;
-}
+.progress-current { font-weight: 700; color: #F59E0B; }
+.progress-target { color: var(--gray-400); }
 
-.progress-target {
-  color: var(--gray-400);
-}
-
-.goal-empty {
+/* Spending Card */
+.spending-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  border: 2px solid var(--lavender-200);
   text-align: center;
-  padding: var(--space-sm) 0;
 }
 
-/* Save Success Toast */
+.spending-card .section-title {
+  margin-bottom: var(--space-sm);
+}
+
+/* Toast */
 .save-toast {
   position: fixed;
   bottom: 100px;
@@ -1026,127 +1010,44 @@ function deleteTransaction(id) {
   100% { transform: translateX(-50%) translateY(0); opacity: 1; }
 }
 
-/* Vio mascot peeking behind spending section */
-.spending-section {
-  position: relative;
-  overflow: visible;
-}
-
-.vio-mascot {
-  position: absolute;
-  right: -10px;
-  top: -35px;
-  width: 90px;
-  height: auto;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.spending-section .section-header,
-.spending-section .card {
-  position: relative;
-  z-index: 2;
-}
-
-/* Desktop Grid Layout */
-.history-page {
-  max-width: 1400px;
-}
-
-.history-grid {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-
-.grid-row {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-
-/* Transactions panel styling */
-.transactions-panel {
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  padding: var(--space-md);
-  border: 2px solid var(--border-color);
-}
-
-.transactions-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-sm);
-}
-
-.transaction-count {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-
-/* Desktop: Nice grid blocks */
+/* Desktop Layout */
 @media (min-width: 768px) {
-  .grid-row {
-    flex-direction: row;
-  }
-
-  /* Row 1: Calendar + Recap */
-  .grid-row-top {
+  /* Main section: Calendar (small) + Transactions (large) side by side */
+  .main-section {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-md);
-  }
-
-  .grid-row-top .calendar-book {
-    margin-bottom: 0;
-  }
-
-  .grid-row-top .cashflow-recap {
-    margin-bottom: 0;
-  }
-
-  /* Row 2: Save Today + House Fund */
-  .grid-row-middle {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-md);
-  }
-
-  .grid-row-middle .save-today-section,
-  .grid-row-middle .lifetime-goal-section {
-    margin-bottom: 0;
-  }
-
-  /* Row 3: Spending + Transactions */
-  .grid-row-bottom {
-    display: grid;
-    grid-template-columns: 300px 1fr;
+    grid-template-columns: 280px 1fr;
     gap: var(--space-md);
     align-items: start;
   }
 
-  .grid-row-bottom .spending-section {
-    margin-bottom: 0;
+  .calendar-book {
+    position: sticky;
+    top: var(--space-md);
   }
 
-  .grid-row-bottom .transactions-panel {
-    max-height: 500px;
+  .transactions-panel {
+    max-height: 450px;
     overflow-y: auto;
   }
-}
 
-/* Larger screens: even nicer */
-@media (min-width: 1100px) {
-  .grid-row-bottom {
-    grid-template-columns: 350px 1fr;
-  }
-
-  .grid-row-bottom .transactions-panel {
-    max-height: 600px;
+  /* Bottom section: 3 columns */
+  .bottom-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: var(--space-md);
   }
 }
 
+/* Larger screens */
+@media (min-width: 1024px) {
+  .main-section {
+    grid-template-columns: 300px 1fr;
+  }
+
+  .transactions-panel {
+    max-height: 500px;
+  }
+}
 </style>
 
 <style>
@@ -1160,13 +1061,41 @@ function deleteTransaction(id) {
   background: #8B5CF6 !important;
 }
 
+[data-theme="dark"] .transactions-panel {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .tx-item {
+  background: #2D2640 !important;
+}
+
+[data-theme="dark"] .tx-item:hover {
+  background: #3D3456 !important;
+}
+
+[data-theme="dark"] .date-header {
+  color: #A78BFA !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .recap-table {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .recap-header {
+  background: #2D2640 !important;
+  border-color: #3D3456 !important;
+}
+
 [data-theme="dark"] .save-today-card {
   background: linear-gradient(135deg, #2D2640 0%, #1A1625 100%) !important;
   border-color: #3D3456 !important;
 }
 
 [data-theme="dark"] .save-today-title {
-  color: #9D8BC2 !important;
+  color: #C4B5FD !important;
 }
 
 [data-theme="dark"] .type-btn {
@@ -1181,26 +1110,20 @@ function deleteTransaction(id) {
   color: #C4B5FD !important;
 }
 
-[data-theme="dark"] .goal-amount {
-  color: #A78BFA !important;
-}
-
 [data-theme="dark"] .lifetime-goal-card {
   background: #1A1625 !important;
   border-color: #3D3456 !important;
 }
 
-[data-theme="dark"] .recap-table {
-  background: #1A1625 !important;
-  border-color: #3D3456 !important;
+[data-theme="dark"] .goal-amount {
+  color: #A78BFA !important;
 }
 
-[data-theme="dark"] .recap-header {
-  background: #2D2640 !important;
-  border-color: #3D3456 !important;
+[data-theme="dark"] .progress-current {
+  color: #A78BFA !important;
 }
 
-[data-theme="dark"] .transactions-panel {
+[data-theme="dark"] .spending-card {
   background: #1A1625 !important;
   border-color: #3D3456 !important;
 }

@@ -24,6 +24,7 @@ export const EXPENSE_CATEGORIES = [
   { id: 'clothes', name: 'Clothes', icon: '👗', color: '#f472b6' },
   { id: 'pets', name: 'Pets', icon: '🐱', color: '#a3e635' },
   { id: 'bills', name: 'Bills', icon: '⚡', color: '#60a5fa' },
+  { id: 'subscription', name: 'Subscription', icon: '🔄', color: '#8b5cf6' },
   { id: 'laundry', name: 'Laundry', icon: '🧺', color: '#67e8f9' },
   { id: 'travel', name: 'Travel', icon: '✈️', color: '#38bdf8' },
   { id: 'hotel', name: 'Hotel', icon: '🏨', color: '#c084fc' },
@@ -70,6 +71,7 @@ export const state = reactive({
   collections: loadFromStorage('mochi_collections', []),
   collectionItems: loadFromStorage('mochi_collectionitems', []),
   wardrobe: loadFromStorage('mochi_wardrobe', []),
+  subscriptions: loadFromStorage('mochi_subscriptions', []),
   habits: loadFromStorage('mochi_habits', {
     currentChallenge: 'january-2026',
     completions: {},
@@ -199,6 +201,7 @@ async function loadFromFirebase() {
       localStorage.setItem('mochi_collections', JSON.stringify(state.collections))
       localStorage.setItem('mochi_collectionitems', JSON.stringify(state.collectionItems))
       localStorage.setItem('mochi_wardrobe', JSON.stringify(state.wardrobe))
+      localStorage.setItem('mochi_subscriptions', JSON.stringify(state.subscriptions))
       localStorage.setItem('mochi_habits', JSON.stringify(state.habits))
     } else {
       // First time user - start fresh
@@ -328,6 +331,7 @@ const stateKeys = [
   { key: 'collections', storage: 'mochi_collections' },
   { key: 'collectionItems', storage: 'mochi_collectionitems' },
   { key: 'wardrobe', storage: 'mochi_wardrobe' },
+  { key: 'subscriptions', storage: 'mochi_subscriptions' },
   { key: 'habits', storage: 'mochi_habits' },
 ]
 

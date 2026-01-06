@@ -156,6 +156,23 @@ import {
   getWardrobeStats,
 } from './modules/wardrobe'
 
+// Subscriptions module
+import {
+  BILLING_CYCLES,
+  COMMON_SERVICES,
+  addSubscription,
+  updateSubscription,
+  deleteSubscription,
+  toggleSubscription,
+  getActiveSubscriptions,
+  getMonthlyAmount,
+  getTotalMonthlySubscriptions,
+  getTotalYearlySubscriptions,
+  getNextBillingDate,
+  getDaysUntilBilling,
+  getUpcomingBillings,
+} from './modules/subscriptions'
+
 // Export composable
 export function useFinanceStore() {
   return {
@@ -311,6 +328,22 @@ export function useFinanceStore() {
     getWardrobeLocations,
     getFilteredWardrobe,
     getWardrobeStats,
+
+    // Subscription actions
+    BILLING_CYCLES,
+    COMMON_SERVICES,
+    subscriptions: computed(() => state.subscriptions),
+    addSubscription,
+    updateSubscription,
+    deleteSubscription,
+    toggleSubscription,
+    getActiveSubscriptions,
+    getMonthlyAmount,
+    getTotalMonthlySubscriptions,
+    getTotalYearlySubscriptions,
+    getNextBillingDate,
+    getDaysUntilBilling,
+    getUpcomingBillings,
 
     // Helpers
     formatCurrency,

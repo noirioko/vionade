@@ -7,7 +7,7 @@ const showMore = ref(false)
 
 // Check if current route is in the "more" menu
 const isMoreActive = () => {
-  const moreRoutes = ['/media', '/habits', '/passwords', '/viopass', '/laundry', '/pets', '/aquarium', '/collections', '/wardrobe', '/settings']
+  const moreRoutes = ['/media', '/habits', '/passwords', '/viopass', '/laundry', '/pets', '/aquarium', '/collections', '/wardrobe', '/subscriptions', '/settings']
   return moreRoutes.includes(route.path)
 }
 
@@ -65,6 +65,10 @@ function closeMore() {
           <RouterLink to="/wardrobe" class="more-item" @click="closeMore">
             <span class="more-item-icon">👗</span>
             <span class="more-item-label">Wardrobe</span>
+          </RouterLink>
+          <RouterLink to="/subscriptions" class="more-item" @click="closeMore">
+            <span class="more-item-icon">🔄</span>
+            <span class="more-item-label">Subscriptions</span>
           </RouterLink>
           <RouterLink to="/settings" class="more-item" @click="closeMore">
             <span class="more-item-icon">⚙️</span>
@@ -140,6 +144,11 @@ function closeMore() {
     <RouterLink to="/wardrobe" class="nav-item desktop-only">
       <span class="nav-item-icon">👗</span>
       <span>Wardrobe</span>
+    </RouterLink>
+
+    <RouterLink to="/subscriptions" class="nav-item desktop-only">
+      <span class="nav-item-icon">🔄</span>
+      <span>Subscriptions</span>
     </RouterLink>
 
     <RouterLink to="/settings" class="nav-item desktop-only">
