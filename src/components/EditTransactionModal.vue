@@ -12,6 +12,14 @@ const props = defineProps({
 const emit = defineEmits(['close', 'delete'])
 const store = useFinanceStore()
 
+// Date helpers - use local date, not UTC
+function getDateString(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 // Form state
 const editForm = ref({
   type: 'expense',
@@ -35,15 +43,10 @@ watch(() => props.transaction, (tx) => {
       toWalletId: tx.toWalletId || 'bri',
       category: tx.category || 'fnb',
       note: tx.note || '',
-      date: tx.date ? tx.date.split('T')[0] : new Date().toISOString().split('T')[0],
+      date: tx.date ? tx.date.split('T')[0] : getDateString(new Date()),
     }
   }
 }, { immediate: true })
-
-// Date helpers
-function getDateString(date) {
-  return date.toISOString().split('T')[0]
-}
 
 const todayString = getDateString(new Date())
 const yesterdayDate = new Date()

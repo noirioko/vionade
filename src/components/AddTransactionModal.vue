@@ -13,12 +13,15 @@ const selectedWallet = ref('bca')
 const selectedToWallet = ref('bri')
 const selectedCategory = ref('fnb')
 const note = ref('')
-const selectedDate = ref(new Date().toISOString().split('T')[0]) // Default to today
-
-// Date helpers
+// Date helpers - use local date, not UTC
 function getDateString(date) {
-  return date.toISOString().split('T')[0]
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
+
+const selectedDate = ref(getDateString(new Date())) // Default to today (local)
 
 const todayString = getDateString(new Date())
 const yesterdayDate = new Date()
