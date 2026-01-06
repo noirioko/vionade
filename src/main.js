@@ -17,6 +17,7 @@ import Laundry from './views/Laundry.vue'
 import Habits from './views/Habits.vue'
 import Passwords from './views/Passwords.vue'
 import PetTracker from './views/PetTracker.vue'
+import PetDetail from './views/PetDetail.vue'
 import AquariumTracker from './views/AquariumTracker.vue'
 import Collections from './views/Collections.vue'
 import Wardrobe from './views/Wardrobe.vue'
@@ -35,6 +36,7 @@ const routes = [
   { path: '/habits', name: 'Habits', component: Habits },
   { path: '/passwords', name: 'Passwords', component: Passwords },
   { path: '/pets', name: 'Pets', component: PetTracker },
+  { path: '/pets/:id', name: 'PetDetail', component: PetDetail },
   { path: '/aquarium', name: 'Aquarium', component: AquariumTracker },
   { path: '/collections', name: 'Collections', component: Collections },
   { path: '/wardrobe', name: 'Wardrobe', component: Wardrobe },

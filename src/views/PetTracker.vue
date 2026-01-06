@@ -1,12 +1,17 @@
 <script setup>
 import { ref, computed, inject, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useFinanceStore } from '../stores'
 import { useToast } from '../composables/useToast'
 import { petActions, getActionKeywords, getStatusColor, formatDaysAgo, sessionTypes, quickLogActions } from '../data/petActions'
 
+const router = useRouter()
 const store = useFinanceStore()
 const toast = useToast()
 const fabAction = inject('fabAction')
+
+// Help modal state
+const showHelpModal = ref(false)
 
 // Quick entry state
 const quickInput = ref('')
@@ -184,7 +189,8 @@ function openAddPet() {
   showAddPetModal.value = true
 }
 
-function openEditPet(pet) {
+function openEditPet(pet, event) {
+  if (event) event.stopPropagation()
   editingPet.value = pet
   petForm.value = {
     ...pet,
@@ -192,6 +198,10 @@ function openEditPet(pet) {
     nickname: pet.nicknames?.join(', ') || pet.nickname || ''
   }
   showAddPetModal.value = true
+}
+
+function goToPetBook(petId) {
+  router.push(`/pets/${petId}`)
 }
 
 function savePet() {
@@ -340,6 +350,7 @@ onUnmounted(() => {
       <div class="quick-entry-header">
         <span class="quick-entry-icon">🐱</span>
         <span>Quick Log</span>
+        <button class="help-btn" @click="showHelpModal = true">?</button>
       </div>
 
       <div class="quick-entry-row">
@@ -652,8 +663,9 @@ onUnmounted(() => {
           v-for="pet in store.pets.value"
           :key="pet.id"
           class="pet-card"
-          @click="openEditPet(pet)"
+          @click="goToPetBook(pet.id)"
         >
+          <button class="pet-edit-btn" @click="openEditPet(pet, $event)">✎</button>
           <div class="pet-avatar">
             <img v-if="pet.photo" :src="pet.photo" :alt="pet.name" />
             <span v-else>🐱</span>
@@ -724,6 +736,41 @@ onUnmounted(() => {
         <div class="modal-footer">
           <button v-if="editingPet" class="delete-btn" @click="deletePet(editingPet.id)">Delete</button>
           <button class="save-btn" @click="savePet">{{ editingPet ? 'Save' : 'Add Pet' }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div v-if="showHelpModal" class="modal-overlay" @click.self="showHelpModal = false">
+      <div class="help-modal">
+        <div class="modal-header">
+          <h3>Quick Log Commands</h3>
+          <button class="modal-close" @click="showHelpModal = false">×</button>
+        </div>
+        <div class="help-content">
+          <p class="help-intro">Type <strong>[nickname] [action]</strong> to log quickly!</p>
+          <p class="help-example">Example: <code>pong bath</code> or <code>mochi vet checkup notes</code></p>
+
+          <div class="help-section">
+            <h4>Available Actions</h4>
+            <div class="help-actions">
+              <div v-for="(action, key) in petActions" :key="key" class="help-action">
+                <span class="help-action-emoji">{{ action.emoji }}</span>
+                <span class="help-action-keyword">{{ key }}</span>
+                <span class="help-action-label">{{ action.label }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="help-section">
+            <h4>Tips</h4>
+            <ul class="help-tips">
+              <li>Nicknames are case-insensitive</li>
+              <li>Anything after the action becomes a note</li>
+              <li>Use the date picker for past logs</li>
+              <li>Click a cat card to see their full Pet Book!</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
@@ -1659,6 +1706,153 @@ onUnmounted(() => {
   background: #FF6B6B;
   color: white;
 }
+
+/* Help Button */
+.help-btn {
+  margin-left: auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  color: white;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.help-btn:hover {
+  background: white;
+  color: #00BFFF;
+}
+
+/* Pet Edit Button */
+.pet-card {
+  position: relative;
+}
+
+.pet-edit-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid var(--border-color);
+  font-size: 0.875rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pet-card:hover .pet-edit-btn {
+  opacity: 1;
+}
+
+.pet-edit-btn:hover {
+  background: #00BFFF;
+  border-color: #0099CC;
+  color: white;
+}
+
+/* Help Modal */
+.help-modal {
+  background: white;
+  border-radius: 24px 24px 0 0;
+  width: 100%;
+  max-width: 500px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.help-content {
+  padding: var(--space-md) var(--space-lg);
+}
+
+.help-intro {
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-xs);
+}
+
+.help-example {
+  background: var(--background-secondary);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: 8px;
+  margin-bottom: var(--space-lg);
+  font-size: 0.875rem;
+}
+
+.help-example code {
+  background: #00BFFF;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+.help-section {
+  margin-bottom: var(--space-lg);
+}
+
+.help-section h4 {
+  margin: 0 0 var(--space-sm);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.help-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-xs);
+}
+
+.help-action {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  background: var(--background-secondary);
+  border-radius: 8px;
+}
+
+.help-action-emoji {
+  font-size: 1.25rem;
+}
+
+.help-action-keyword {
+  font-weight: 700;
+  font-size: 0.75rem;
+  background: #00BFFF;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.help-action-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.help-tips {
+  margin: 0;
+  padding-left: var(--space-lg);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.help-tips li {
+  margin-bottom: var(--space-xs);
+}
 </style>
 
 <style>
@@ -1812,5 +2006,43 @@ onUnmounted(() => {
 
 [data-theme="dark"] .upload-photo-btn:hover {
   background: #7C3AED !important;
+}
+
+/* Help Modal Dark Mode */
+[data-theme="dark"] .help-modal {
+  background: #1A1625 !important;
+}
+
+[data-theme="dark"] .help-example {
+  background: #2D2640 !important;
+}
+
+[data-theme="dark"] .help-example code {
+  background: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .help-action {
+  background: #2D2640 !important;
+}
+
+[data-theme="dark"] .help-action-keyword {
+  background: #8B5CF6 !important;
+}
+
+/* Pet Edit Button Dark Mode */
+[data-theme="dark"] .pet-edit-btn {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .pet-edit-btn:hover {
+  background: #8B5CF6 !important;
+  border-color: #7C3AED !important;
+}
+
+/* Help Button Dark Mode */
+[data-theme="dark"] .help-btn:hover {
+  background: #8B5CF6 !important;
+  color: white !important;
 }
 </style>
