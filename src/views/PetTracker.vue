@@ -193,12 +193,20 @@ function openEditPet(pet) {
 }
 
 function savePet() {
-  if (!petForm.value.name.trim()) return
+  const trimmedName = petForm.value.name.trim()
+  if (!trimmedName) return
+
+  const dataToSave = {
+    ...petForm.value,
+    name: trimmedName,
+    nickname: petForm.value.nickname?.trim() || '',
+    notes: petForm.value.notes?.trim() || '',
+  }
 
   if (editingPet.value) {
-    store.updatePet(editingPet.value.id, petForm.value)
+    store.updatePet(editingPet.value.id, dataToSave)
   } else {
-    store.addPet(petForm.value)
+    store.addPet(dataToSave)
   }
   showAddPetModal.value = false
 }
@@ -248,7 +256,15 @@ function handleImageUpload(event) {
       petForm.value.photo = compressedBase64
       isUploadingImage.value = false
     }
+    img.onerror = () => {
+      isUploadingImage.value = false
+      alert('Could not load image. Please try a different file.')
+    }
     img.src = e.target.result
+  }
+  reader.onerror = () => {
+    isUploadingImage.value = false
+    alert('Could not read file. Please try again.')
   }
   reader.readAsDataURL(file)
 }
@@ -271,13 +287,15 @@ function isPetSelected(petId) {
 function submitSession() {
   if (selectedPets.value.length === 0) return
 
+  const parsedCost = parseFloat(sessionCost.value)
+
   store.addPetSession({
     type: activeSessionType.value,
     petIds: [...selectedPets.value],
     date: sessionDate.value,
-    cost: sessionCost.value ? parseFloat(sessionCost.value) : null,
-    provider: sessionProvider.value,
-    notes: sessionNotes.value
+    cost: !isNaN(parsedCost) ? parsedCost : null,
+    provider: sessionProvider.value.trim(),
+    notes: sessionNotes.value.trim()
   })
 
   // Reset form

@@ -295,7 +295,15 @@ function handleImageUpload(event) {
       useCustomPoster.value = true
       isUploadingImage.value = false
     }
+    img.onerror = () => {
+      isUploadingImage.value = false
+      alert('Could not load image. Please try a different file.')
+    }
     img.src = e.target.result
+  }
+  reader.onerror = () => {
+    isUploadingImage.value = false
+    alert('Could not read file. Please try again.')
   }
   reader.readAsDataURL(file)
 }
