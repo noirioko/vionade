@@ -273,12 +273,12 @@ function deleteTransaction(id) {
       <img src="/images/vio-logo.png" alt="Vionade" class="page-header-logo" />
     </div>
 
-    <!-- Desktop Two-Column Layout -->
-    <div class="history-layout">
-      <!-- Left: Calendar & Overview -->
-      <div class="history-left">
+    <!-- Desktop Grid Layout -->
+    <div class="history-grid">
 
-    <!-- Calendar Book -->
+      <!-- Row 1: Calendar + Recap side by side -->
+      <div class="grid-row grid-row-top">
+        <!-- Calendar Book -->
     <div class="calendar-book section">
       <div class="calendar-nav">
         <button class="cal-nav-btn" @click="prevMonth">←</button>
@@ -310,7 +310,7 @@ function deleteTransaction(id) {
       </button>
     </div>
 
-    <!-- Monthly Cashflow Recap Grid -->
+        <!-- Monthly Cashflow Recap Grid -->
     <div class="section cashflow-recap">
       <div class="section-header">
         <h3 class="section-title">
@@ -431,7 +431,10 @@ function deleteTransaction(id) {
         </div>
       </div>
     </div>
+      </div><!-- End grid-row-top -->
 
+      <!-- Row 2: Save Today + House Fund side by side -->
+      <div class="grid-row grid-row-middle">
     <!-- Save Today Quick Input -->
     <div class="section save-today-section">
       <div class="save-today-card">
@@ -513,27 +516,26 @@ function deleteTransaction(id) {
         </div>
       </div>
     </div>
+      </div><!-- End grid-row-middle -->
 
     <!-- Save Success Toast -->
     <div v-if="showSaveSuccess" class="save-toast">
       Saved!
     </div>
 
-    <!-- Spending Breakdown Pie Chart -->
-    <div class="section spending-section">
-      <div class="section-header section-header-wide">
-        <h3 class="section-title">Spending Breakdown</h3>
-      </div>
-      <div class="card">
-        <PieChart :data="expensesByCategory" :size="180" />
-      </div>
-      <img src="/images/vio.png" alt="" class="vio-mascot" />
-    </div>
+    <!-- Row 3: Spending Breakdown + Transactions -->
+      <div class="grid-row grid-row-bottom">
+        <!-- Spending Breakdown Pie Chart -->
+        <div class="section spending-section">
+          <div class="section-header section-header-wide">
+            <h3 class="section-title">Spending Breakdown</h3>
+          </div>
+          <div class="card">
+            <PieChart :data="expensesByCategory" :size="180" />
+          </div>
+        </div>
 
-      </div><!-- End history-left -->
-
-      <!-- Right: Transaction List -->
-      <div class="history-right">
+        <!-- Transaction List Panel -->
         <div class="transactions-panel">
           <div class="transactions-header">
             <h3 class="section-title">Transactions</h3>
@@ -584,8 +586,8 @@ function deleteTransaction(id) {
     </div>
 
         </div><!-- End transactions-panel -->
-      </div><!-- End history-right -->
-    </div><!-- End history-layout -->
+      </div><!-- End grid-row-bottom -->
+    </div><!-- End history-grid -->
 
     <!-- Edit Modal -->
     <EditTransactionModal
@@ -1046,71 +1048,102 @@ function deleteTransaction(id) {
   z-index: 2;
 }
 
-/* Desktop Two-Column Layout */
+/* Desktop Grid Layout */
 .history-page {
   max-width: 1400px;
 }
 
-.history-layout {
-  display: block;
+.history-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
 }
 
-@media (min-width: 900px) {
-  .history-layout {
+.grid-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* Transactions panel styling */
+.transactions-panel {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  border: 2px solid var(--border-color);
+}
+
+.transactions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.transaction-count {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* Desktop: Nice grid blocks */
+@media (min-width: 768px) {
+  .grid-row {
+    flex-direction: row;
+  }
+
+  /* Row 1: Calendar + Recap */
+  .grid-row-top {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: var(--space-lg);
+    gap: var(--space-md);
+  }
+
+  .grid-row-top .calendar-book {
+    margin-bottom: 0;
+  }
+
+  .grid-row-top .cashflow-recap {
+    margin-bottom: 0;
+  }
+
+  /* Row 2: Save Today + House Fund */
+  .grid-row-middle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-md);
+  }
+
+  .grid-row-middle .save-today-section,
+  .grid-row-middle .lifetime-goal-section {
+    margin-bottom: 0;
+  }
+
+  /* Row 3: Spending + Transactions */
+  .grid-row-bottom {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: var(--space-md);
     align-items: start;
   }
 
-  .history-left {
-    position: sticky;
-    top: var(--space-md);
+  .grid-row-bottom .spending-section {
+    margin-bottom: 0;
   }
 
-  .history-right {
-    min-height: 0;
-  }
-
-  .transactions-panel {
-    background: var(--bg-card);
-    border-radius: var(--radius-lg);
-    padding: var(--space-md);
-    border: 2px solid var(--border-color);
-  }
-
-  .transactions-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--space-sm);
-  }
-
-  .transaction-count {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-  }
-
-  .transaction-list {
-    max-height: calc(100vh - 200px);
+  .grid-row-bottom .transactions-panel {
+    max-height: 500px;
     overflow-y: auto;
   }
 }
 
-@media (min-width: 1200px) {
-  .history-layout {
-    grid-template-columns: 1fr 1.2fr;
+/* Larger screens: even nicer */
+@media (min-width: 1100px) {
+  .grid-row-bottom {
+    grid-template-columns: 350px 1fr;
   }
-}
 
-/* Hide header on mobile */
-.transactions-header {
-  display: none;
-}
-
-@media (min-width: 900px) {
-  .transactions-header {
-    display: flex;
+  .grid-row-bottom .transactions-panel {
+    max-height: 600px;
   }
 }
 
