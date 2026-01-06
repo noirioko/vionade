@@ -173,26 +173,11 @@ function getTransactionTitle(transaction) {
   return cat?.name || 'Transaction'
 }
 
-// Transaction type filter
-const transactionFilter = ref('all') // 'all', 'income', 'expense', 'transfer'
-
-const filteredMonthTransactions = computed(() => {
-  let txs = [...monthTransactions.value]
-
-  if (transactionFilter.value !== 'all') {
-    txs = txs.filter(t => t.type === transactionFilter.value)
-  }
-
-  return txs.sort((a, b) => new Date(b.date) - new Date(a.date))
-})
-
 const recentMonthTransactions = computed(() => {
-  return filteredMonthTransactions.value.slice(0, 20)
+  return [...monthTransactions.value]
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 5)
 })
-
-function openEditModal(transaction) {
-  editingTransaction.value = transaction
-}
 </script>
 
 <template>
@@ -200,11 +185,6 @@ function openEditModal(transaction) {
     <div class="page-header">
       <img src="/images/vio-logo.png" alt="Vionade" class="page-header-logo" />
     </div>
-
-    <!-- Desktop Two-Column Layout -->
-    <div class="desktop-layout">
-      <!-- Left Column: Overview -->
-      <div class="desktop-left">
 
     <!-- Total Balance Card -->
     <div class="wallet-card section">
@@ -361,51 +341,20 @@ function openEditModal(transaction) {
       </div>
     </div>
 
-      </div><!-- End desktop-left -->
-
-      <!-- Right Column: Transactions -->
-      <div class="desktop-right">
-
-    <!-- Transactions for selected month -->
-    <div class="section transactions-section">
+    <!-- Recent Transactions (for selected month) -->
+    <div class="section">
       <div class="section-header">
-        <h3 class="section-title">{{ selectedMonth }}</h3>
-        <RouterLink to="/history" class="btn btn-ghost btn-sm">Full History</RouterLink>
-      </div>
-
-      <!-- Transaction Type Filter -->
-      <div class="transaction-filters">
-        <button
-          class="tx-filter-btn"
-          :class="{ active: transactionFilter === 'all' }"
-          @click="transactionFilter = 'all'"
-        >All ({{ monthTransactions.length }})</button>
-        <button
-          class="tx-filter-btn income"
-          :class="{ active: transactionFilter === 'income' }"
-          @click="transactionFilter = 'income'"
-        >Income</button>
-        <button
-          class="tx-filter-btn expense"
-          :class="{ active: transactionFilter === 'expense' }"
-          @click="transactionFilter = 'expense'"
-        >Expense</button>
-        <button
-          class="tx-filter-btn transfer"
-          :class="{ active: transactionFilter === 'transfer' }"
-          @click="transactionFilter = 'transfer'"
-        >Transfer</button>
+        <h3 class="section-title">Recent Transactions</h3>
+        <RouterLink to="/history" class="btn btn-ghost btn-sm">See all</RouterLink>
       </div>
 
       <div v-if="recentMonthTransactions.length === 0" class="empty-state">
         <img src="/images/vio_sit.png" alt="" class="empty-state-vio" />
         <div class="empty-state-title">No transactions</div>
-        <div class="empty-state-text">
-          {{ transactionFilter === 'all' ? `No transactions in ${selectedMonth}` : `No ${transactionFilter} transactions` }}
-        </div>
+        <div class="empty-state-text">No transactions in {{ selectedMonth }}</div>
       </div>
 
-      <div v-else class="list transaction-list">
+      <div v-else class="list">
         <div
           v-for="transaction in recentMonthTransactions"
           :key="transaction.id"
@@ -447,15 +396,7 @@ function openEditModal(transaction) {
           </div>
         </div>
       </div>
-
-      <!-- Show count -->
-      <div v-if="filteredMonthTransactions.length > 20" class="show-more-hint">
-        Showing 20 of {{ filteredMonthTransactions.length }} transactions
-      </div>
     </div>
-
-      </div><!-- End desktop-right -->
-    </div><!-- End desktop-layout -->
 
     <!-- Edit Transaction Modal -->
     <EditTransactionModal
@@ -975,96 +916,6 @@ function openEditModal(transaction) {
 .list-item-clickable:active {
   background: var(--gray-200);
 }
-
-/* Desktop Two-Column Layout */
-.desktop-layout {
-  display: block;
-}
-
-@media (min-width: 900px) {
-  .desktop-layout {
-    display: grid;
-    grid-template-columns: 1fr 400px;
-    gap: var(--space-lg);
-    align-items: start;
-  }
-
-  .desktop-right {
-    position: sticky;
-    top: var(--space-md);
-  }
-
-  .transactions-section {
-    background: var(--bg-card);
-    border-radius: var(--radius-lg);
-    padding: var(--space-md);
-    border: 2px solid var(--border-color);
-    max-height: calc(100vh - 100px);
-    overflow-y: auto;
-  }
-
-  .transaction-list {
-    max-height: none;
-  }
-}
-
-@media (min-width: 1100px) {
-  .desktop-layout {
-    grid-template-columns: 1fr 480px;
-  }
-}
-
-/* Transaction Filters */
-.transaction-filters {
-  display: flex;
-  gap: 6px;
-  margin-bottom: var(--space-md);
-  flex-wrap: wrap;
-}
-
-.tx-filter-btn {
-  padding: 6px 12px;
-  border: 2px solid var(--border-color);
-  border-radius: 20px;
-  background: var(--bg-card);
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-  color: var(--text-secondary);
-}
-
-.tx-filter-btn:hover {
-  border-color: var(--lavender-400);
-}
-
-.tx-filter-btn.active {
-  background: var(--lavender-500);
-  border-color: var(--lavender-500);
-  color: white;
-}
-
-.tx-filter-btn.income.active {
-  background: var(--income-color);
-  border-color: var(--income-color);
-}
-
-.tx-filter-btn.expense.active {
-  background: var(--expense-color);
-  border-color: var(--expense-color);
-}
-
-.tx-filter-btn.transfer.active {
-  background: #60a5fa;
-  border-color: #60a5fa;
-}
-
-.show-more-hint {
-  text-align: center;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  padding: var(--space-sm);
-}
 </style>
 
 <style>
@@ -1107,42 +958,5 @@ function openEditModal(transaction) {
 /* Dark mode for Media Banner */
 [data-theme="dark"] .media-banner {
   background: linear-gradient(135deg, #4C1D95 0%, #6D28D9 50%, #7C3AED 100%) !important;
-}
-
-/* Dark mode for transaction filters */
-[data-theme="dark"] .tx-filter-btn {
-  background: #1A1625 !important;
-  border-color: #3D3456 !important;
-  color: var(--text-secondary) !important;
-}
-
-[data-theme="dark"] .tx-filter-btn:hover {
-  border-color: #8B5CF6 !important;
-}
-
-[data-theme="dark"] .tx-filter-btn.active {
-  background: #8B5CF6 !important;
-  border-color: #8B5CF6 !important;
-  color: white !important;
-}
-
-[data-theme="dark"] .tx-filter-btn.income.active {
-  background: var(--income-color) !important;
-  border-color: var(--income-color) !important;
-}
-
-[data-theme="dark"] .tx-filter-btn.expense.active {
-  background: var(--expense-color) !important;
-  border-color: var(--expense-color) !important;
-}
-
-[data-theme="dark"] .tx-filter-btn.transfer.active {
-  background: #60a5fa !important;
-  border-color: #60a5fa !important;
-}
-
-[data-theme="dark"] .transactions-section {
-  background: #1A1625 !important;
-  border-color: #3D3456 !important;
 }
 </style>
