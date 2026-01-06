@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useFinanceStore } from '../stores'
+import { useToast } from '../composables/useToast'
 
 const props = defineProps({
   movie: {
@@ -15,6 +16,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'save'])
 const store = useFinanceStore()
+const toast = useToast()
 
 // Form state
 const title = ref('')
@@ -297,13 +299,13 @@ function handleImageUpload(event) {
     }
     img.onerror = () => {
       isUploadingImage.value = false
-      alert('Could not load image. Please try a different file.')
+      toast.error('Could not load image. Please try a different file.')
     }
     img.src = e.target.result
   }
   reader.onerror = () => {
     isUploadingImage.value = false
-    alert('Could not read file. Please try again.')
+    toast.error('Could not read file. Please try again.')
   }
   reader.readAsDataURL(file)
 }

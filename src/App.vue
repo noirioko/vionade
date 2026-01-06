@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useFinanceStore } from './stores'
 import BottomNav from './components/BottomNav.vue'
 import AddTransactionModal from './components/AddTransactionModal.vue'
+import ToastContainer from './components/ToastContainer.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -21,7 +22,7 @@ const fabAction = ref(null)
 provide('fabAction', fabAction)
 
 // Pages where we show the FAB
-const pagesWithFab = ['/finance', '/wallets', '/history', '/wishlist', '/media', '/laundry', '/passwords', '/pets', '/aquarium']
+const pagesWithFab = ['/finance', '/wallets', '/history', '/wishlist', '/media', '/laundry', '/passwords', '/pets', '/aquarium', '/collections', '/wardrobe']
 
 const showFab = computed(() => pagesWithFab.includes(route.path))
 
@@ -52,6 +53,7 @@ onMounted(() => {
 </script>
 
 <template>
+  <ToastContainer />
   <router-view />
 
   <!-- FAB Button - contextual based on current page -->

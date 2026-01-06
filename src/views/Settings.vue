@@ -2,10 +2,12 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFinanceStore } from '../stores'
+import { useToast } from '../composables/useToast'
 import { signInWithGoogle, signOutUser } from '../firebase'
 
 const router = useRouter()
 const store = useFinanceStore()
+const toast = useToast()
 const showClearConfirm = ref(false)
 const showExportSuccess = ref(false)
 const isSigningIn = ref(false)
@@ -63,9 +65,10 @@ async function handleGoogleSignIn() {
   isSigningIn.value = true
   try {
     await signInWithGoogle()
+    toast.success('Signed in successfully!')
   } catch (error) {
     console.error('Sign in error:', error)
-    alert('Failed to sign in. Please try again.')
+    toast.error('Failed to sign in. Please try again.')
   } finally {
     isSigningIn.value = false
   }
@@ -119,9 +122,9 @@ function importData(event) {
       if (data.settings) {
         store.state.settings = data.settings
       }
-      alert('Data imported successfully!')
+      toast.success('Data imported successfully!')
     } catch (err) {
-      alert('Failed to import data. Please check the file format.')
+      toast.error('Failed to import data. Please check the file format.')
     }
   }
   reader.readAsText(file)

@@ -1,9 +1,11 @@
 <script setup>
 import { ref, computed, inject, onMounted, onUnmounted } from 'vue'
 import { useFinanceStore } from '../stores'
+import { useToast } from '../composables/useToast'
 import { petActions, getActionKeywords, getStatusColor, formatDaysAgo, sessionTypes, quickLogActions } from '../data/petActions'
 
 const store = useFinanceStore()
+const toast = useToast()
 const fabAction = inject('fabAction')
 
 // Quick entry state
@@ -258,13 +260,13 @@ function handleImageUpload(event) {
     }
     img.onerror = () => {
       isUploadingImage.value = false
-      alert('Could not load image. Please try a different file.')
+      toast.error('Could not load image. Please try a different file.')
     }
     img.src = e.target.result
   }
   reader.onerror = () => {
     isUploadingImage.value = false
-    alert('Could not read file. Please try again.')
+    toast.error('Could not read file. Please try again.')
   }
   reader.readAsDataURL(file)
 }
