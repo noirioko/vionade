@@ -2,11 +2,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useFinanceStore } from '../stores'
+import { useToast } from '../composables/useToast'
 import { petActions, sessionTypes, getStatusColor, formatDaysAgo } from '../data/petActions'
 
 const route = useRoute()
 const router = useRouter()
 const store = useFinanceStore()
+const toast = useToast()
 
 // Get pet from route param
 const petId = computed(() => route.params.id)
@@ -120,6 +122,69 @@ function goBack() {
   router.push('/pets')
 }
 
+// Photo upload
+const photoInput = ref(null)
+const isUploadingPhoto = ref(false)
+
+function triggerPhotoUpload() {
+  photoInput.value?.click()
+}
+
+function handlePhotoUpload(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  isUploadingPhoto.value = true
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    const img = new Image()
+    img.onload = () => {
+      // Compress image
+      const canvas = document.createElement('canvas')
+      const maxSize = 400
+      let { width, height } = img
+
+      if (width > height) {
+        if (width > maxSize) {
+          height = (height * maxSize) / width
+          width = maxSize
+        }
+      } else {
+        if (height > maxSize) {
+          width = (width * maxSize) / height
+          height = maxSize
+        }
+      }
+
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, width, height)
+
+      const compressedPhoto = canvas.toDataURL('image/jpeg', 0.7)
+
+      // Update pet
+      store.updatePet(petId.value, { photo: compressedPhoto })
+      isUploadingPhoto.value = false
+      toast.success('Photo updated!')
+    }
+    img.onerror = () => {
+      isUploadingPhoto.value = false
+      toast.error('Could not load image. Please try a different file.')
+    }
+    img.src = e.target.result
+  }
+  reader.onerror = () => {
+    isUploadingPhoto.value = false
+    toast.error('Could not read file. Please try again.')
+  }
+  reader.readAsDataURL(file)
+
+  // Reset input so same file can be selected again
+  event.target.value = ''
+}
+
 // Redirect if pet not found
 onMounted(() => {
   if (!pet.value) {
@@ -138,10 +203,21 @@ onMounted(() => {
       </button>
 
       <div class="pet-header-content">
-        <div class="pet-photo">
+        <div class="pet-photo" @click="triggerPhotoUpload" :class="{ uploading: isUploadingPhoto }">
           <img v-if="pet.photo" :src="pet.photo" :alt="pet.name" />
           <span v-else class="pet-photo-placeholder">🐱</span>
+          <div class="photo-overlay">
+            <span v-if="isUploadingPhoto">...</span>
+            <span v-else>📷</span>
+          </div>
         </div>
+        <input
+          ref="photoInput"
+          type="file"
+          accept="image/*"
+          class="hidden-input"
+          @change="handlePhotoUpload"
+        />
 
         <div class="pet-header-info">
           <h1 class="pet-title">{{ pet.name }}</h1>
@@ -320,6 +396,25 @@ onMounted(() => {
   overflow: hidden;
   flex-shrink: 0;
   border: 4px solid rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  position: relative;
+}
+
+.pet-photo:hover .photo-overlay,
+.pet-photo.uploading .photo-overlay {
+  opacity: 1;
+}
+
+.photo-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  font-size: 1.5rem;
 }
 
 .pet-photo img {
@@ -330,6 +425,10 @@ onMounted(() => {
 
 .pet-photo-placeholder {
   font-size: 3rem;
+}
+
+.hidden-input {
+  display: none;
 }
 
 .pet-header-info {
