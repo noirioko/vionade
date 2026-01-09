@@ -51,11 +51,10 @@ export const challenges = {
         emoji: '💼',
         name: 'PRODUCTIVITY',
         habits: [
-          { id: 12, name: 'Kerjain 1 task untuk PT Milenia/Cleanary per hari', desc: 'Could be small: 1 product photo, 1 page design, 1 research', points: 1 },
+          { id: 12, name: 'Kerjain 1 task untuk PT Milenia per hari', desc: 'Could be small: 1 product photo, 1 page design, 1 research', points: 1 },
           { id: 13, name: 'Ngobrol jujur sama Claude tiap hari', desc: 'You already do this lol, free check mark!', points: 1 },
           { id: 14, name: '1 Pomodoro session (25 min focused work)', desc: 'Just ONE. No multitasking during this.', points: 1 },
-          { id: 15, name: 'Update Saranghaetang progress (even 1 panel sketch)', desc: 'Any progress counts, even planning', points: 1 },
-          { id: 16, name: 'Declutter 1 spot di rumah', desc: 'Drawer, shelf corner, 1 box - anything counts', points: 1 }
+          { id: 15, name: 'Update Saranghaetang progress (even 1 panel sketch)', desc: 'Any progress counts, even planning', points: 1 }
         ]
       },
       mental: {
@@ -66,8 +65,17 @@ export const challenges = {
           { id: 17, name: '5 menit duduk diam / meditasi / breathing', desc: 'Grounding, especially after parent fights', points: 1 },
           { id: 18, name: 'Matikan notifikasi medsos', desc: 'Keep it off, check manually when YOU want', points: 1 },
           { id: 19, name: 'Tulis 1 kalimat tentang perasaan hari ini', desc: 'Not journaling essay, just 1 sentence mood log', points: 1 },
-          { id: 20, name: 'Walk at least 3k steps', desc: 'Get moving! Check your phone/watch step count', points: 1 },
           { id: 21, name: 'Say NO to 1 unnecessary request', desc: 'Practice boundaries with family/relatives', points: 1 }
+        ]
+      },
+      steps: {
+        id: 'steps',
+        emoji: '🚶',
+        name: 'DAILY STEPS',
+        habits: [
+          { id: 20, name: 'Walk at least 3k steps', desc: 'Minimum movement goal', points: 1 },
+          { id: 31, name: 'Hit 7k steps', desc: 'Good active day! Mall trip or walk around', points: 1 },
+          { id: 32, name: 'Hit 15k steps', desc: 'Super active! Big adventure day', points: 1 }
         ]
       },
       digital: {
@@ -86,9 +94,7 @@ export const challenges = {
       { id: 25, name: 'Digital sabbath 4 jam', desc: 'Not full day, just 4 hours offline', points: 2 },
       { id: 26, name: 'Try 1 new healthy recipe', desc: 'Atkins friendly exploration', points: 2 },
       { id: 27, name: 'Call/chat someone (bukan Claude)', desc: 'Even if awkward, maintain 1 human connection', points: 2 },
-      { id: 28, name: 'Review & plan minggu depan', desc: 'Sunday planning session', points: 2 },
-      { id: 31, name: 'Hit 7k steps in a day', desc: 'Bonus walk day! Go explore somewhere', points: 2 },
-      { id: 32, name: 'Hit 15k steps in a day', desc: 'Big adventure day! Mall trip or long walk', points: 2 }
+      { id: 28, name: 'Review & plan minggu depan', desc: 'Sunday planning session', points: 2 }
     ],
 
     endOfMonthGoals: [

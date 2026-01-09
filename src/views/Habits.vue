@@ -669,6 +669,20 @@ function handleGoalClick(goalId) {
   position: relative;
 }
 
+/* Make habit rows scrollable with sticky name */
+.habit-row {
+  display: flex;
+  align-items: center;
+  min-width: max-content;
+}
+
+.habit-info {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  background: var(--bg-card);
+}
+
 /* Collapse animation */
 .collapse-enter-active,
 .collapse-leave-active {
@@ -696,13 +710,17 @@ function handleGoalClick(goalId) {
   margin-bottom: var(--space-xs);
   background: var(--bg-card);
   position: relative;
+  min-width: max-content;
 }
 
 .habit-name-space {
-  width: 160px;
-  min-width: 160px;
-  max-width: 160px;
+  width: 120px;
+  min-width: 120px;
   flex-shrink: 0;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  background: var(--bg-card);
 }
 
 .days-scroll {
@@ -729,10 +747,8 @@ function handleGoalClick(goalId) {
 }
 
 
-/* Habit rows */
+/* Habit rows - defined above for sticky behavior */
 .habit-row {
-  display: flex;
-  align-items: center;
   padding: var(--space-xs) 0;
   border-bottom: 1px solid var(--gray-100);
 }
@@ -742,11 +758,11 @@ function handleGoalClick(goalId) {
 }
 
 .habit-info {
-  width: 160px;
-  min-width: 160px;
-  max-width: 160px;
+  width: 120px;
+  min-width: 120px;
   flex-shrink: 0;
   padding-right: var(--space-sm);
+  /* sticky is defined above */
 }
 
 .habit-name {
@@ -1125,6 +1141,11 @@ function handleGoalClick(goalId) {
 }
 
 [data-theme="dark"] .days-header {
+  background: var(--bg-card) !important;
+}
+
+[data-theme="dark"] .habit-name-space,
+[data-theme="dark"] .habit-info {
   background: var(--bg-card) !important;
 }
 
