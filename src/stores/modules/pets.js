@@ -121,13 +121,22 @@ export function getPetLogs(options = {}) {
   return { logs, total }
 }
 
-// Get last action date for a pet
+// Get last action date for a pet (checks both quick logs AND sessions)
 export function getLastActionDate(petId, action) {
-  const logs = state.petLogs
+  // Check quick logs
+  const logDates = state.petLogs
     .filter(l => l.petId === petId && l.action === action)
-    .sort((a, b) => b.date.localeCompare(a.date))
+    .map(l => l.date)
 
-  return logs[0]?.date || null
+  // Check sessions (bath, vet, flea, deworm, food are session types)
+  const sessionDates = state.petSessions
+    .filter(s => s.type === action && s.petIds.includes(petId))
+    .map(s => s.date)
+
+  // Combine and get the most recent
+  const allDates = [...logDates, ...sessionDates].sort((a, b) => b.localeCompare(a))
+
+  return allDates[0] || null
 }
 
 // Get days since last action
