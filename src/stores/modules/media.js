@@ -89,3 +89,81 @@ export function deleteBook(id) {
     state.books.splice(index, 1)
   }
 }
+
+// YouTube Videos CRUD
+export function addYoutubeVideo(video) {
+  const id = generateId()
+  state.youtubeVideos.push({
+    id,
+    title: video.title,
+    channelName: video.channelName || '',
+    channelId: video.channelId || null,
+    thumbnail: video.thumbnail || null,
+    videoUrl: video.videoUrl || null,
+    watchedDate: video.watchedDate || new Date().toISOString().split('T')[0],
+    rating: video.rating || 5,
+    notes: video.notes || '',
+    wouldWatchAgain: video.wouldWatchAgain || 'yes',
+    createdAt: new Date().toISOString(),
+  })
+  return id
+}
+
+export function updateYoutubeVideo(id, updates) {
+  const video = state.youtubeVideos.find(v => v.id === id)
+  if (video) {
+    Object.assign(video, updates)
+  }
+}
+
+export function deleteYoutubeVideo(id) {
+  const index = state.youtubeVideos.findIndex(v => v.id === id)
+  if (index !== -1) {
+    state.youtubeVideos.splice(index, 1)
+  }
+}
+
+// YouTube Channels CRUD
+export const YOUTUBE_CATEGORIES = [
+  { id: 'gaming', name: 'Gaming', icon: '🎮' },
+  { id: 'tech', name: 'Tech', icon: '💻' },
+  { id: 'cooking', name: 'Cooking', icon: '🍳' },
+  { id: 'music', name: 'Music', icon: '🎵' },
+  { id: 'education', name: 'Education', icon: '📚' },
+  { id: 'entertainment', name: 'Entertainment', icon: '🎬' },
+  { id: 'vlog', name: 'Vlog', icon: '📷' },
+  { id: 'art', name: 'Art', icon: '🎨' },
+  { id: 'fitness', name: 'Fitness', icon: '💪' },
+  { id: 'comedy', name: 'Comedy', icon: '😂' },
+  { id: 'news', name: 'News', icon: '📰' },
+  { id: 'other', name: 'Other', icon: '📺' },
+]
+
+export function addYoutubeChannel(channel) {
+  const id = generateId()
+  state.youtubeChannels.push({
+    id,
+    name: channel.name,
+    thumbnail: channel.thumbnail || null,
+    channelUrl: channel.channelUrl || null,
+    category: channel.category || 'other',
+    subscribed: channel.subscribed !== undefined ? channel.subscribed : true,
+    notes: channel.notes || '',
+    createdAt: new Date().toISOString(),
+  })
+  return id
+}
+
+export function updateYoutubeChannel(id, updates) {
+  const channel = state.youtubeChannels.find(c => c.id === id)
+  if (channel) {
+    Object.assign(channel, updates)
+  }
+}
+
+export function deleteYoutubeChannel(id) {
+  const index = state.youtubeChannels.findIndex(c => c.id === id)
+  if (index !== -1) {
+    state.youtubeChannels.splice(index, 1)
+  }
+}

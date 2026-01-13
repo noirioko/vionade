@@ -30,8 +30,43 @@ const displayLimit = ref(20)
 // Modal state
 const showAddPetModal = ref(false)
 const editingPet = ref(null)
-const petForm = ref({ name: '', nickname: '', photo: '', notes: '' })
+const petForm = ref({ name: '', nickname: '', photo: '', birthdate: '', notes: '' })
 const isUploadingImage = ref(false)
+
+// Pet list sorting
+const petSort = ref('name') // 'name', 'vaccine', 'flea'
+
+const sortedPets = computed(() => {
+  const pets = [...store.pets.value]
+
+  if (petSort.value === 'name') {
+    return pets.sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  if (petSort.value === 'vaccine') {
+    return pets.sort((a, b) => {
+      const aDate = store.getLastActionDate(a.id, 'vaccine')
+      const bDate = store.getLastActionDate(b.id, 'vaccine')
+      if (!aDate && !bDate) return a.name.localeCompare(b.name)
+      if (!aDate) return 1 // Never vaccinated goes last
+      if (!bDate) return -1
+      return aDate.localeCompare(bDate) // Oldest first (needs vaccine sooner)
+    })
+  }
+
+  if (petSort.value === 'flea') {
+    return pets.sort((a, b) => {
+      const aDate = store.getLastActionDate(a.id, 'flea')
+      const bDate = store.getLastActionDate(b.id, 'flea')
+      if (!aDate && !bDate) return a.name.localeCompare(b.name)
+      if (!aDate) return 1
+      if (!bDate) return -1
+      return aDate.localeCompare(bDate) // Oldest first
+    })
+  }
+
+  return pets
+})
 
 // Session logging state
 const activeSessionType = ref('bath')
@@ -185,7 +220,7 @@ function formatTime(isoString) {
 // Pet modal functions
 function openAddPet() {
   editingPet.value = null
-  petForm.value = { name: '', nickname: '', photo: '', notes: '' }
+  petForm.value = { name: '', nickname: '', photo: '', birthdate: '', notes: '' }
   showAddPetModal.value = true
 }
 
@@ -195,7 +230,8 @@ function openEditPet(pet, event) {
   petForm.value = {
     ...pet,
     // Join nicknames array back to string for editing
-    nickname: pet.nicknames?.join(', ') || pet.nickname || ''
+    nickname: pet.nicknames?.join(', ') || pet.nickname || '',
+    birthdate: pet.birthdate || ''
   }
   showAddPetModal.value = true
 }
@@ -212,6 +248,7 @@ function savePet() {
     ...petForm.value,
     name: trimmedName,
     nickname: petForm.value.nickname?.trim() || '',
+    birthdate: petForm.value.birthdate || null,
     notes: petForm.value.notes?.trim() || '',
   }
 
@@ -658,9 +695,29 @@ onUnmounted(() => {
         <button class="add-pet-btn" @click="openAddPet">+ Add</button>
       </div>
 
+      <!-- Sort Options -->
+      <div class="sort-options">
+        <span class="sort-label">Sort:</span>
+        <button
+          class="sort-btn"
+          :class="{ active: petSort === 'name' }"
+          @click="petSort = 'name'"
+        >A-Z</button>
+        <button
+          class="sort-btn"
+          :class="{ active: petSort === 'vaccine' }"
+          @click="petSort = 'vaccine'"
+        >💉 Vaccine</button>
+        <button
+          class="sort-btn"
+          :class="{ active: petSort === 'flea' }"
+          @click="petSort = 'flea'"
+        >🐛 Flea</button>
+      </div>
+
       <div class="pet-grid">
         <div
-          v-for="pet in store.pets.value"
+          v-for="pet in sortedPets"
           :key="pet.id"
           class="pet-card"
           @click="goToPetBook(pet.id)"
@@ -673,6 +730,18 @@ onUnmounted(() => {
           <div class="pet-info">
             <span class="pet-name">{{ pet.name }}</span>
             <span class="pet-nickname">{{ pet.nickname }}</span>
+          </div>
+          <div class="pet-health-badges">
+            <span
+              class="health-badge"
+              :class="getStatusColor('vaccine', store.getDaysSinceAction(pet.id, 'vaccine'))"
+              :title="'Vaccine: ' + formatDaysAgo(store.getDaysSinceAction(pet.id, 'vaccine'))"
+            >💉 {{ formatDaysAgo(store.getDaysSinceAction(pet.id, 'vaccine')) }}</span>
+            <span
+              class="health-badge"
+              :class="getStatusColor('flea', store.getDaysSinceAction(pet.id, 'flea'))"
+              :title="'Flea: ' + formatDaysAgo(store.getDaysSinceAction(pet.id, 'flea'))"
+            >🐛 {{ formatDaysAgo(store.getDaysSinceAction(pet.id, 'flea')) }}</span>
           </div>
         </div>
       </div>
@@ -720,6 +789,11 @@ onUnmounted(() => {
             <label>Nicknames (for quick entry)</label>
             <input v-model="petForm.nickname" type="text" placeholder="pong, pongie, pp" />
             <span class="form-hint">Separate multiple nicknames with commas or spaces</span>
+          </div>
+
+          <div class="form-group">
+            <label>Birthdate</label>
+            <input v-model="petForm.birthdate" type="date" />
           </div>
 
           <div class="form-group">
@@ -1187,6 +1261,82 @@ onUnmounted(() => {
 
 .pet-nickname {
   font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* Sort Options */
+.sort-options {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.sort-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.sort-btn {
+  padding: 4px 10px;
+  background: white;
+  border: 2px solid var(--border-color);
+  border-radius: 20px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sort-btn:hover {
+  border-color: #00BFFF;
+}
+
+.sort-btn.active {
+  background: #00BFFF;
+  border-color: #0099CC;
+  color: white;
+}
+
+/* Health Badges on Pet Cards */
+.pet-health-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: var(--space-sm);
+  width: 100%;
+}
+
+.health-badge {
+  display: block;
+  text-align: center;
+  font-size: 0.625rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.health-badge.green {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.health-badge.yellow {
+  background: #fef9c3;
+  color: #a16207;
+}
+
+.health-badge.red {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.health-badge.gray {
+  background: var(--background-secondary);
   color: var(--text-secondary);
 }
 
@@ -1911,6 +2061,39 @@ onUnmounted(() => {
 }
 
 [data-theme="dark"] .pet-avatar {
+  background: #2D2640 !important;
+}
+
+[data-theme="dark"] .sort-btn {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .sort-btn:hover {
+  border-color: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .sort-btn.active {
+  background: #8B5CF6 !important;
+  border-color: #7C3AED !important;
+}
+
+[data-theme="dark"] .health-badge.green {
+  background: rgba(74, 222, 128, 0.2) !important;
+  color: #4ade80 !important;
+}
+
+[data-theme="dark"] .health-badge.yellow {
+  background: rgba(251, 191, 36, 0.2) !important;
+  color: #fbbf24 !important;
+}
+
+[data-theme="dark"] .health-badge.red {
+  background: rgba(248, 113, 113, 0.2) !important;
+  color: #f87171 !important;
+}
+
+[data-theme="dark"] .health-badge.gray {
   background: #2D2640 !important;
 }
 

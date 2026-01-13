@@ -29,6 +29,8 @@ export const EXPENSE_CATEGORIES = [
   { id: 'travel', name: 'Travel', icon: '✈️', color: '#38bdf8' },
   { id: 'hotel', name: 'Hotel', icon: '🏨', color: '#c084fc' },
   { id: 'shopping', name: 'Shopping', icon: '🛍️', color: '#f43f5e' },
+  { id: 'medical', name: 'Medical', icon: '🏥', color: '#ef4444' },
+  { id: 'business', name: 'Business', icon: '💼', color: '#0ea5e9' },
   { id: 'other', name: 'Other', icon: '📦', color: '#a1a1aa' },
 ]
 
@@ -63,6 +65,8 @@ export const state = reactive({
   movies: loadFromStorage('mochi_movies', []),
   series: loadFromStorage('mochi_series', []),
   books: loadFromStorage('mochi_books', []),
+  youtubeVideos: loadFromStorage('mochi_youtube_videos', []),
+  youtubeChannels: loadFromStorage('mochi_youtube_channels', []),
   passwords: loadFromStorage('mochi_passwords', []),
   pets: loadFromStorage('mochi_pets', []),
   petLogs: loadFromStorage('mochi_petlogs', []),
@@ -125,10 +129,13 @@ export async function saveToFirebase() {
       transactions: state.transactions,
       savings: state.savings,
       wishlist: state.wishlist,
+      challenges: state.challenges,
       vioPass: state.vioPass,
       movies: state.movies,
       series: state.series,
       books: state.books,
+      youtubeVideos: state.youtubeVideos,
+      youtubeChannels: state.youtubeChannels,
       passwords: state.passwords,
       pets: state.pets,
       petLogs: state.petLogs,
@@ -137,6 +144,7 @@ export async function saveToFirebase() {
       collections: state.collections,
       collectionItems: state.collectionItems,
       wardrobe: state.wardrobe,
+      subscriptions: state.subscriptions,
       habits: state.habits,
       settings: state.settings,
       updatedAt: new Date().toISOString(),
@@ -169,10 +177,13 @@ async function loadFromFirebase() {
       if (data.settings) state.settings = { ...state.settings, ...data.settings }
       if (data.savings) state.savings = data.savings
       if (data.wishlist) state.wishlist = data.wishlist
+      if (data.challenges) state.challenges = data.challenges
       if (data.vioPass) state.vioPass = { ...state.vioPass, ...data.vioPass }
       if (data.movies) state.movies = data.movies
       if (data.series) state.series = data.series
       if (data.books) state.books = data.books
+      if (data.youtubeVideos) state.youtubeVideos = data.youtubeVideos
+      if (data.youtubeChannels) state.youtubeChannels = data.youtubeChannels
       if (data.passwords) state.passwords = data.passwords
       if (data.pets) state.pets = data.pets
       if (data.petLogs) state.petLogs = data.petLogs
@@ -181,6 +192,7 @@ async function loadFromFirebase() {
       if (data.collections) state.collections = data.collections
       if (data.collectionItems) state.collectionItems = data.collectionItems
       if (data.wardrobe) state.wardrobe = data.wardrobe
+      if (data.subscriptions) state.subscriptions = data.subscriptions
       if (data.habits) state.habits = { ...state.habits, ...data.habits }
 
       // Save to localStorage as backup
@@ -189,10 +201,13 @@ async function loadFromFirebase() {
       localStorage.setItem('mochi_settings', JSON.stringify(state.settings))
       localStorage.setItem('mochi_savings', JSON.stringify(state.savings))
       localStorage.setItem('mochi_wishlist', JSON.stringify(state.wishlist))
+      localStorage.setItem('mochi_challenges', JSON.stringify(state.challenges))
       localStorage.setItem('mochi_viopass', JSON.stringify(state.vioPass))
       localStorage.setItem('mochi_movies', JSON.stringify(state.movies))
       localStorage.setItem('mochi_series', JSON.stringify(state.series))
       localStorage.setItem('mochi_books', JSON.stringify(state.books))
+      localStorage.setItem('mochi_youtube_videos', JSON.stringify(state.youtubeVideos))
+      localStorage.setItem('mochi_youtube_channels', JSON.stringify(state.youtubeChannels))
       localStorage.setItem('mochi_passwords', JSON.stringify(state.passwords))
       localStorage.setItem('mochi_pets', JSON.stringify(state.pets))
       localStorage.setItem('mochi_petlogs', JSON.stringify(state.petLogs))
@@ -213,6 +228,8 @@ async function loadFromFirebase() {
       state.movies = []
       state.series = []
       state.books = []
+      state.youtubeVideos = []
+      state.youtubeChannels = []
       state.passwords = []
       state.pets = []
       state.petLogs = []
@@ -259,10 +276,13 @@ function setupRealtimeSync() {
       if (data.settings) state.settings = { ...state.settings, ...data.settings }
       if (data.savings) state.savings = data.savings
       if (data.wishlist) state.wishlist = data.wishlist
+      if (data.challenges) state.challenges = data.challenges
       if (data.vioPass) state.vioPass = { ...state.vioPass, ...data.vioPass }
       if (data.movies) state.movies = data.movies
       if (data.series) state.series = data.series
       if (data.books) state.books = data.books
+      if (data.youtubeVideos) state.youtubeVideos = data.youtubeVideos
+      if (data.youtubeChannels) state.youtubeChannels = data.youtubeChannels
       if (data.passwords) state.passwords = data.passwords
       if (data.pets) state.pets = data.pets
       if (data.petLogs) state.petLogs = data.petLogs
@@ -271,6 +291,7 @@ function setupRealtimeSync() {
       if (data.collections) state.collections = data.collections
       if (data.collectionItems) state.collectionItems = data.collectionItems
       if (data.wardrobe) state.wardrobe = data.wardrobe
+      if (data.subscriptions) state.subscriptions = data.subscriptions
       if (data.habits) state.habits = { ...state.habits, ...data.habits }
     }
   })
@@ -323,6 +344,8 @@ const stateKeys = [
   { key: 'movies', storage: 'mochi_movies' },
   { key: 'series', storage: 'mochi_series' },
   { key: 'books', storage: 'mochi_books' },
+  { key: 'youtubeVideos', storage: 'mochi_youtube_videos' },
+  { key: 'youtubeChannels', storage: 'mochi_youtube_channels' },
   { key: 'passwords', storage: 'mochi_passwords' },
   { key: 'pets', storage: 'mochi_pets' },
   { key: 'petLogs', storage: 'mochi_petlogs' },
@@ -359,6 +382,8 @@ export async function resetAllData() {
   state.movies = []
   state.series = []
   state.books = []
+  state.youtubeVideos = []
+  state.youtubeChannels = []
   state.passwords = []
   state.pets = []
   state.petLogs = []

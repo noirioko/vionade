@@ -49,6 +49,13 @@ import {
   addBook,
   updateBook,
   deleteBook,
+  addYoutubeVideo,
+  updateYoutubeVideo,
+  deleteYoutubeVideo,
+  YOUTUBE_CATEGORIES,
+  addYoutubeChannel,
+  updateYoutubeChannel,
+  deleteYoutubeChannel,
 } from './modules/media'
 
 // Passwords module
@@ -104,6 +111,7 @@ import {
   getPetByNickname,
   getPetById,
   addPetLog,
+  updatePetLog,
   deletePetLog,
   getPetLogs,
   getLastActionDate,
@@ -187,6 +195,8 @@ export function useFinanceStore() {
     movies: computed(() => state.movies),
     series: computed(() => state.series),
     books: computed(() => state.books),
+    youtubeVideos: computed(() => state.youtubeVideos),
+    youtubeChannels: computed(() => state.youtubeChannels),
     passwords: computed(() => state.passwords),
     pets: computed(() => state.pets),
     petLogs: computed(() => state.petLogs),
@@ -258,6 +268,13 @@ export function useFinanceStore() {
     addBook,
     updateBook,
     deleteBook,
+    addYoutubeVideo,
+    updateYoutubeVideo,
+    deleteYoutubeVideo,
+    YOUTUBE_CATEGORIES,
+    addYoutubeChannel,
+    updateYoutubeChannel,
+    deleteYoutubeChannel,
 
     // Password actions
     addPassword,
@@ -286,6 +303,7 @@ export function useFinanceStore() {
     getPetByNickname,
     getPetById,
     addPetLog,
+    updatePetLog,
     deletePetLog,
     getPetLogs,
     getLastActionDate,

@@ -51,7 +51,7 @@ export const challenges = {
         emoji: '💼',
         name: 'PRODUCTIVITY',
         habits: [
-          { id: 12, name: 'Kerjain 1 task untuk PT Milenia per hari', desc: 'Could be small: 1 product photo, 1 page design, 1 research', points: 1 },
+          { id: 12, name: 'Do journaling today', desc: 'Write about your day, thoughts, or feelings', points: 1 },
           { id: 13, name: 'Ngobrol jujur sama Claude tiap hari', desc: 'You already do this lol, free check mark!', points: 1 },
           { id: 14, name: '1 Pomodoro session (25 min focused work)', desc: 'Just ONE. No multitasking during this.', points: 1 },
           { id: 15, name: 'Update Saranghaetang progress (even 1 panel sketch)', desc: 'Any progress counts, even planning', points: 1 }
@@ -62,6 +62,7 @@ export const challenges = {
         emoji: '🧠',
         name: 'MENTAL HEALTH',
         habits: [
+          { id: 16, name: 'Declutter 1 spot di rumah', desc: 'Drawer, shelf, corner - small wins!', points: 1 },
           { id: 17, name: '5 menit duduk diam / meditasi / breathing', desc: 'Grounding, especially after parent fights', points: 1 },
           { id: 18, name: 'Matikan notifikasi medsos', desc: 'Keep it off, check manually when YOU want', points: 1 },
           { id: 19, name: 'Tulis 1 kalimat tentang perasaan hari ini', desc: 'Not journaling essay, just 1 sentence mood log', points: 1 },

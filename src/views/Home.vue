@@ -185,7 +185,7 @@ const features = [
   align-items: stretch;
   border-radius: var(--radius-xl);
   overflow: hidden;
-  background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 50%, #FCD34D 100%);
+  background-color: #F59E0B;
   background-size: cover;
   background-position: center;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
@@ -458,6 +458,7 @@ const features = [
 
 /* Habits Banner dark mode */
 [data-theme="dark"] .habits-banner {
+  background-color: #5B21B6 !important;
   box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3) !important;
 }
 

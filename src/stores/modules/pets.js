@@ -21,6 +21,7 @@ export function addPet(pet) {
     nickname: nicknames[0] || '', // Primary nickname for display
     nicknames: nicknames, // All nicknames for matching
     photo: pet.photo || null,
+    birthdate: pet.birthdate || null,
     notes: pet.notes || '',
     createdAt: new Date().toISOString(),
   })
@@ -64,6 +65,7 @@ export function getPetById(id) {
 export function addPetLog(log) {
   const id = generateId()
   const pet = getPetById(log.petId) || getPetByNickname(log.petId)
+  const parsedCost = parseFloat(log.cost)
 
   state.petLogs.push({
     id,
@@ -71,10 +73,23 @@ export function addPetLog(log) {
     petName: pet?.name || log.petName || 'Unknown',
     action: log.action,
     note: log.note || '',
+    cost: !isNaN(parsedCost) ? parsedCost : null,
     date: log.date || new Date().toISOString().split('T')[0],
     createdAt: new Date().toISOString(),
   })
   return id
+}
+
+export function updatePetLog(id, updates) {
+  const log = state.petLogs.find(l => l.id === id)
+  if (log) {
+    // Parse cost if provided
+    if (updates.cost !== undefined) {
+      const parsedCost = parseFloat(updates.cost)
+      updates.cost = !isNaN(parsedCost) ? parsedCost : null
+    }
+    Object.assign(log, updates)
+  }
 }
 
 export function deletePetLog(id) {

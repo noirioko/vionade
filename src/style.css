@@ -1075,13 +1075,20 @@ input[type="number"]::-webkit-outer-spin-button {
   }
 
   .modal {
-    max-width: 500px;
+    max-width: 600px;
     border-radius: var(--radius-xl);
-    margin-bottom: var(--space-xl);
   }
 
   .modal-overlay {
     align-items: center;
+    padding: var(--space-lg);
+  }
+}
+
+/* Even larger modal on wide desktop screens */
+@media (min-width: 1024px) {
+  .modal {
+    max-width: 700px;
   }
 }
 

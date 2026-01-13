@@ -736,8 +736,8 @@ function handleImageUpload(event) {
 }
 
 .selected-poster {
-  width: 60px;
-  height: 90px;
+  width: 80px;
+  height: 120px;
   border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--lavender-100);
@@ -746,6 +746,13 @@ function handleImageUpload(event) {
   justify-content: center;
   flex-shrink: 0;
   font-size: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .selected-poster {
+    width: 120px;
+    height: 180px;
+  }
 }
 
 .selected-poster img {

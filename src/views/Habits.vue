@@ -387,7 +387,7 @@ function handleGoalClick(goalId) {
   border-radius: var(--radius-xl);
   overflow: hidden;
   margin-bottom: var(--space-md);
-  background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 50%, #FCD34D 100%);
+  background-color: #F59E0B;
   background-size: cover;
   background-position: center;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
@@ -1079,7 +1079,7 @@ function handleGoalClick(goalId) {
 <style>
 /* Dark mode */
 [data-theme="dark"] .event-banner {
-  background: linear-gradient(135deg, #5B21B6 0%, #7C3AED 50%, #8B5CF6 100%) !important;
+  background-color: #5B21B6 !important;
   box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3) !important;
 }
 

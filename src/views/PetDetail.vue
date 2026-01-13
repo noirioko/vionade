@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useFinanceStore } from '../stores'
 import { useToast } from '../composables/useToast'
-import { petActions, sessionTypes, getStatusColor, formatDaysAgo } from '../data/petActions'
+import { petActions, sessionTypes, quickLogActions, getStatusColor, formatDaysAgo } from '../data/petActions'
 
 const route = useRoute()
 const router = useRouter()
@@ -96,6 +96,46 @@ function formatDateHeader(dateStr) {
 // Format time
 function formatTime(isoString) {
   return new Date(isoString).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+}
+
+// Edit log modal
+const showEditLogModal = ref(false)
+const editingLog = ref(null)
+const editLogForm = ref({
+  action: '',
+  date: '',
+  note: '',
+  cost: ''
+})
+
+function openEditLog(log) {
+  editingLog.value = log
+  editLogForm.value = {
+    action: log.action,
+    date: log.date,
+    note: log.note || '',
+    cost: log.cost || ''
+  }
+  showEditLogModal.value = true
+}
+
+function closeEditLogModal() {
+  showEditLogModal.value = false
+  editingLog.value = null
+}
+
+function saveEditLog() {
+  if (!editingLog.value) return
+
+  store.updatePetLog(editingLog.value.id, {
+    action: editLogForm.value.action,
+    date: editLogForm.value.date,
+    note: editLogForm.value.note.trim(),
+    cost: editLogForm.value.cost
+  })
+
+  toast.success('Log updated!')
+  closeEditLogModal()
 }
 
 // Delete log
@@ -277,14 +317,18 @@ onMounted(() => {
           v-for="log in logs"
           :key="log.id"
           class="log-card"
+          @click="openEditLog(log)"
         >
           <span class="log-emoji">{{ petActions[log.action]?.emoji || '📝' }}</span>
           <div class="log-content">
-            <span class="log-action">{{ petActions[log.action]?.label || log.action }}</span>
+            <div class="log-header">
+              <span class="log-action">{{ petActions[log.action]?.label || log.action }}</span>
+              <span v-if="log.cost" class="log-cost">Rp{{ log.cost.toLocaleString() }}</span>
+            </div>
             <span v-if="log.note" class="log-note">{{ log.note }}</span>
           </div>
           <span class="log-time">{{ formatTime(log.createdAt) }}</span>
-          <button class="log-delete" @click="deleteLog(log.id)">×</button>
+          <button class="log-delete" @click.stop="deleteLog(log.id)">×</button>
         </div>
       </div>
 
@@ -339,6 +383,73 @@ onMounted(() => {
       >
         Load More
       </button>
+    </div>
+
+    <!-- Edit Log Modal -->
+    <div v-if="showEditLogModal" class="modal-overlay" @click.self="closeEditLogModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>Edit Log</h2>
+          <button class="modal-close" @click="closeEditLogModal">×</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Action Type -->
+          <div class="form-group">
+            <label>Action Type</label>
+            <div class="action-pills">
+              <button
+                v-for="action in quickLogActions"
+                :key="action"
+                class="action-pill"
+                :class="{ active: editLogForm.action === action }"
+                @click="editLogForm.action = action"
+              >
+                <span>{{ petActions[action]?.emoji }}</span>
+                <span>{{ petActions[action]?.label }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Date -->
+          <div class="form-group">
+            <label>Date</label>
+            <input
+              v-model="editLogForm.date"
+              type="date"
+              class="form-input"
+            />
+          </div>
+
+          <!-- Cost -->
+          <div class="form-group">
+            <label>Cost (Rp)</label>
+            <input
+              v-model="editLogForm.cost"
+              type="number"
+              class="form-input"
+              placeholder="0"
+              min="0"
+            />
+          </div>
+
+          <!-- Notes -->
+          <div class="form-group">
+            <label>Notes</label>
+            <textarea
+              v-model="editLogForm.note"
+              class="form-input form-textarea"
+              placeholder="What happened? Any symptoms, medication, or details..."
+              rows="3"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="closeEditLogModal">Cancel</button>
+          <button class="btn-save" @click="saveEditLog">Save Changes</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -604,14 +715,29 @@ onMounted(() => {
 
 .log-content {
   flex: 1;
+  min-width: 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-  align-items: baseline;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.log-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
 }
 
 .log-action {
   font-weight: 700;
+}
+
+.log-cost {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #00BFFF;
+  background: rgba(0, 191, 255, 0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
 }
 
 .log-note {
@@ -738,6 +864,173 @@ onMounted(() => {
   border-color: #00BFFF;
   color: #00BFFF;
 }
+
+/* Make log cards clickable */
+.log-card {
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.log-card:hover {
+  border-color: #00BFFF;
+}
+
+.log-card:active {
+  transform: scale(0.99);
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  border-radius: 24px 24px 0 0;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h2 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.modal-close {
+  width: 32px;
+  height: 32px;
+  background: var(--background-secondary);
+  border: none;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.modal-close:hover {
+  background: var(--border-color);
+}
+
+.modal-body {
+  padding: var(--space-lg);
+}
+
+.form-group {
+  margin-bottom: var(--space-md);
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: var(--space-xs);
+  color: var(--text-secondary);
+}
+
+.form-input {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #00BFFF;
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.action-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.action-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: white;
+  border: 2px solid var(--border-color);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.action-pill:hover {
+  border-color: #00BFFF;
+}
+
+.action-pill.active {
+  background: #00BFFF;
+  border-color: #0099CC;
+  color: white;
+}
+
+.modal-footer {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  border-top: 1px solid var(--border-color);
+}
+
+.btn-cancel {
+  flex: 1;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--background-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-cancel:hover {
+  background: var(--border-color);
+}
+
+.btn-save {
+  flex: 1;
+  padding: var(--space-sm) var(--space-md);
+  background: #00BFFF;
+  border: 3px solid #0099CC;
+  border-radius: 12px;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 #0077AA;
+}
+
+.btn-save:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 #0077AA;
+}
 </style>
 
 <style>
@@ -812,5 +1105,77 @@ onMounted(() => {
 [data-theme="dark"] .load-more-btn:hover {
   border-color: #8B5CF6 !important;
   color: #A78BFA !important;
+}
+
+[data-theme="dark"] .log-card:hover {
+  border-color: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .log-cost {
+  color: #A78BFA !important;
+  background: rgba(139, 92, 246, 0.2) !important;
+}
+
+[data-theme="dark"] .modal {
+  background: #1A1625 !important;
+}
+
+[data-theme="dark"] .modal-header {
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .modal-close {
+  background: #2D2640 !important;
+}
+
+[data-theme="dark"] .modal-close:hover {
+  background: #3D3456 !important;
+}
+
+[data-theme="dark"] .form-input {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .form-input:focus {
+  border-color: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .action-pill {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .action-pill:hover {
+  border-color: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .action-pill.active {
+  background: #8B5CF6 !important;
+  border-color: #7C3AED !important;
+}
+
+[data-theme="dark"] .modal-footer {
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .btn-cancel {
+  background: #2D2640 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .btn-cancel:hover {
+  background: #3D3456 !important;
+}
+
+[data-theme="dark"] .btn-save {
+  background: #8B5CF6 !important;
+  border-color: #7C3AED !important;
+  box-shadow: 3px 3px 0 #5B21B6 !important;
+}
+
+[data-theme="dark"] .btn-save:hover {
+  box-shadow: 1px 1px 0 #5B21B6 !important;
 }
 </style>
