@@ -29,6 +29,7 @@ export const EXPENSE_CATEGORIES = [
   { id: 'travel', name: 'Travel', icon: '✈️', color: '#38bdf8' },
   { id: 'hotel', name: 'Hotel', icon: '🏨', color: '#c084fc' },
   { id: 'shopping', name: 'Shopping', icon: '🛍️', color: '#f43f5e' },
+  { id: 'gaming', name: 'Gaming', icon: '🎮', color: '#6366f1' },
   { id: 'medical', name: 'Medical', icon: '🏥', color: '#ef4444' },
   { id: 'business', name: 'Business', icon: '💼', color: '#0ea5e9' },
   { id: 'other', name: 'Other', icon: '📦', color: '#a1a1aa' },
