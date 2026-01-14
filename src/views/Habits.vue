@@ -104,6 +104,9 @@ const todayCompletions = computed(() => {
 // Days array for grid
 const days = Array.from({ length: challenge.totalDays }, (_, i) => i + 1)
 
+// Selected day for logging (defaults to today)
+const selectedDay = ref(null)
+
 // Check if a day is in the past
 function isPastDay(day) {
   return day < currentDay.value
@@ -119,9 +122,27 @@ function isFutureDay(day) {
   return day > currentDay.value
 }
 
+// Check if a day is selected
+function isSelectedDay(day) {
+  return selectedDay.value === day
+}
+
+// Select a day for quick logging
+function selectDay(day) {
+  if (day > currentDay.value) return // Can't select future days
+  selectedDay.value = selectedDay.value === day ? null : day
+}
+
 // Handle habit checkbox click - allow any day
 function handleHabitClick(habitId, day) {
   store.toggleHabitCompletion(habitId, day)
+}
+
+// Quick toggle for selected day
+function quickToggleHabit(habitId) {
+  if (selectedDay.value) {
+    store.toggleHabitCompletion(habitId, selectedDay.value)
+  }
 }
 
 // Handle weekly bonus click - allow any week
@@ -223,6 +244,40 @@ function handleGoalClick(goalId) {
       <span class="day-badge">Day {{ currentDay }} of {{ challenge.totalDays }}</span>
     </div>
 
+    <!-- Day Picker for logging past days -->
+    <div class="day-picker-section">
+      <div class="day-picker-header">
+        <span class="day-picker-label">📅 Select day to log:</span>
+        <button
+          v-if="selectedDay"
+          class="clear-day-btn"
+          @click="selectedDay = null"
+        >
+          Clear
+        </button>
+      </div>
+      <div class="day-picker-grid">
+        <button
+          v-for="day in days"
+          :key="day"
+          class="day-picker-btn"
+          :class="{
+            'past': isPastDay(day),
+            'today': isToday(day),
+            'future': isFutureDay(day),
+            'selected': isSelectedDay(day)
+          }"
+          :disabled="isFutureDay(day)"
+          @click="selectDay(day)"
+        >
+          {{ day }}
+        </button>
+      </div>
+      <div v-if="selectedDay" class="selected-day-info">
+        Logging for <strong>Day {{ selectedDay }}</strong> — tap habits below to toggle
+      </div>
+    </div>
+
     <!-- Habit Categories -->
     <div class="categories-container">
       <div
@@ -251,7 +306,7 @@ function handleGoalClick(goalId) {
                 v-for="day in days"
                 :key="day"
                 class="day-number"
-                :class="{ 'today': isToday(day), 'past': isPastDay(day), 'future': isFutureDay(day) }"
+                :class="{ 'today': isToday(day), 'past': isPastDay(day), 'future': isFutureDay(day), 'selected-day': isSelectedDay(day) }"
               >
                 {{ day }}
               </div>
@@ -274,7 +329,8 @@ function handleGoalClick(goalId) {
                 class="habit-checkbox"
                 :class="{
                   'checked': store.isHabitCompleted(habit.id, day),
-                  'today': isToday(day)
+                  'today': isToday(day),
+                  'selected-day': isSelectedDay(day)
                 }"
                 @click="handleHabitClick(habit.id, day)"
               >
@@ -601,6 +657,115 @@ function handleGoalClick(goalId) {
   font-size: 0.75rem;
   font-weight: 600;
   border-radius: var(--radius-full);
+}
+
+/* Day Picker */
+.day-picker-section {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  border: 2px solid var(--lavender-200);
+}
+
+.day-picker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.day-picker-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.clear-day-btn {
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--gray-100);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.clear-day-btn:hover {
+  background: var(--gray-200);
+}
+
+.day-picker-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.day-picker-btn {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  background: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.day-picker-btn:hover:not(:disabled) {
+  border-color: var(--lavender-400);
+  background: var(--lavender-50);
+}
+
+.day-picker-btn.past {
+  color: var(--text-secondary);
+}
+
+.day-picker-btn.today {
+  border-color: var(--lavender-500);
+  background: var(--lavender-100);
+  color: var(--lavender-700);
+}
+
+.day-picker-btn.future {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.day-picker-btn.selected {
+  background: var(--lavender-500);
+  border-color: var(--lavender-600);
+  color: white;
+  box-shadow: 0 2px 8px rgba(159, 122, 234, 0.4);
+}
+
+.selected-day-info {
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
+  background: var(--lavender-100);
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  color: var(--lavender-700);
+  text-align: center;
+}
+
+.selected-day-info strong {
+  font-weight: 700;
+}
+
+/* Selected day column highlight */
+.day-number.selected-day {
+  background: var(--lavender-500);
+  color: white;
+  font-weight: 700;
+}
+
+.habit-checkbox.selected-day {
+  border-color: var(--lavender-500);
+  box-shadow: 0 0 0 2px rgba(159, 122, 234, 0.3);
 }
 
 /* Categories */
@@ -1121,6 +1286,56 @@ function handleGoalClick(goalId) {
 [data-theme="dark"] .day-badge {
   background: #2D2640 !important;
   color: #A78BFA !important;
+}
+
+[data-theme="dark"] .day-picker-section {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .clear-day-btn {
+  background: #2D2640 !important;
+  color: #A3A3A3 !important;
+}
+
+[data-theme="dark"] .clear-day-btn:hover {
+  background: #3D3456 !important;
+}
+
+[data-theme="dark"] .day-picker-btn {
+  background: #2D2640 !important;
+  border-color: #3D3456 !important;
+  color: #E5E5E5 !important;
+}
+
+[data-theme="dark"] .day-picker-btn:hover:not(:disabled) {
+  background: #3D3456 !important;
+  border-color: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .day-picker-btn.today {
+  background: #3D3456 !important;
+  border-color: #8B5CF6 !important;
+  color: #C4B5FD !important;
+}
+
+[data-theme="dark"] .day-picker-btn.selected {
+  background: #8B5CF6 !important;
+  border-color: #A78BFA !important;
+}
+
+[data-theme="dark"] .selected-day-info {
+  background: #2D2640 !important;
+  color: #C4B5FD !important;
+}
+
+[data-theme="dark"] .day-number.selected-day {
+  background: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .habit-checkbox.selected-day {
+  border-color: #8B5CF6 !important;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3) !important;
 }
 
 [data-theme="dark"] .category-section {
