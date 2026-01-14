@@ -259,11 +259,73 @@ function selectTab(tab, subTab = null) {
       <img src="/images/vio_banner_full.png" alt="Vio" class="media-banner-vio" />
     </div>
 
-    <!-- Main Content Area -->
+    <!-- Desktop Layout Container -->
     <div class="media-layout">
+      <!-- Desktop Sidebar -->
+      <aside class="media-sidebar">
+        <nav class="sidebar-nav">
+          <button
+            class="sidebar-item"
+            :class="{ active: activeTab === 'movies' }"
+            @click="selectTab('movies')"
+          >
+            <span class="sidebar-icon">🎬</span>
+            <span class="sidebar-label">Movies</span>
+            <span class="sidebar-count">{{ mediaStats.movies }}</span>
+          </button>
+          <button
+            class="sidebar-item"
+            :class="{ active: activeTab === 'series' }"
+            @click="selectTab('series')"
+          >
+            <span class="sidebar-icon">📺</span>
+            <span class="sidebar-label">Series</span>
+            <span class="sidebar-count">{{ mediaStats.series }}</span>
+          </button>
+          <button
+            class="sidebar-item"
+            :class="{ active: activeTab === 'books' }"
+            @click="selectTab('books')"
+          >
+            <span class="sidebar-icon">📚</span>
+            <span class="sidebar-label">Books</span>
+            <span class="sidebar-count">{{ mediaStats.books }}</span>
+          </button>
+
+          <div class="sidebar-divider"></div>
+
+          <div class="sidebar-group">
+            <button
+              class="sidebar-item"
+              :class="{ active: activeTab === 'youtube' && youtubeSubTab === 'videos' }"
+              @click="selectTab('youtube', 'videos')"
+            >
+              <span class="sidebar-icon">▶️</span>
+              <span class="sidebar-label">YouTube Videos</span>
+              <span class="sidebar-count">{{ mediaStats.videos }}</span>
+            </button>
+            <button
+              class="sidebar-item"
+              :class="{ active: activeTab === 'youtube' && youtubeSubTab === 'channels' }"
+              @click="selectTab('youtube', 'channels')"
+            >
+              <span class="sidebar-icon">📡</span>
+              <span class="sidebar-label">YouTube Channels</span>
+              <span class="sidebar-count">{{ mediaStats.channels }}</span>
+            </button>
+          </div>
+        </nav>
+
+        <div class="sidebar-stats">
+          <div class="sidebar-stat-title">Total Tracked</div>
+          <div class="sidebar-stat-number">{{ mediaStats.movies + mediaStats.series + mediaStats.books + mediaStats.videos + mediaStats.channels }}</div>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
       <main class="media-content">
-        <!-- Tabs -->
-        <div class="media-tabs">
+        <!-- Mobile Tabs (hidden on desktop) -->
+        <div class="media-tabs mobile-only">
           <button
             class="media-tab"
             :class="{ active: activeTab === 'movies' }"
@@ -1372,16 +1434,128 @@ function selectTab(tab, subTab = null) {
   width: 100%;
 }
 
+/* Desktop Layout */
+.media-sidebar {
+  display: none;
+}
+
 /* Desktop Styles (768px+) */
 @media (min-width: 768px) {
   .media-layout {
-    max-width: 1200px;
-    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: var(--space-lg);
+  }
+
+  .media-sidebar {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: var(--space-md);
+    height: fit-content;
+    max-height: calc(100vh - 200px);
+  }
+
+  .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: var(--white);
+    border: 2px solid var(--lavender-100);
+    border-radius: var(--radius-lg);
+    padding: var(--space-sm);
+  }
+
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border: none;
+    border-radius: var(--radius-md);
+    background: transparent;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+  }
+
+  .sidebar-item:hover {
+    background: var(--lavender-50);
+    color: var(--text-primary);
+  }
+
+  .sidebar-item.active {
+    background: var(--lavender-100);
+    color: var(--lavender-700);
+    font-weight: 600;
+  }
+
+  .sidebar-icon {
+    font-size: 1.125rem;
+  }
+
+  .sidebar-label {
+    flex: 1;
+  }
+
+  .sidebar-count {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    background: var(--lavender-50);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+  }
+
+  .sidebar-item.active .sidebar-count {
+    background: var(--lavender-200);
+    color: var(--lavender-700);
+  }
+
+  .sidebar-divider {
+    height: 1px;
+    background: var(--lavender-100);
+    margin: var(--space-xs) 0;
+  }
+
+  .sidebar-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .sidebar-stats {
+    margin-top: var(--space-md);
+    padding: var(--space-md);
+    background: var(--lavender-50);
+    border-radius: var(--radius-lg);
+    text-align: center;
+  }
+
+  .sidebar-stat-title {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-xs);
+  }
+
+  .sidebar-stat-number {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--lavender-600);
+  }
+
+  /* Hide mobile tabs on desktop */
+  .mobile-only {
+    display: none !important;
   }
 
   /* Larger grids on desktop */
   .poster-grid {
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: var(--space-md);
   }
 
@@ -1415,8 +1589,12 @@ function selectTab(tab, subTab = null) {
 
 /* Large Desktop (1024px+) */
 @media (min-width: 1024px) {
+  .media-layout {
+    grid-template-columns: 260px 1fr;
+  }
+
   .poster-grid {
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(5, 1fr);
   }
 
   .video-grid {
@@ -1434,8 +1612,12 @@ function selectTab(tab, subTab = null) {
 
 /* Extra Large Desktop (1280px+) */
 @media (min-width: 1280px) {
+  .media-layout {
+    grid-template-columns: 280px 1fr;
+  }
+
   .poster-grid {
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(6, 1fr);
   }
 
   .video-grid {
@@ -1557,4 +1739,45 @@ function selectTab(tab, subTab = null) {
   color: white !important;
 }
 
+/* Dark mode sidebar */
+[data-theme="dark"] .sidebar-nav {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .sidebar-item {
+  color: #A3A3A3 !important;
+}
+
+[data-theme="dark"] .sidebar-item:hover {
+  background: #2D2640 !important;
+  color: #E5E5E5 !important;
+}
+
+[data-theme="dark"] .sidebar-item.active {
+  background: #3D3456 !important;
+  color: #C4B5FD !important;
+}
+
+[data-theme="dark"] .sidebar-count {
+  background: #2D2640 !important;
+  color: #A3A3A3 !important;
+}
+
+[data-theme="dark"] .sidebar-item.active .sidebar-count {
+  background: #5B21B6 !important;
+  color: #E9D5FF !important;
+}
+
+[data-theme="dark"] .sidebar-divider {
+  background: #3D3456 !important;
+}
+
+[data-theme="dark"] .sidebar-stats {
+  background: #2D2640 !important;
+}
+
+[data-theme="dark"] .sidebar-stat-number {
+  color: #A78BFA !important;
+}
 </style>
