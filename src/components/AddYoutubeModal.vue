@@ -44,7 +44,7 @@ const isUploadingImage = ref(false)
 const isFetchingUrl = ref(false)
 
 // Get available channels for dropdown
-const availableChannels = computed(() => store.youtubeChannels || [])
+const availableChannels = computed(() => store.youtubeChannels.value || [])
 
 // Initialize form if editing
 watch(() => props.item, (item) => {
@@ -152,11 +152,11 @@ async function fetchYoutubeInfo() {
       throw new Error(data.error)
     }
 
-    // Fill in the form
-    if (data.title && !title.value) {
+    // Fill in the form (always fill, user clicked Fetch explicitly)
+    if (data.title) {
       title.value = data.title
     }
-    if (data.author_name && !channelName.value) {
+    if (data.author_name) {
       channelName.value = data.author_name
     }
 
