@@ -19,6 +19,35 @@ const searchQuery = ref('')
 const activeTab = ref('movies') // 'movies', 'series', 'books', 'youtube'
 const youtubeSubTab = ref('videos') // 'videos', 'channels'
 const statusFilter = ref('all')
+const preselectedChannelId = ref(null)
+
+// Get videos count for each channel
+function getChannelVideoCount(channelId) {
+  const videos = store.youtubeVideos.value || []
+  return videos.filter(v => v.channelId === channelId).length
+}
+
+// Get videos for a specific channel
+function getChannelVideos(channelId) {
+  const videos = store.youtubeVideos.value || []
+  return videos.filter(v => v.channelId === channelId)
+    .sort((a, b) => new Date(b.watchedDate) - new Date(a.watchedDate))
+}
+
+// Open add video modal with preselected channel
+function openAddVideoForChannel(channelId) {
+  preselectedChannelId.value = channelId
+  editingYoutube.value = null
+  showYoutubeModal.value = true
+}
+
+// View a specific video from channel view
+function viewVideoFromChannel(video) {
+  showViewModal.value = false // Close channel modal
+  viewingYoutube.value = video
+  youtubeSubTab.value = 'videos'
+  showViewModal.value = true
+}
 
 onMounted(() => {
   fabAction.value = openAddFromFab
@@ -178,6 +207,19 @@ function handleSave() {
   editingYoutube.value = null
   viewingMovie.value = null
   viewingYoutube.value = null
+}
+
+function closeYoutubeModal() {
+  showYoutubeModal.value = false
+  preselectedChannelId.value = null
+}
+
+function handleYoutubeSave() {
+  showYoutubeModal.value = false
+  preselectedChannelId.value = null
+  editingYoutube.value = null
+  // Don't close view modal when adding video from channel view
+  // The channel modal stays open so user can see the new video
 }
 
 function getWatchAgainText(value) {
@@ -488,6 +530,9 @@ function selectTab(tab, subTab = null) {
             <div class="channel-thumb">
               <img v-if="channel.thumbnail" :src="channel.thumbnail" :alt="channel.name" />
               <span v-else class="channel-thumb-placeholder">{{ getCategoryInfo(channel.category).icon }}</span>
+              <div v-if="getChannelVideoCount(channel.id) > 0" class="channel-video-count">
+                {{ getChannelVideoCount(channel.id) }} video{{ getChannelVideoCount(channel.id) !== 1 ? 's' : '' }}
+              </div>
             </div>
             <div class="channel-info">
               <div class="channel-name">{{ channel.name }}</div>
@@ -649,7 +694,7 @@ function selectTab(tab, subTab = null) {
 
     <!-- View Modal (YouTube Channel) -->
     <div v-if="showViewModal && viewingYoutube && isYoutubeTab && youtubeSubTab === 'channels'" class="modal-overlay" @click.self="showViewModal = false">
-      <div class="view-modal">
+      <div class="view-modal channel-modal">
         <button class="modal-close" @click="showViewModal = false">×</button>
 
         <div class="view-content channel-view">
@@ -686,8 +731,42 @@ function selectTab(tab, subTab = null) {
           </div>
         </div>
 
+        <!-- Channel Videos Section -->
+        <div class="channel-videos-section">
+          <div class="channel-videos-header">
+            <h3 class="channel-videos-title">Watched Videos ({{ getChannelVideoCount(viewingYoutube.id) }})</h3>
+            <button class="add-video-btn" @click="openAddVideoForChannel(viewingYoutube.id)">
+              + Add Video
+            </button>
+          </div>
+
+          <div v-if="getChannelVideos(viewingYoutube.id).length > 0" class="channel-videos-list">
+            <div
+              v-for="video in getChannelVideos(viewingYoutube.id)"
+              :key="video.id"
+              class="channel-video-item"
+              @click="viewVideoFromChannel(video)"
+            >
+              <div class="channel-video-thumb">
+                <img v-if="video.thumbnail" :src="video.thumbnail" :alt="video.title" />
+                <span v-else>▶️</span>
+              </div>
+              <div class="channel-video-info">
+                <div class="channel-video-title">{{ video.title }}</div>
+                <div class="channel-video-meta">
+                  <span class="channel-video-rating">{{ video.rating }}/10</span>
+                  <span class="channel-video-date">{{ formatDate(video.watchedDate) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="channel-videos-empty">
+            No videos logged for this channel yet
+          </div>
+        </div>
+
         <button class="btn btn-primary view-edit-btn" @click="openEdit()">
-          Edit
+          Edit Channel
         </button>
       </div>
     </div>
@@ -705,9 +784,10 @@ function selectTab(tab, subTab = null) {
     <AddYoutubeModal
       v-if="showYoutubeModal"
       :item="editingYoutube"
-      :itemType="youtubeSubTab === 'channels' ? 'channel' : 'video'"
-      @close="showYoutubeModal = false"
-      @save="handleSave"
+      :itemType="preselectedChannelId ? 'video' : (youtubeSubTab === 'channels' ? 'channel' : 'video')"
+      :preselectedChannelId="preselectedChannelId"
+      @close="closeYoutubeModal"
+      @save="handleYoutubeSave"
     />
   </div>
 </template>
@@ -1188,6 +1268,7 @@ function selectTab(tab, subTab = null) {
 }
 
 .channel-thumb {
+  position: relative;
   width: 50px;
   height: 50px;
   border-radius: 50%;
@@ -1242,6 +1323,133 @@ function selectTab(tab, subTab = null) {
   background: #10B981;
   padding: 2px 6px;
   border-radius: var(--radius-sm);
+}
+
+.channel-video-count {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: white;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+/* Channel Videos Section in Modal */
+.channel-modal {
+  max-width: 500px;
+}
+
+.channel-videos-section {
+  background: var(--background-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.channel-videos-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.channel-videos-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.add-video-btn {
+  padding: var(--space-xs) var(--space-sm);
+  background: #FF6347;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.add-video-btn:hover {
+  background: #FF4500;
+}
+
+.channel-videos-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.channel-video-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  background: var(--white);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.channel-video-item:hover {
+  transform: translateX(4px);
+}
+
+.channel-video-thumb {
+  width: 60px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--lavender-100);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.channel-video-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.channel-video-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.channel-video-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.channel-video-meta {
+  display: flex;
+  gap: var(--space-sm);
+  font-size: 0.625rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.channel-video-rating {
+  font-weight: 600;
+  color: #F59E0B;
+}
+
+.channel-videos-empty {
+  text-align: center;
+  padding: var(--space-md);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
 }
 
 /* View Modal */
@@ -1708,6 +1916,30 @@ function selectTab(tab, subTab = null) {
 
 [data-theme="dark"] .channel-view-thumb {
   background: #2D2640 !important;
+}
+
+[data-theme="dark"] .channel-videos-section {
+  background: #2D2640 !important;
+}
+
+[data-theme="dark"] .channel-video-item {
+  background: #1A1625 !important;
+}
+
+[data-theme="dark"] .channel-video-item:hover {
+  background: #3D3456 !important;
+}
+
+[data-theme="dark"] .channel-video-thumb {
+  background: #3D3456 !important;
+}
+
+[data-theme="dark"] .add-video-btn {
+  background: #CC5038 !important;
+}
+
+[data-theme="dark"] .add-video-btn:hover {
+  background: #FF6347 !important;
 }
 
 [data-theme="dark"] .view-row {

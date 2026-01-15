@@ -11,6 +11,10 @@ const props = defineProps({
   itemType: {
     type: String,
     default: 'video' // 'video' or 'channel'
+  },
+  preselectedChannelId: {
+    type: String,
+    default: null
   }
 })
 
@@ -21,6 +25,7 @@ const toast = useToast()
 // Form state - Video
 const title = ref('')
 const channelName = ref('')
+const channelId = ref(null)
 const thumbnail = ref('')
 const videoUrl = ref('')
 const watchedDate = ref(new Date().toISOString().split('T')[0])
@@ -36,6 +41,10 @@ const subscribed = ref(true)
 
 // Image upload
 const isUploadingImage = ref(false)
+const isFetchingUrl = ref(false)
+
+// Get available channels for dropdown
+const availableChannels = computed(() => store.youtubeChannels || [])
 
 // Initialize form if editing
 watch(() => props.item, (item) => {
@@ -43,6 +52,7 @@ watch(() => props.item, (item) => {
     if (props.itemType === 'video') {
       title.value = item.title || ''
       channelName.value = item.channelName || ''
+      channelId.value = item.channelId || null
       thumbnail.value = item.thumbnail || ''
       videoUrl.value = item.videoUrl || ''
       watchedDate.value = item.watchedDate || new Date().toISOString().split('T')[0]
@@ -62,9 +72,22 @@ watch(() => props.item, (item) => {
   }
 }, { immediate: true })
 
+// Handle preselected channel
+watch(() => props.preselectedChannelId, (id) => {
+  if (id && props.itemType === 'video') {
+    channelId.value = id
+    // Auto-fill channel name from the selected channel
+    const channel = availableChannels.value.find(c => c.id === id)
+    if (channel) {
+      channelName.value = channel.name
+    }
+  }
+}, { immediate: true })
+
 function resetForm() {
   title.value = ''
   channelName.value = ''
+  channelId.value = props.preselectedChannelId || null
   thumbnail.value = ''
   videoUrl.value = ''
   watchedDate.value = new Date().toISOString().split('T')[0]
@@ -77,6 +100,80 @@ function resetForm() {
   subscribed.value = true
 }
 
+// When channel is selected from dropdown, update channelName
+function handleChannelSelect(selectedChannelId) {
+  channelId.value = selectedChannelId
+  if (selectedChannelId) {
+    const channel = availableChannels.value.find(c => c.id === selectedChannelId)
+    if (channel) {
+      channelName.value = channel.name
+    }
+  }
+}
+
+// Extract YouTube video ID from URL
+function extractVideoId(url) {
+  if (!url) return null
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    /youtube\.com\/shorts\/([^&\n?#]+)/
+  ]
+  for (const pattern of patterns) {
+    const match = url.match(pattern)
+    if (match) return match[1]
+  }
+  return null
+}
+
+// Fetch video info from YouTube URL using noembed (CORS-friendly)
+async function fetchYoutubeInfo() {
+  const url = videoUrl.value.trim()
+  if (!url) return
+
+  const videoId = extractVideoId(url)
+  if (!videoId) {
+    toast.error('Could not parse YouTube URL')
+    return
+  }
+
+  isFetchingUrl.value = true
+  try {
+    // Use noembed.com which supports CORS (YouTube oEmbed doesn't)
+    const noembedUrl = `https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`
+    const response = await fetch(noembedUrl)
+
+    if (!response.ok) {
+      throw new Error('Video not found')
+    }
+
+    const data = await response.json()
+
+    if (data.error) {
+      throw new Error(data.error)
+    }
+
+    // Fill in the form
+    if (data.title && !title.value) {
+      title.value = data.title
+    }
+    if (data.author_name && !channelName.value) {
+      channelName.value = data.author_name
+    }
+
+    // Get thumbnail (high quality)
+    thumbnail.value = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+
+    toast.success('Video info fetched!')
+  } catch (error) {
+    console.error('Error fetching YouTube info:', error)
+    // Fallback: at least get the thumbnail
+    thumbnail.value = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+    toast.warning('Could not get video details, but thumbnail loaded')
+  } finally {
+    isFetchingUrl.value = false
+  }
+}
+
 const isEditing = computed(() => !!props.item)
 
 function handleSave() {
@@ -86,6 +183,7 @@ function handleSave() {
     const videoData = {
       title: title.value.trim(),
       channelName: channelName.value.trim(),
+      channelId: channelId.value || null,
       thumbnail: thumbnail.value || null,
       videoUrl: videoUrl.value.trim() || null,
       watchedDate: watchedDate.value,
@@ -198,6 +296,29 @@ function handleImageUpload(event) {
       <div class="modal-body">
         <!-- Video Form -->
         <template v-if="itemType === 'video'">
+          <!-- Quick URL Paste Section -->
+          <div class="url-fetch-section">
+            <div class="input-group" style="margin-bottom: 0;">
+              <label class="input-label">Paste YouTube URL</label>
+              <div class="url-fetch-row">
+                <input
+                  v-model="videoUrl"
+                  type="url"
+                  class="input"
+                  placeholder="https://youtube.com/watch?v=..."
+                  @keyup.enter="fetchYoutubeInfo"
+                />
+                <button
+                  class="fetch-btn"
+                  :disabled="isFetchingUrl || !videoUrl"
+                  @click="fetchYoutubeInfo"
+                >
+                  {{ isFetchingUrl ? '...' : 'Fetch' }}
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- Thumbnail Preview -->
           <div class="thumbnail-section">
             <div class="thumbnail-preview">
@@ -213,7 +334,7 @@ function handleImageUpload(event) {
                 v-model="thumbnail"
                 type="url"
                 class="input url-input"
-                placeholder="or paste URL..."
+                placeholder="or paste thumbnail URL..."
               />
             </div>
           </div>
@@ -223,14 +344,28 @@ function handleImageUpload(event) {
             <input v-model="title" type="text" class="input" placeholder="Video title" />
           </div>
 
+          <!-- Channel Selector -->
           <div class="input-group">
-            <label class="input-label">Channel Name</label>
-            <input v-model="channelName" type="text" class="input" placeholder="Channel name" />
+            <label class="input-label">Link to Channel (optional)</label>
+            <select
+              class="input select-input"
+              :value="channelId"
+              @change="handleChannelSelect($event.target.value || null)"
+            >
+              <option value="">-- No channel --</option>
+              <option
+                v-for="ch in availableChannels"
+                :key="ch.id"
+                :value="ch.id"
+              >
+                {{ ch.name }}
+              </option>
+            </select>
           </div>
 
           <div class="input-group">
-            <label class="input-label">Video URL (optional)</label>
-            <input v-model="videoUrl" type="url" class="input" placeholder="https://youtube.com/watch?v=..." />
+            <label class="input-label">Channel Name</label>
+            <input v-model="channelName" type="text" class="input" placeholder="Channel name (auto-filled if linked)" />
           </div>
 
           <div class="input-group">
@@ -364,6 +499,55 @@ function handleImageUpload(event) {
   padding: var(--space-md) var(--space-lg);
   max-height: 60vh;
   overflow-y: auto;
+}
+
+/* URL Fetch Section */
+.url-fetch-section {
+  padding: var(--space-md);
+  background: linear-gradient(135deg, #FF000020 0%, #FF634720 100%);
+  border: 2px solid #FF6347;
+  border-radius: 12px;
+  margin-bottom: var(--space-md);
+}
+
+.url-fetch-row {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.url-fetch-row .input {
+  flex: 1;
+}
+
+.fetch-btn {
+  padding: var(--space-sm) var(--space-md);
+  background: #FF6347;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.fetch-btn:hover:not(:disabled) {
+  background: #FF4500;
+}
+
+.fetch-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.select-input {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+  cursor: pointer;
 }
 
 .thumbnail-section {
@@ -590,6 +774,24 @@ function handleImageUpload(event) {
 
 <style>
 /* Dark mode */
+[data-theme="dark"] .url-fetch-section {
+  background: linear-gradient(135deg, #FF000015 0%, #FF634715 100%) !important;
+  border-color: #CC5038 !important;
+}
+
+[data-theme="dark"] .fetch-btn {
+  background: #CC5038 !important;
+}
+
+[data-theme="dark"] .fetch-btn:hover:not(:disabled) {
+  background: #FF6347 !important;
+}
+
+[data-theme="dark"] .select-input {
+  background-color: #1A1625 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E") !important;
+}
+
 [data-theme="dark"] .thumbnail-section {
   background: #2D2640 !important;
 }

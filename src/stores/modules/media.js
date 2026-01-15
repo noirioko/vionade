@@ -93,7 +93,7 @@ export function deleteBook(id) {
 // YouTube Videos CRUD
 export function addYoutubeVideo(video) {
   const id = generateId()
-  state.youtubeVideos.push({
+  const newVideo = {
     id,
     title: video.title,
     channelName: video.channelName || '',
@@ -105,22 +105,20 @@ export function addYoutubeVideo(video) {
     notes: video.notes || '',
     wouldWatchAgain: video.wouldWatchAgain || 'yes',
     createdAt: new Date().toISOString(),
-  })
+  }
+  // Reassign array to trigger reactivity
+  state.youtubeVideos = [...state.youtubeVideos, newVideo]
   return id
 }
 
 export function updateYoutubeVideo(id, updates) {
-  const video = state.youtubeVideos.find(v => v.id === id)
-  if (video) {
-    Object.assign(video, updates)
-  }
+  state.youtubeVideos = state.youtubeVideos.map(v =>
+    v.id === id ? { ...v, ...updates } : v
+  )
 }
 
 export function deleteYoutubeVideo(id) {
-  const index = state.youtubeVideos.findIndex(v => v.id === id)
-  if (index !== -1) {
-    state.youtubeVideos.splice(index, 1)
-  }
+  state.youtubeVideos = state.youtubeVideos.filter(v => v.id !== id)
 }
 
 // YouTube Channels CRUD
@@ -141,7 +139,7 @@ export const YOUTUBE_CATEGORIES = [
 
 export function addYoutubeChannel(channel) {
   const id = generateId()
-  state.youtubeChannels.push({
+  const newChannel = {
     id,
     name: channel.name,
     thumbnail: channel.thumbnail || null,
@@ -150,20 +148,18 @@ export function addYoutubeChannel(channel) {
     subscribed: channel.subscribed !== undefined ? channel.subscribed : true,
     notes: channel.notes || '',
     createdAt: new Date().toISOString(),
-  })
+  }
+  // Reassign array to trigger reactivity
+  state.youtubeChannels = [...state.youtubeChannels, newChannel]
   return id
 }
 
 export function updateYoutubeChannel(id, updates) {
-  const channel = state.youtubeChannels.find(c => c.id === id)
-  if (channel) {
-    Object.assign(channel, updates)
-  }
+  state.youtubeChannels = state.youtubeChannels.map(c =>
+    c.id === id ? { ...c, ...updates } : c
+  )
 }
 
 export function deleteYoutubeChannel(id) {
-  const index = state.youtubeChannels.findIndex(c => c.id === id)
-  if (index !== -1) {
-    state.youtubeChannels.splice(index, 1)
-  }
+  state.youtubeChannels = state.youtubeChannels.filter(c => c.id !== id)
 }

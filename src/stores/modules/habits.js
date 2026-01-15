@@ -3,35 +3,53 @@ import { state } from '../core'
 
 export function toggleHabitCompletion(habitId, day) {
   const key = `${habitId}-${day}`
-  if (state.habits.completions[key]) {
-    delete state.habits.completions[key]
+  const newCompletions = { ...state.habits.completions }
+
+  if (newCompletions[key]) {
+    delete newCompletions[key]
   } else {
-    state.habits.completions[key] = new Date().toISOString()
+    newCompletions[key] = new Date().toISOString()
   }
-  // Trigger reactivity by reassigning the object
-  state.habits.completions = { ...state.habits.completions }
+
+  // Trigger reactivity by reassigning the whole habits object
+  state.habits = {
+    ...state.habits,
+    completions: newCompletions
+  }
 }
 
 export function toggleWeeklyBonus(bonusId, week) {
   const key = `${bonusId}-${week}`
-  if (state.habits.weeklyBonuses[key]) {
-    delete state.habits.weeklyBonuses[key]
+  const newWeeklyBonuses = { ...state.habits.weeklyBonuses }
+
+  if (newWeeklyBonuses[key]) {
+    delete newWeeklyBonuses[key]
   } else {
-    state.habits.weeklyBonuses[key] = new Date().toISOString()
+    newWeeklyBonuses[key] = new Date().toISOString()
   }
-  // Trigger reactivity by reassigning the object
-  state.habits.weeklyBonuses = { ...state.habits.weeklyBonuses }
+
+  // Trigger reactivity by reassigning the whole habits object
+  state.habits = {
+    ...state.habits,
+    weeklyBonuses: newWeeklyBonuses
+  }
 }
 
 export function toggleEndOfMonthGoal(goalId) {
   const key = `${goalId}`
-  if (state.habits.endOfMonthGoals[key]) {
-    delete state.habits.endOfMonthGoals[key]
+  const newEndOfMonthGoals = { ...state.habits.endOfMonthGoals }
+
+  if (newEndOfMonthGoals[key]) {
+    delete newEndOfMonthGoals[key]
   } else {
-    state.habits.endOfMonthGoals[key] = new Date().toISOString()
+    newEndOfMonthGoals[key] = new Date().toISOString()
   }
-  // Trigger reactivity by reassigning the object
-  state.habits.endOfMonthGoals = { ...state.habits.endOfMonthGoals }
+
+  // Trigger reactivity by reassigning the whole habits object
+  state.habits = {
+    ...state.habits,
+    endOfMonthGoals: newEndOfMonthGoals
+  }
 }
 
 export function isHabitCompleted(habitId, day) {
