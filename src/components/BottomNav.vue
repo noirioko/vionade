@@ -7,7 +7,7 @@ const showMore = ref(false)
 
 // Check if current route is in the "more" menu
 const isMoreActive = () => {
-  const moreRoutes = ['/media', '/habits', '/passwords', '/viopass', '/laundry', '/pets', '/aquarium', '/collections', '/wardrobe', '/subscriptions', '/settings']
+  const moreRoutes = ['/media', '/wellness', '/passwords', '/viopass', '/laundry', '/pets', '/collections', '/wardrobe', '/subscriptions', '/shopping', '/settings']
   return moreRoutes.includes(route.path)
 }
 
@@ -34,9 +34,9 @@ function closeMore() {
             <span class="more-item-icon">🎬</span>
             <span class="more-item-label">Media</span>
           </RouterLink>
-          <RouterLink to="/habits" class="more-item" @click="closeMore">
-            <span class="more-item-icon">✨</span>
-            <span class="more-item-label">Habits</span>
+          <RouterLink to="/wellness" class="more-item" @click="closeMore">
+            <span class="more-item-icon">💗</span>
+            <span class="more-item-label">Wellness</span>
           </RouterLink>
           <RouterLink to="/passwords" class="more-item" @click="closeMore">
             <span class="more-item-icon">🔐</span>
@@ -54,10 +54,6 @@ function closeMore() {
             <span class="more-item-icon">🐱</span>
             <span class="more-item-label">Pets</span>
           </RouterLink>
-          <RouterLink to="/aquarium" class="more-item" @click="closeMore">
-            <span class="more-item-icon">🐟</span>
-            <span class="more-item-label">Aquarium</span>
-          </RouterLink>
           <RouterLink to="/collections" class="more-item" @click="closeMore">
             <span class="more-item-icon">🎁</span>
             <span class="more-item-label">Collections</span>
@@ -69,6 +65,10 @@ function closeMore() {
           <RouterLink to="/subscriptions" class="more-item" @click="closeMore">
             <span class="more-item-icon">🔄</span>
             <span class="more-item-label">Subscriptions</span>
+          </RouterLink>
+          <RouterLink to="/shopping" class="more-item" @click="closeMore">
+            <span class="more-item-icon">🛒</span>
+            <span class="more-item-label">Shopping</span>
           </RouterLink>
           <RouterLink to="/settings" class="more-item" @click="closeMore">
             <span class="more-item-icon">⚙️</span>
@@ -90,30 +90,15 @@ function closeMore() {
       <span>Finance</span>
     </RouterLink>
 
-    <RouterLink to="/wallets" class="nav-item">
-      <span class="nav-item-icon">👛</span>
-      <span>Wallets</span>
-    </RouterLink>
-
-    <RouterLink to="/history" class="nav-item">
-      <span class="nav-item-icon">📋</span>
-      <span>History</span>
-    </RouterLink>
-
-    <RouterLink to="/wishlist" class="nav-item">
-      <span class="nav-item-icon">🎁</span>
-      <span>Wishlist</span>
-    </RouterLink>
-
     <!-- Desktop only items -->
     <RouterLink to="/media" class="nav-item desktop-only">
       <span class="nav-item-icon">🎬</span>
       <span>Media</span>
     </RouterLink>
 
-    <RouterLink to="/habits" class="nav-item desktop-only">
-      <span class="nav-item-icon">✨</span>
-      <span>Habits</span>
+    <RouterLink to="/wellness" class="nav-item desktop-only">
+      <span class="nav-item-icon">💗</span>
+      <span>Wellness</span>
     </RouterLink>
 
     <RouterLink to="/passwords" class="nav-item desktop-only">
@@ -136,10 +121,6 @@ function closeMore() {
       <span>Pets</span>
     </RouterLink>
 
-    <RouterLink to="/aquarium" class="nav-item desktop-only">
-      <span class="nav-item-icon">🐟</span>
-      <span>Aquarium</span>
-    </RouterLink>
 
     <RouterLink to="/wardrobe" class="nav-item desktop-only">
       <span class="nav-item-icon">👗</span>
@@ -149,6 +130,11 @@ function closeMore() {
     <RouterLink to="/subscriptions" class="nav-item desktop-only">
       <span class="nav-item-icon">🔄</span>
       <span>Subscriptions</span>
+    </RouterLink>
+
+    <RouterLink to="/shopping" class="nav-item desktop-only">
+      <span class="nav-item-icon">🛒</span>
+      <span>Shopping</span>
     </RouterLink>
 
     <RouterLink to="/settings" class="nav-item desktop-only">

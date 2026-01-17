@@ -1,14 +1,18 @@
 <script setup>
-import { ref, computed, inject, onMounted, onUnmounted } from 'vue'
+import { ref, computed, inject, onMounted, onUnmounted, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFinanceStore } from '../stores'
 import { useToast } from '../composables/useToast'
 import { petActions, getActionKeywords, getStatusColor, formatDaysAgo, sessionTypes, quickLogActions } from '../data/petActions'
+import { tanks, tankActions, getWaterChangeStatus, formatDaysAgo as formatTankDaysAgo } from '../data/tanks'
 
 const router = useRouter()
 const store = useFinanceStore()
 const toast = useToast()
 const fabAction = inject('fabAction')
+
+// Main sidebar tab state
+const mainTab = ref('cats') // 'cats', 'aquarium'
 
 // Help modal state
 const showHelpModal = ref(false)
@@ -362,25 +366,216 @@ function deleteSession(id) {
   }
 }
 
-// FAB action
-onMounted(() => {
-  fabAction.value = openAddPet
+// ============ AQUARIUM FUNCTIONS ============
+const showTankLogModal = ref(false)
+const selectedTank = ref(null)
+const tankLogForm = ref({
+  action: 'water_change',
+  percentage: 25,
+  note: '',
+  date: new Date().toISOString().split('T')[0]
+})
+const showTankHistoryModal = ref(false)
+const historyTank = ref(null)
+const editingTankLog = ref(null)
+
+function getTankStatus(tankId) {
+  const days = store.getDaysSinceWaterChange(tankId)
+  return {
+    days,
+    status: getWaterChangeStatus(days),
+    text: formatTankDaysAgo(days)
+  }
+}
+
+function quickWaterChange(tank) {
+  store.addTankLog({
+    tankId: tank.id,
+    tankName: tank.name,
+    action: 'water_change',
+    percentage: 25,
+    note: '',
+    date: new Date().toISOString().split('T')[0]
+  })
+}
+
+function openTankLogModal(tank) {
+  editingTankLog.value = null
+  selectedTank.value = tank
+  tankLogForm.value = {
+    action: 'water_change',
+    percentage: 25,
+    note: '',
+    date: new Date().toISOString().split('T')[0]
+  }
+  showTankLogModal.value = true
+}
+
+function submitTankLog() {
+  if (!selectedTank.value) return
+
+  const logData = {
+    tankId: selectedTank.value.id,
+    tankName: selectedTank.value.name,
+    action: tankLogForm.value.action,
+    percentage: tankLogForm.value.action === 'water_change' ? tankLogForm.value.percentage : null,
+    note: tankLogForm.value.note,
+    date: tankLogForm.value.date
+  }
+
+  if (editingTankLog.value) {
+    store.updateTankLog(editingTankLog.value.id, logData)
+    editingTankLog.value = null
+  } else {
+    store.addTankLog(logData)
+  }
+
+  showTankLogModal.value = false
+}
+
+function openTankHistory(tank) {
+  historyTank.value = tank
+  showTankHistoryModal.value = true
+}
+
+const tankHistory = computed(() => {
+  if (!historyTank.value) return []
+  const { logs } = store.getTankLogs(historyTank.value.id, { limit: 30 })
+  return logs
+})
+
+function deleteTankLog(id) {
+  if (confirm('Delete this log?')) {
+    store.deleteTankLog(id)
+  }
+}
+
+function formatTankDate(dateStr) {
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+const tankStatusCounts = computed(() => {
+  const counts = { good: 0, warning: 0, overdue: 0, none: 0 }
+  tanks.forEach(tank => {
+    const status = getTankStatus(tank.id).status
+    counts[status]++
+  })
+  return counts
+})
+
+const tankCurrentPage = ref(1)
+const tankLogsPerPage = 15
+
+const allTankLogsSorted = computed(() => {
+  return [...store.tankLogs.value]
+    .sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date))
+})
+
+const totalTankLogs = computed(() => store.tankLogs.value.length)
+const totalTankPages = computed(() => Math.ceil(totalTankLogs.value / tankLogsPerPage))
+
+const paginatedTankLogs = computed(() => {
+  const start = (tankCurrentPage.value - 1) * tankLogsPerPage
+  return allTankLogsSorted.value.slice(start, start + tankLogsPerPage)
+})
+
+function goToTankPage(page) {
+  if (page >= 1 && page <= totalTankPages.value) {
+    tankCurrentPage.value = page
+  }
+}
+
+function openEditTankLog(log) {
+  editingTankLog.value = { ...log }
+  selectedTank.value = tanks.find(t => t.id === log.tankId) || { id: log.tankId, name: log.tankName, emoji: '🐟' }
+  tankLogForm.value = {
+    action: log.action,
+    percentage: log.percentage || 25,
+    note: log.note || '',
+    date: log.date
+  }
+  showTankLogModal.value = true
+}
+
+// ============ FAB ACTION ============
+// Use watchEffect to immediately and reactively set FAB action
+watchEffect(() => {
+  if (fabAction) {
+    if (mainTab.value === 'cats') {
+      fabAction.value = openAddPet
+    } else {
+      fabAction.value = null // Aquarium has quick actions built in
+    }
+  }
 })
 
 onUnmounted(() => {
-  fabAction.value = null
+  if (fabAction) {
+    fabAction.value = null
+  }
 })
 </script>
 
 <template>
-  <div class="page">
+  <div class="page pet-tracker-page media-page">
     <!-- Header -->
     <div class="page-header">
       <img src="/images/vio-logo.png" alt="Vionade" class="page-header-logo" />
     </div>
 
-    <h1 class="page-title">Pet Tracker</h1>
-    <p class="page-subtitle">Quick log for your {{ store.pets.value.length }} cats</p>
+    <!-- Pet Tracker Banner -->
+    <div class="pet-banner">
+      <div class="pet-banner-content">
+        <div class="pet-banner-title">Pet Tracker</div>
+        <div class="pet-banner-subtitle">{{ store.pets.value.length }} cats &amp; {{ tanks.length }} tanks</div>
+      </div>
+      <img src="/images/vio_sit.png" alt="Vio" class="pet-banner-vio" />
+    </div>
+
+    <!-- Desktop Layout Container -->
+    <div class="pets-layout">
+      <!-- Desktop Sidebar -->
+      <aside class="pets-sidebar">
+        <nav class="sidebar-nav">
+          <button
+            class="sidebar-item"
+            :class="{ active: mainTab === 'cats' }"
+            @click="mainTab = 'cats'"
+          >
+            <span class="sidebar-icon">🐱</span>
+            <span class="sidebar-label">Cats</span>
+            <span class="sidebar-count">{{ store.pets.value.length }}</span>
+          </button>
+          <button
+            class="sidebar-item"
+            :class="{ active: mainTab === 'aquarium' }"
+            @click="mainTab = 'aquarium'"
+          >
+            <span class="sidebar-icon">🐟</span>
+            <span class="sidebar-label">Aquarium</span>
+            <span class="sidebar-count">{{ tanks.length }}</span>
+          </button>
+        </nav>
+      </aside>
+
+      <!-- Mobile Tabs -->
+      <div class="pets-tabs mobile-only">
+        <button
+          class="pets-tab"
+          :class="{ active: mainTab === 'cats' }"
+          @click="mainTab = 'cats'"
+        >🐱 Cats</button>
+        <button
+          class="pets-tab"
+          :class="{ active: mainTab === 'aquarium' }"
+          @click="mainTab = 'aquarium'"
+        >🐟 Aquarium</button>
+      </div>
+
+      <!-- Main Content Area -->
+      <main class="pets-content">
+        <!-- ============ CATS TAB ============ -->
+        <template v-if="mainTab === 'cats'">
 
     <!-- Quick Entry Section -->
     <div class="quick-entry-section">
@@ -848,22 +1043,738 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
+        </template>
+
+        <!-- ============ AQUARIUM TAB ============ -->
+        <template v-if="mainTab === 'aquarium'">
+          <div class="status-overview">
+            <div class="status-pill good" v-if="tankStatusCounts.good">
+              <span>✅</span> {{ tankStatusCounts.good }} good
+            </div>
+            <div class="status-pill warning" v-if="tankStatusCounts.warning">
+              <span>⚠️</span> {{ tankStatusCounts.warning }} soon
+            </div>
+            <div class="status-pill overdue" v-if="tankStatusCounts.overdue">
+              <span>🔴</span> {{ tankStatusCounts.overdue }} overdue
+            </div>
+            <div class="status-pill none" v-if="tankStatusCounts.none">
+              <span>❓</span> {{ tankStatusCounts.none }} no data
+            </div>
+          </div>
+
+          <div class="tank-grid">
+            <div
+              v-for="tank in tanks"
+              :key="tank.id"
+              class="tank-card"
+              :class="'status-' + getTankStatus(tank.id).status"
+            >
+              <div class="tank-top">
+                <span class="tank-emoji">{{ tank.emoji }}</span>
+                <button class="tank-menu" @click="openTankHistory(tank)">...</button>
+              </div>
+              <div class="tank-name">{{ tank.name }}</div>
+              <div class="tank-water-status">
+                <span class="water-icon">💧</span>
+                <span class="water-text">{{ getTankStatus(tank.id).text }}</span>
+              </div>
+              <div class="tank-actions">
+                <button class="quick-water-btn" @click="quickWaterChange(tank)">
+                  💧 Quick 25%
+                </button>
+                <button class="more-btn" @click="openTankLogModal(tank)">+</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
+          <div class="recent-section">
+            <div class="section-banner tank-banner">
+              <div class="section-banner-content">
+                <span class="section-banner-icon">📋</span>
+                <span class="section-banner-title">Activity Log</span>
+              </div>
+              <span class="log-count" v-if="totalTankLogs > 0">{{ totalTankLogs }} total</span>
+            </div>
+
+            <div v-if="paginatedTankLogs.length === 0" class="empty-state">
+              <img src="/images/vio_sit.png" alt="Vio" class="empty-vio" />
+              <p>No logs yet. Tap "Quick 25%" or "+" on any tank to start!</p>
+            </div>
+
+            <div v-else class="activity-list">
+              <div v-for="log in paginatedTankLogs" :key="log.id" class="activity-item">
+                <span class="activity-emoji">{{ tankActions[log.action]?.emoji || '📝' }}</span>
+                <div class="activity-info">
+                  <div class="activity-top">
+                    <span class="activity-tank">{{ log.tankName }}</span>
+                    <span class="activity-action">{{ tankActions[log.action]?.label || log.action }}</span>
+                    <span v-if="log.percentage" class="activity-pct">{{ log.percentage }}%</span>
+                  </div>
+                  <div v-if="log.note" class="activity-note">{{ log.note }}</div>
+                </div>
+                <div class="activity-meta">
+                  <span class="activity-date">{{ formatTankDate(log.date) }}</span>
+                  <div class="activity-actions">
+                    <button class="action-btn-small" @click="openEditTankLog(log)">✏️</button>
+                    <button class="action-btn-small delete" @click="deleteTankLog(log.id)">🗑️</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pagination -->
+              <div v-if="totalTankPages > 1" class="pagination">
+                <button
+                  class="page-btn"
+                  :disabled="tankCurrentPage === 1"
+                  @click="goToTankPage(tankCurrentPage - 1)"
+                >←</button>
+
+                <div class="page-numbers">
+                  <button
+                    v-for="page in totalTankPages"
+                    :key="page"
+                    class="page-num"
+                    :class="{ active: page === tankCurrentPage }"
+                    @click="goToTankPage(page)"
+                  >{{ page }}</button>
+                </div>
+
+                <button
+                  class="page-btn"
+                  :disabled="tankCurrentPage === totalTankPages"
+                  @click="goToTankPage(tankCurrentPage + 1)"
+                >→</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tank Log Modal -->
+          <div v-if="showTankLogModal" class="modal-overlay" @click.self="showTankLogModal = false; editingTankLog = null">
+            <div class="modal">
+              <div class="modal-header">
+                <div class="modal-tank-info">
+                  <span class="modal-tank-emoji">{{ selectedTank?.emoji }}</span>
+                  <h3>{{ editingTankLog ? 'Edit Log' : selectedTank?.name }}</h3>
+                </div>
+                <button class="modal-close" @click="showTankLogModal = false; editingTankLog = null">×</button>
+              </div>
+              <div class="modal-body">
+                <div class="action-grid">
+                  <button
+                    v-for="(action, key) in tankActions"
+                    :key="key"
+                    class="action-btn"
+                    :class="{ active: tankLogForm.action === key }"
+                    :style="tankLogForm.action === key ? { background: action.color + '30', borderColor: action.color } : {}"
+                    @click="tankLogForm.action = key"
+                  >
+                    <span class="action-emoji">{{ action.emoji }}</span>
+                    <span class="action-label">{{ action.label }}</span>
+                  </button>
+                </div>
+                <div v-if="tankLogForm.action === 'water_change'" class="percentage-section">
+                  <label>How much?</label>
+                  <div class="percentage-btns">
+                    <button
+                      v-for="pct in [25, 50, 75, 100]"
+                      :key="pct"
+                      class="pct-btn"
+                      :class="{ active: tankLogForm.percentage === pct }"
+                      @click="tankLogForm.percentage = pct"
+                    >{{ pct }}%</button>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <label>Date</label>
+                  <input v-model="tankLogForm.date" type="date" class="date-input" />
+                </div>
+                <div class="form-row">
+                  <label>Note (optional)</label>
+                  <input v-model="tankLogForm.note" type="text" class="note-input" placeholder="Any observations..." />
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button class="submit-btn tank-submit" @click="submitTankLog">
+                  {{ tankActions[tankLogForm.action]?.emoji }} {{ editingTankLog ? 'Update' : 'Log' }} {{ tankActions[tankLogForm.action]?.label }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tank History Modal -->
+          <div v-if="showTankHistoryModal" class="modal-overlay" @click.self="showTankHistoryModal = false">
+            <div class="modal">
+              <div class="modal-header">
+                <div class="modal-tank-info">
+                  <span class="modal-tank-emoji">{{ historyTank?.emoji }}</span>
+                  <h3>{{ historyTank?.name }}</h3>
+                </div>
+                <button class="modal-close" @click="showTankHistoryModal = false">×</button>
+              </div>
+              <div class="modal-body history-body">
+                <div v-if="tankHistory.length === 0" class="empty-state">
+                  <img src="/images/vio_sit.png" alt="Vio" class="empty-vio" />
+                  <p>No logs yet for this tank</p>
+                </div>
+                <div v-for="log in tankHistory" :key="log.id" class="history-item">
+                  <span class="history-emoji">{{ tankActions[log.action]?.emoji || '📝' }}</span>
+                  <div class="history-info">
+                    <span class="history-action">{{ tankActions[log.action]?.label || log.action }}</span>
+                    <span v-if="log.percentage" class="history-pct">{{ log.percentage }}%</span>
+                    <span v-if="log.note" class="history-note">{{ log.note }}</span>
+                  </div>
+                  <span class="history-date">{{ formatTankDate(log.date) }}</span>
+                  <button class="delete-btn" @click="deleteTankLog(log.id)">×</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </main>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.page-title {
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 0 var(--space-xs);
+/* Pet Banner */
+.pet-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(16, 185, 129, 0.8) 0%, rgba(52, 211, 153, 0.8) 50%, rgba(110, 231, 183, 0.8) 100%),
+    url('/images/kawaii-bg.jpg') center center / cover no-repeat;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  min-height: 120px;
+  margin-bottom: var(--space-md);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
 }
 
-.page-subtitle {
-  color: var(--text-secondary);
+.pet-banner-content {
+  flex: 1;
+  padding: var(--space-lg);
+}
+
+.pet-banner-title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.pet-banner-subtitle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 4px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.pet-banner-vio {
+  height: 140px;
+  width: auto;
+  flex-shrink: 0;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+  margin-bottom: -30px;
+}
+
+/* Layout */
+.pets-layout {
+  display: block;
+}
+
+.pets-sidebar {
+  display: none;
+}
+
+.pets-content {
+  width: 100%;
+}
+
+/* Mobile Tabs */
+.pets-tabs {
+  display: flex;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xs);
+  border: 2px solid var(--lavender-100);
+}
+
+.pets-tab {
+  flex: 1;
+  padding: var(--space-sm) var(--space-md);
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
   font-size: 0.875rem;
-  margin: 0 0 var(--space-lg);
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pets-tab.active {
+  background: var(--lavender-100);
+  color: var(--lavender-700);
+}
+
+.mobile-only {
+  display: flex;
+}
+
+/* Desktop Styles (768px+) */
+@media (min-width: 768px) {
+  .mobile-only {
+    display: none !important;
+  }
+
+  .pets-layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: var(--space-lg);
+  }
+
+  .pets-sidebar {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: var(--space-md);
+    height: fit-content;
+    max-height: calc(100vh - 200px);
+  }
+
+  .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: var(--white);
+    border: 2px solid var(--lavender-100);
+    border-radius: var(--radius-lg);
+    padding: var(--space-sm);
+  }
+
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border: none;
+    border-radius: var(--radius-md);
+    background: transparent;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+  }
+
+  .sidebar-item:hover {
+    background: var(--lavender-50);
+    color: var(--text-primary);
+  }
+
+  .sidebar-item.active {
+    background: var(--lavender-100);
+    color: var(--lavender-700);
+    font-weight: 600;
+  }
+
+  .sidebar-icon {
+    font-size: 1.125rem;
+  }
+
+  .sidebar-label {
+    flex: 1;
+  }
+
+  .sidebar-count {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    background: var(--lavender-50);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+  }
+
+  .sidebar-item.active .sidebar-count {
+    background: var(--lavender-200);
+    color: var(--lavender-700);
+  }
+}
+
+/* Aquarium Styles */
+.status-overview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-lg);
+}
+
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-pill.good { background: #DCFCE7; color: #166534; }
+.status-pill.warning { background: #FEF9C3; color: #854D0E; }
+.status-pill.overdue { background: #FEE2E2; color: #991B1B; }
+.status-pill.none { background: var(--gray-100); color: var(--text-secondary); }
+
+.tank-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.tank-card {
+  background: var(--bg-card);
+  border: 3px solid var(--lavender-200);
+  border-radius: 16px;
+  padding: var(--space-md);
+  transition: all 0.15s;
+}
+
+.tank-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.tank-card.status-good { border-color: #86EFAC; }
+.tank-card.status-warning { border-color: #FDE047; }
+.tank-card.status-overdue { border-color: #FCA5A5; }
+.tank-card.status-none { border-color: var(--gray-200); }
+
+.tank-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-xs);
+}
+
+.tank-emoji { font-size: 1.5rem; }
+
+.tank-menu {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  opacity: 0.5;
+  padding: 4px;
+}
+
+.tank-menu:hover { opacity: 1; }
+
+.tank-name {
+  font-weight: 700;
+  font-size: 0.875rem;
+  margin-bottom: var(--space-sm);
+  line-height: 1.2;
+}
+
+.tank-water-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+  font-size: 0.8rem;
+}
+
+.water-icon { font-size: 0.9rem; }
+
+.water-text {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.status-good .water-text { color: #16A34A; }
+.status-warning .water-text { color: #CA8A04; }
+.status-overdue .water-text { color: #DC2626; }
+
+.tank-actions {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.quick-water-btn {
+  flex: 1;
+  padding: 8px 12px;
+  background: #7AD7F0;
+  border: 2px solid #5BC4E0;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #0C4A6E;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.quick-water-btn:hover { background: #5BC4E0; }
+.quick-water-btn:active { transform: scale(0.98); }
+
+.more-btn {
+  width: 36px;
+  height: 36px;
+  background: var(--lavender-100);
+  border: 2px solid var(--lavender-300);
+  border-radius: 10px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--lavender-600);
+  cursor: pointer;
+}
+
+.more-btn:hover { background: var(--lavender-200); }
+
+/* Activity Styles */
+.recent-section {
+  margin-bottom: var(--space-xl);
+}
+
+.tank-banner {
+  background: linear-gradient(135deg, #7AD7F0 0%, #5BC0DE 100%) !important;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+}
+
+.activity-emoji { font-size: 1.25rem; }
+
+.activity-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: baseline;
+}
+
+.activity-tank { font-weight: 700; font-size: 0.875rem; }
+.activity-action { color: var(--text-secondary); font-size: 0.875rem; }
+.activity-pct { font-size: 0.75rem; color: #0EA5E9; font-weight: 600; }
+.activity-note { font-size: 0.75rem; color: var(--text-secondary); font-style: italic; margin-top: 2px; }
+
+.activity-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.activity-date { font-size: 0.75rem; color: var(--text-secondary); }
+
+.activity-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.action-btn-small {
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  opacity: 0.6;
+  transition: all 0.15s;
+}
+
+.action-btn-small:hover { opacity: 1; background: var(--gray-100); }
+.action-btn-small.delete:hover { background: #FEE2E2; }
+
+/* Tank Modal Styles */
+.modal-tank-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.modal-tank-emoji { font-size: 1.5rem; }
+
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-md) var(--space-sm);
+  background: var(--bg-primary);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.action-btn:hover { border-color: var(--lavender-400); }
+.action-btn.active { border-width: 3px; }
+
+.action-emoji { font-size: 1.5rem; }
+.action-label { font-size: 0.65rem; font-weight: 600; text-align: center; }
+
+.percentage-section { margin-bottom: var(--space-lg); }
+.percentage-section label { display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: var(--space-sm); }
+
+.percentage-btns { display: flex; gap: var(--space-sm); }
+
+.pct-btn {
+  flex: 1;
+  padding: var(--space-sm);
+  background: var(--bg-primary);
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pct-btn.active {
+  background: #7AD7F0;
+  border-color: #5BC4E0;
+  color: #0C4A6E;
+}
+
+.form-row { margin-bottom: var(--space-md); }
+.form-row label { display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: var(--space-xs); }
+
+.date-input,
+.note-input {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  font-size: 1rem;
+}
+
+.tank-submit {
+  background: #0EA5E9 !important;
+  border-color: #0284C7 !important;
+}
+
+.history-body {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.history-item:last-child { border-bottom: none; }
+.history-emoji { font-size: 1.25rem; }
+
+.history-info {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: baseline;
+}
+
+.history-action { font-weight: 600; font-size: 0.875rem; }
+.history-pct { font-size: 0.75rem; color: #0EA5E9; font-weight: 600; }
+.history-note { width: 100%; font-size: 0.75rem; color: var(--text-secondary); }
+.history-date { font-size: 0.75rem; color: var(--text-secondary); }
+
+.delete-btn {
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  opacity: 0;
+  color: var(--text-secondary);
+}
+
+.history-item:hover .delete-btn { opacity: 1; }
+.delete-btn:hover { color: #EF4444; }
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+  padding: var(--space-md) 0;
+}
+
+.page-btn {
+  width: 36px;
+  height: 36px;
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.page-btn:hover:not(:disabled) { border-color: var(--lavender-400); background: var(--lavender-50); }
+.page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.page-numbers { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; max-width: 200px; }
+
+.page-num {
+  min-width: 32px;
+  height: 32px;
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.page-num:hover { border-color: var(--lavender-400); }
+.page-num.active { background: var(--lavender-500); border-color: var(--lavender-600); color: white; }
+
+@media (max-width: 480px) {
+  .pet-banner-title {
+    font-size: 1.5rem;
+  }
+
+  .pet-banner-vio {
+    height: 110px;
+    margin-bottom: -20px;
+  }
 }
 
 /* Quick Entry */
@@ -2007,6 +2918,10 @@ onUnmounted(() => {
 
 <style>
 /* Dark mode */
+[data-theme="dark"] .pet-banner {
+  background: linear-gradient(135deg, #065F46 0%, #059669 50%, #10B981 100%) !important;
+}
+
 [data-theme="dark"] .quick-entry-section {
   background: #5B21B6 !important;
   border-color: #7C3AED !important;
