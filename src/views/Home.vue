@@ -7,11 +7,8 @@ const habitChallenge = getCurrentChallenge()
 
 const features = [
   { icon: '💰', label: 'Finance', route: '/finance', color: '#10B981' },
-  { icon: '👛', label: 'Wallets', route: '/wallets', color: '#8B5CF6' },
-  { icon: '📖', label: 'History', route: '/history', color: '#0EA5E9' },
-  { icon: '🎁', label: 'Wishlist', route: '/wishlist', color: '#F472B6' },
   { icon: '🎬', label: 'Media', route: '/media', color: '#F59E0B' },
-  { icon: '✨', label: 'Habits', route: '/habits', color: '#667EEA' },
+  { icon: '💗', label: 'Wellness', route: '/wellness', color: '#EC4899' },
   { icon: '🔐', label: 'Passwords', route: '/passwords', color: '#6366F1' },
   { icon: '🍋', label: 'Vio Pass', route: '/viopass', color: '#FBBF24' },
   { icon: '🧺', label: 'Laundry', route: '/laundry', color: '#38BDF8' },
@@ -44,8 +41,8 @@ const features = [
       <img src="/images/vio_stand1.png" alt="Vio" class="welcome-vio" />
     </div>
 
-    <!-- Habits Banner (same style as Habits page) -->
-    <RouterLink to="/habits" class="habits-banner-link">
+    <!-- Habits Banner (links to Wellness hub) -->
+    <RouterLink to="/wellness" class="habits-banner-link">
       <div
         class="habits-banner"
         :style="habitChallenge.bannerBg ? { backgroundImage: `url(${habitChallenge.bannerBg})` } : {}"

@@ -151,13 +151,19 @@ function openEditLog(log) {
 </script>
 
 <template>
-  <div class="page">
+  <div class="page aquarium-page">
     <div class="page-header">
       <img src="/images/vio-logo.png" alt="Vionade" class="page-header-logo" />
     </div>
 
-    <h1 class="page-title">Aquarium</h1>
-    <p class="page-subtitle">{{ tanks.length }} tanks to care for</p>
+    <!-- Aquarium Banner -->
+    <div class="aquarium-banner">
+      <div class="aquarium-banner-content">
+        <div class="aquarium-banner-title">Aquarium</div>
+        <div class="aquarium-banner-subtitle">{{ tanks.length }} tanks to care for</div>
+      </div>
+      <img src="/images/vio_sit.png" alt="Vio" class="aquarium-banner-vio" />
+    </div>
 
     <div class="status-overview">
       <div class="status-pill good" v-if="statusCounts.good">
@@ -344,17 +350,58 @@ function openEditLog(log) {
 </template>
 
 <style scoped>
-.page-title {
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0 0 var(--space-xs);
+/* Aquarium Banner */
+.aquarium-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(6, 182, 212, 0.8) 0%, rgba(34, 211, 238, 0.8) 50%, rgba(103, 232, 249, 0.8) 100%),
+    url('/images/kawaii-bg.jpg') center center / cover no-repeat;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  min-height: 120px;
+  margin-bottom: var(--space-md);
+  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.3);
 }
 
-.page-subtitle {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  margin: 0 0 var(--space-md);
+.aquarium-banner-content {
+  flex: 1;
+  padding: var(--space-lg);
+}
+
+.aquarium-banner-title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.aquarium-banner-subtitle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 4px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.aquarium-banner-vio {
+  height: 140px;
+  width: auto;
+  flex-shrink: 0;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+  margin-bottom: -30px;
+}
+
+@media (max-width: 480px) {
+  .aquarium-banner-title {
+    font-size: 1.5rem;
+  }
+
+  .aquarium-banner-vio {
+    height: 110px;
+    margin-bottom: -20px;
+  }
 }
 
 .status-overview {
@@ -927,6 +974,11 @@ function openEditLog(log) {
 </style>
 
 <style>
+/* Dark Mode */
+[data-theme="dark"] .aquarium-banner {
+  background: linear-gradient(135deg, #0E7490 0%, #0891B2 50%, #06B6D4 100%) !important;
+}
+
 [data-theme="dark"] .tank-card {
   background: #1A1625 !important;
   border-color: #3D3456 !important;

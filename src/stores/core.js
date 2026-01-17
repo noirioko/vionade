@@ -77,6 +77,10 @@ export const state = reactive({
   collectionItems: loadFromStorage('mochi_collectionitems', []),
   wardrobe: loadFromStorage('mochi_wardrobe', []),
   subscriptions: loadFromStorage('mochi_subscriptions', []),
+  painLogs: loadFromStorage('mochi_painlogs', []),
+  nutLogs: loadFromStorage('mochi_nutlogs', []),
+  importantNumbers: loadFromStorage('mochi_importantnumbers', []),
+  shoppingList: loadFromStorage('mochi_shoppinglist', []),
   habits: loadFromStorage('mochi_habits', {
     currentChallenge: 'january-2026',
     completions: {},
@@ -147,6 +151,8 @@ export async function saveToFirebase() {
       wardrobe: state.wardrobe,
       subscriptions: state.subscriptions,
       habits: state.habits,
+      importantNumbers: state.importantNumbers,
+      shoppingList: state.shoppingList,
       settings: state.settings,
       updatedAt: new Date().toISOString(),
     })
@@ -195,6 +201,8 @@ async function loadFromFirebase() {
       if (data.wardrobe) state.wardrobe = data.wardrobe
       if (data.subscriptions) state.subscriptions = data.subscriptions
       if (data.habits) state.habits = { ...state.habits, ...data.habits }
+      if (data.importantNumbers) state.importantNumbers = data.importantNumbers
+      if (data.shoppingList) state.shoppingList = data.shoppingList
 
       // Save to localStorage as backup
       localStorage.setItem('mochi_wallets', JSON.stringify(state.wallets))
@@ -294,6 +302,8 @@ function setupRealtimeSync() {
       if (data.wardrobe) state.wardrobe = data.wardrobe
       if (data.subscriptions) state.subscriptions = data.subscriptions
       if (data.habits) state.habits = { ...state.habits, ...data.habits }
+      if (data.importantNumbers) state.importantNumbers = data.importantNumbers
+      if (data.shoppingList) state.shoppingList = data.shoppingList
     }
   })
 }
@@ -357,6 +367,10 @@ const stateKeys = [
   { key: 'wardrobe', storage: 'mochi_wardrobe' },
   { key: 'subscriptions', storage: 'mochi_subscriptions' },
   { key: 'habits', storage: 'mochi_habits' },
+  { key: 'painLogs', storage: 'mochi_painlogs' },
+  { key: 'nutLogs', storage: 'mochi_nutlogs' },
+  { key: 'importantNumbers', storage: 'mochi_importantnumbers' },
+  { key: 'shoppingList', storage: 'mochi_shoppinglist' },
 ]
 
 stateKeys.forEach(({ key, storage }) => {
@@ -393,6 +407,10 @@ export async function resetAllData() {
   state.collections = []
   state.collectionItems = []
   state.wardrobe = []
+  state.painLogs = []
+  state.nutLogs = []
+  state.importantNumbers = []
+  state.shoppingList = []
   state.habits = {
     currentChallenge: 'january-2026',
     completions: {},

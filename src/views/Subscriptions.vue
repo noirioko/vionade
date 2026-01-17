@@ -1,9 +1,17 @@
 <template>
-  <div class="subscriptions-page">
-    <header class="page-header">
-      <h1>Subscriptions</h1>
-      <p class="subtitle">Track your recurring payments</p>
-    </header>
+  <div class="page subscriptions-page">
+    <div class="page-header">
+      <img src="/images/vio-logo.png" alt="Vionade" class="page-header-logo" />
+    </div>
+
+    <!-- Subscriptions Banner -->
+    <div class="subs-banner">
+      <div class="subs-banner-content">
+        <div class="subs-banner-title">Subscriptions</div>
+        <div class="subs-banner-subtitle">Track your recurring payments</div>
+      </div>
+      <img src="/images/vio_sit.png" alt="Vio" class="subs-banner-vio" />
+    </div>
 
     <!-- Summary Cards -->
     <div class="summary-grid">
@@ -174,19 +182,14 @@ const {
 } = store
 
 // FAB integration
-const setFabAction = inject('setFabAction', null)
-const clearFabAction = inject('clearFabAction', null)
+const fabAction = inject('fabAction')
 
 onMounted(() => {
-  if (setFabAction) {
-    setFabAction(() => openAddModal())
-  }
+  fabAction.value = openAddModal
 })
 
 onUnmounted(() => {
-  if (clearFabAction) {
-    clearFabAction()
-  }
+  fabAction.value = null
 })
 
 // Modal state
@@ -307,44 +310,74 @@ function handleDelete() {
 </script>
 
 <style scoped>
-.subscriptions-page {
-  padding: 1rem;
-  padding-bottom: 100px;
-  max-width: 600px;
-  margin: 0 auto;
+/* Subscriptions Banner */
+.subs-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(139, 92, 246, 0.8) 0%, rgba(167, 139, 250, 0.8) 50%, rgba(196, 181, 253, 0.8) 100%),
+    url('/images/kawaii-bg.jpg') center center / cover no-repeat;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  min-height: 120px;
+  margin-bottom: var(--space-md);
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
 }
 
-.page-header {
-  text-align: center;
-  margin-bottom: 1.5rem;
+.subs-banner-content {
+  flex: 1;
+  padding: var(--space-lg);
 }
 
-.page-header h1 {
-  font-size: 1.5rem;
-  margin: 0;
-  color: var(--text-primary);
+.subs-banner-title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.subtitle {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  margin: 0.25rem 0 0;
+.subs-banner-subtitle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 4px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.subs-banner-vio {
+  height: 140px;
+  width: auto;
+  flex-shrink: 0;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+  margin-bottom: -30px;
+}
+
+@media (max-width: 480px) {
+  .subs-banner-title {
+    font-size: 1.5rem;
+  }
+
+  .subs-banner-vio {
+    height: 110px;
+    margin-bottom: -20px;
+  }
 }
 
 /* Summary Grid */
 .summary-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
 }
 
 .summary-card {
-  background: var(--card-bg);
-  border-radius: 12px;
-  padding: 1rem;
+  background: var(--white);
+  border: 2px solid var(--lavender-100);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
   text-align: center;
-  box-shadow: var(--shadow-sm);
 }
 
 .summary-label {
@@ -353,41 +386,60 @@ function handleDelete() {
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--space-xs);
 }
 
 .summary-amount {
+  font-family: var(--font-display);
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--lavender-600);
 }
 
+/* Section styling */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
 /* Upcoming Section */
 .upcoming-section {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-lg);
 }
 
 .upcoming-section h2 {
+  font-family: var(--font-display);
   font-size: 1rem;
-  margin: 0 0 0.75rem;
+  font-weight: 700;
+  margin: 0 0 var(--space-sm);
   color: var(--text-primary);
 }
 
 .upcoming-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-xs);
 }
 
 .upcoming-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  background: var(--card-bg);
-  border-radius: 10px;
-  padding: 0.75rem;
+  gap: var(--space-sm);
+  background: var(--white);
+  border: 2px solid var(--lavender-100);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
   border-left: 4px solid;
-  box-shadow: var(--shadow-sm);
 }
 
 .upcoming-icon {
@@ -417,49 +469,54 @@ function handleDelete() {
 
 /* Subscriptions Section */
 .subscriptions-section h2 {
+  font-family: var(--font-display);
   font-size: 1rem;
-  margin: 0 0 0.75rem;
+  font-weight: 700;
+  margin: 0 0 var(--space-sm);
   color: var(--text-primary);
 }
 
 .empty-state {
   text-align: center;
-  padding: 2rem;
-  color: var(--text-secondary);
+  padding: var(--space-xl);
+  background: var(--white);
+  border: 2px solid var(--lavender-100);
+  border-radius: var(--radius-lg);
 }
 
 .empty-icon {
-  font-size: 3rem;
+  font-size: 2.5rem;
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-sm);
+  opacity: 0.5;
 }
 
 .empty-hint {
   font-size: 0.875rem;
-  opacity: 0.7;
+  color: var(--text-tertiary);
 }
 
 .subscription-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-sm);
 }
 
 .subscription-card {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  background: var(--card-bg);
-  border-radius: 12px;
-  padding: 1rem;
-  box-shadow: var(--shadow-sm);
+  gap: var(--space-sm);
+  background: var(--white);
+  border: 2px solid var(--lavender-100);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition: all 0.2s;
 }
 
 .subscription-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  border-color: var(--lavender-300);
+  background: var(--lavender-50);
 }
 
 .subscription-card.inactive {
@@ -692,56 +749,90 @@ function handleDelete() {
 
 <style>
 /* Dark mode styles */
+[data-theme="dark"] .subs-banner {
+  background: linear-gradient(135deg, #5B21B6 0%, #7C3AED 50%, #8B5CF6 100%) !important;
+}
+
 [data-theme="dark"] .summary-card {
-  background: #1e1b2e;
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
 }
 
 [data-theme="dark"] .summary-amount {
-  color: #a78bfa;
+  color: #A78BFA !important;
 }
 
 [data-theme="dark"] .upcoming-item {
-  background: #1e1b2e;
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
 }
 
 [data-theme="dark"] .upcoming-amount {
-  color: #a78bfa;
+  color: #A78BFA !important;
+}
+
+[data-theme="dark"] .subscriptions-section .empty-state {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
 }
 
 [data-theme="dark"] .subscription-card {
-  background: #1e1b2e;
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .subscription-card:hover {
+  background: #2D2640 !important;
+  border-color: #5B21B6 !important;
 }
 
 [data-theme="dark"] .modal {
-  background: #1e1b2e;
+  background: #1A1625 !important;
+}
+
+[data-theme="dark"] .modal-header {
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .modal-footer {
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .modal-header h2 {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .close-btn {
+  color: #9D8BC2 !important;
 }
 
 [data-theme="dark"] .service-btn {
-  background: #2d2640;
-  border-color: #3d3456;
+  background: #2D2640 !important;
+  border-color: #3D3456 !important;
 }
 
 [data-theme="dark"] .service-btn.selected {
-  background: #3d2f5e;
-  border-color: #8b5cf6;
+  background: #3D2F5E !important;
+  border-color: #8B5CF6 !important;
 }
 
 [data-theme="dark"] .form-group input,
 [data-theme="dark"] .form-group select {
-  background: #2d2640;
-  border-color: #3d3456;
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+  color: var(--text-primary) !important;
 }
 
 [data-theme="dark"] .toggle-btn {
-  background: #3d3456;
+  background: #3D3456 !important;
 }
 
 [data-theme="dark"] .toggle-btn.active {
-  background: #8b5cf6;
+  background: #8B5CF6 !important;
 }
 
 [data-theme="dark"] .delete-btn {
-  background: #4a1d1d;
-  color: #f87171;
+  background: #4A1D1D !important;
+  color: #F87171 !important;
 }
 </style>

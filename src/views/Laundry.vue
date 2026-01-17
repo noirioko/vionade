@@ -218,9 +218,18 @@ function getLocation(locationId) {
 </script>
 
 <template>
-  <div class="page">
+  <div class="page laundry-page">
     <div class="page-header">
       <img src="/images/vio-logo.png" alt="Vionade" class="page-header-logo" />
+    </div>
+
+    <!-- Laundry Banner -->
+    <div class="laundry-banner">
+      <div class="laundry-banner-content">
+        <div class="laundry-banner-title">Laundry Tracker</div>
+        <div class="laundry-banner-subtitle">Keep track of your washing</div>
+      </div>
+      <img src="/images/vio_sit.png" alt="Vio" class="laundry-banner-vio" />
     </div>
 
     <!-- Quick Stats -->
@@ -566,6 +575,60 @@ function getLocation(locationId) {
 </template>
 
 <style scoped>
+/* Laundry Banner */
+.laundry-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(59, 130, 246, 0.8) 0%, rgba(96, 165, 250, 0.8) 50%, rgba(147, 197, 253, 0.8) 100%),
+    url('/images/kawaii-bg.jpg') center center / cover no-repeat;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  min-height: 120px;
+  margin-bottom: var(--space-md);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+}
+
+.laundry-banner-content {
+  flex: 1;
+  padding: var(--space-lg);
+}
+
+.laundry-banner-title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.laundry-banner-subtitle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 4px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.laundry-banner-vio {
+  height: 140px;
+  width: auto;
+  flex-shrink: 0;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+  margin-bottom: -30px;
+}
+
+@media (max-width: 480px) {
+  .laundry-banner-title {
+    font-size: 1.5rem;
+  }
+
+  .laundry-banner-vio {
+    height: 110px;
+    margin-bottom: -20px;
+  }
+}
+
 /* Blue theme for laundry page */
 .page :deep(h1),
 .page :deep(.section-title) {
@@ -871,5 +934,32 @@ function getLocation(locationId) {
   height: auto;
   margin-bottom: var(--space-md);
   opacity: 0.9;
+}
+</style>
+
+<style>
+/* Dark mode styles */
+[data-theme="dark"] .laundry-banner {
+  background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 50%, #60A5FA 100%) !important;
+}
+
+[data-theme="dark"] .laundry-page .card {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .laundry-page .laundry-item {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .laundry-page .tabs {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .laundry-page .tab.active {
+  background: #2D2640 !important;
+  color: #C4B5FD !important;
 }
 </style>

@@ -161,8 +161,14 @@ function formatDate(dateStr) {
       <img src="/images/vio-logo.png" alt="Vionade" class="page-header-logo" />
     </div>
 
-    <h1 class="page-title">Vio Pass</h1>
-    <p class="page-subtitle">Check in daily with Vio!</p>
+    <!-- VioPass Banner -->
+    <div class="viopass-banner">
+      <div class="viopass-banner-content">
+        <div class="viopass-banner-title">Vio Pass</div>
+        <div class="viopass-banner-subtitle">Check in daily with Vio!</div>
+      </div>
+      <img src="/images/vio_right.png" alt="Vio" class="viopass-banner-vio" />
+    </div>
 
     <div class="viopass-layout">
       <!-- Main Column -->
@@ -358,17 +364,58 @@ function formatDate(dateStr) {
   max-width: 1200px;
 }
 
-.page-title {
+/* VioPass Banner */
+.viopass-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(139, 92, 246, 0.8) 0%, rgba(167, 139, 250, 0.8) 50%, rgba(196, 181, 253, 0.8) 100%),
+    url('/images/kawaii-bg.jpg') center center / cover no-repeat;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  min-height: 120px;
+  margin-bottom: var(--space-md);
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+}
+
+.viopass-banner-content {
+  flex: 1;
+  padding: var(--space-lg);
+}
+
+.viopass-banner-title {
   font-family: var(--font-display);
   font-size: 1.75rem;
   font-weight: 700;
-  margin: 0 0 var(--space-xs);
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.page-subtitle {
-  color: var(--text-secondary);
+.viopass-banner-subtitle {
   font-size: 1rem;
-  margin: 0 0 var(--space-lg);
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 4px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.viopass-banner-vio {
+  height: 140px;
+  width: auto;
+  flex-shrink: 0;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+  margin-bottom: -30px;
+}
+
+@media (max-width: 480px) {
+  .viopass-banner-title {
+    font-size: 1.5rem;
+  }
+
+  .viopass-banner-vio {
+    height: 110px;
+    margin-bottom: -20px;
+  }
 }
 
 .viopass-layout {
@@ -792,6 +839,10 @@ function formatDate(dateStr) {
 
 <style>
 /* Dark mode */
+[data-theme="dark"] .viopass-banner {
+  background: linear-gradient(135deg, #5B21B6 0%, #7C3AED 50%, #8B5CF6 100%) !important;
+}
+
 [data-theme="dark"] .checkin-card {
   background: linear-gradient(135deg, #2D2640 0%, #1A1625 100%) !important;
   border-color: #3D3456 !important;

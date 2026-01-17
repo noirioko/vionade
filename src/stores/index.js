@@ -31,6 +31,7 @@ import {
   updateWalletBalance,
   updateWalletAccountNumber,
   setStartingBalance,
+  recalculateWalletBalance,
   addSavings,
   deleteSavings,
   startChallenge,
@@ -181,6 +182,47 @@ import {
   getUpcomingBillings,
 } from './modules/subscriptions'
 
+// Pain module
+import {
+  PAIN_TYPES,
+  PAIN_LEVELS,
+  addPainLog,
+  updatePainLog,
+  deletePainLog,
+  getPainLogsForDate,
+  getPainLogsForMonth,
+  getPainTypeById,
+} from './modules/pain'
+
+// Nut module
+import {
+  NUT_TRIGGERS,
+  addNutLog,
+  updateNutLog,
+  deleteNutLog,
+  getNutLogsForDate,
+  getNutLogsForMonth,
+  getTotalNutCount,
+  getThisMonthNutCount,
+} from './modules/nut'
+
+// Important Numbers module
+import {
+  addImportantNumber,
+  updateImportantNumber,
+  deleteImportantNumber,
+} from './modules/importantNumbers'
+
+// Shopping List module
+import {
+  SHOPPING_CATEGORIES,
+  addShoppingItem,
+  updateShoppingItem,
+  deleteShoppingItem,
+  toggleShoppingItem,
+  clearCheckedItems,
+} from './modules/shoppingList'
+
 // Export composable
 export function useFinanceStore() {
   return {
@@ -190,7 +232,7 @@ export function useFinanceStore() {
     transactions: computed(() => state.transactions),
     savings: computed(() => state.savings),
     wishlist: computed(() => state.wishlist),
-    challenges: computed(() => state.challenges),
+    challenges: computed(() => [...state.challenges]),
     vioPass: computed(() => state.vioPass),
     movies: computed(() => state.movies),
     series: computed(() => state.series),
@@ -205,6 +247,10 @@ export function useFinanceStore() {
     collections: computed(() => state.collections),
     collectionItems: computed(() => state.collectionItems),
     wardrobe: computed(() => state.wardrobe),
+    painLogs: computed(() => [...state.painLogs]),
+    nutLogs: computed(() => [...state.nutLogs]),
+    importantNumbers: computed(() => state.importantNumbers),
+    shoppingList: computed(() => state.shoppingList),
     habits: computed(() => state.habits),
     settings: computed(() => state.settings),
     isLoading: computed(() => state.isLoading),
@@ -236,6 +282,7 @@ export function useFinanceStore() {
     updateWalletBalance,
     updateWalletAccountNumber,
     setStartingBalance,
+    recalculateWalletBalance,
     saveToFirebase,
     addSavings,
     deleteSavings,
@@ -362,6 +409,39 @@ export function useFinanceStore() {
     getNextBillingDate,
     getDaysUntilBilling,
     getUpcomingBillings,
+
+    // Pain actions
+    PAIN_TYPES,
+    PAIN_LEVELS,
+    addPainLog,
+    updatePainLog,
+    deletePainLog,
+    getPainLogsForDate,
+    getPainLogsForMonth,
+    getPainTypeById,
+
+    // Nut actions
+    NUT_TRIGGERS,
+    addNutLog,
+    updateNutLog,
+    deleteNutLog,
+    getNutLogsForDate,
+    getNutLogsForMonth,
+    getTotalNutCount,
+    getThisMonthNutCount,
+
+    // Important Numbers actions
+    addImportantNumber,
+    updateImportantNumber,
+    deleteImportantNumber,
+
+    // Shopping List actions
+    SHOPPING_CATEGORIES,
+    addShoppingItem,
+    updateShoppingItem,
+    deleteShoppingItem,
+    toggleShoppingItem,
+    clearCheckedItems,
 
     // Helpers
     formatCurrency,
