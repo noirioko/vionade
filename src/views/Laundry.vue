@@ -229,7 +229,7 @@ function getLocation(locationId) {
         <div class="laundry-banner-title">Laundry Tracker</div>
         <div class="laundry-banner-subtitle">Keep track of your washing</div>
       </div>
-      <img src="/images/vio_sit.png" alt="Vio" class="laundry-banner-vio" />
+      <img src="/images/vio_laundry_banner.png" alt="Vio" class="laundry-banner-vio" />
     </div>
 
     <!-- Quick Stats -->
