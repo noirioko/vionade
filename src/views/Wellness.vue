@@ -67,7 +67,7 @@ onUnmounted(() => {
         <div class="wellness-banner-title">Wellness Hub</div>
         <div class="wellness-banner-subtitle">Track habits, pain & more</div>
       </div>
-      <img src="/images/vio_sit.png" alt="Vio" class="wellness-banner-vio" />
+      <img src="/images/vio_wellness_banner.png" alt="Vio" class="wellness-banner-vio" />
     </div>
 
     <!-- Desktop Layout Container -->
@@ -157,13 +157,13 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   background:
-    linear-gradient(135deg, rgba(236, 72, 153, 0.8) 0%, rgba(244, 114, 182, 0.8) 50%, rgba(249, 168, 212, 0.8) 100%),
+    linear-gradient(135deg, rgba(16, 185, 129, 0.5) 0%, rgba(52, 211, 153, 0.5) 50%, rgba(110, 231, 183, 0.5) 100%),
     url('/images/kawaii-bg.jpg') center center / cover no-repeat;
   border-radius: var(--radius-xl);
   overflow: hidden;
   min-height: 120px;
   margin-bottom: var(--space-md);
-  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.3);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
 }
 
 .wellness-banner-content {
@@ -385,7 +385,8 @@ onUnmounted(() => {
 <style>
 /* Dark mode overrides */
 [data-theme="dark"] .wellness-banner {
-  background: linear-gradient(135deg, #831843 0%, #9D174D 50%, #BE185D 100%) !important;
+  background: linear-gradient(135deg, rgba(6, 95, 70, 0.7) 0%, rgba(16, 185, 129, 0.6) 50%, rgba(52, 211, 153, 0.5) 100%),
+    url('/images/kawaii-bg.jpg') center center / cover no-repeat !important;
 }
 
 [data-theme="dark"] .wellness-tabs {
