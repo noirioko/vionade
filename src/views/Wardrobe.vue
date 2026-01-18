@@ -188,7 +188,7 @@ onUnmounted(() => {
         <div class="wardrobe-banner-title">Wardrobe</div>
         <div class="wardrobe-banner-subtitle">{{ stats.total }} items in your closet</div>
       </div>
-      <img src="/images/vio_sit.png" alt="Vio" class="wardrobe-banner-vio" />
+      <img src="/images/vio_wardrobe_banner.png" alt="Vio" class="wardrobe-banner-vio" />
     </div>
 
     <!-- Stats Row -->

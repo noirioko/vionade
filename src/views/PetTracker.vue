@@ -529,7 +529,7 @@ onUnmounted(() => {
         <div class="pet-banner-title">Pet Tracker</div>
         <div class="pet-banner-subtitle">{{ store.pets.value.length }} cats &amp; {{ tanks.length }} tanks</div>
       </div>
-      <img src="/images/vio_sit.png" alt="Vio" class="pet-banner-vio" />
+      <img src="/images/vio_pet_banner.png" alt="Vio" class="pet-banner-vio" />
     </div>
 
     <!-- Desktop Layout Container -->
