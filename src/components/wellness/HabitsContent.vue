@@ -321,14 +321,15 @@ function handleGoalClick(goalId) {
             <div class="habit-checkboxes">
               <button
                 v-for="day in days"
-                :key="day"
+                :key="`${habit.id}-${day}`"
                 class="habit-checkbox"
                 :class="{
                   'checked': store.isHabitCompleted(habit.id, day),
                   'today': isToday(day),
                   'selected-day': isSelectedDay(day)
                 }"
-                @click="handleHabitClick(habit.id, day)"
+                type="button"
+                @click.stop="handleHabitClick(habit.id, day)"
               >
                 <span v-if="store.isHabitCompleted(habit.id, day)" class="check-icon">✓</span>
               </button>
@@ -833,8 +834,13 @@ function handleGoalClick(goalId) {
 .habit-info {
   position: sticky;
   left: 0;
-  z-index: 5;
+  z-index: 3;
   background: var(--bg-card);
+  pointer-events: none;
+}
+
+.habit-info .habit-name {
+  pointer-events: auto;
 }
 
 /* Collapse animation */
@@ -873,7 +879,7 @@ function handleGoalClick(goalId) {
   flex-shrink: 0;
   position: sticky;
   left: 0;
-  z-index: 5;
+  z-index: 3;
   background: var(--bg-card);
 }
 
@@ -934,7 +940,7 @@ function handleGoalClick(goalId) {
   display: flex;
   gap: 2px;
   position: relative;
-  z-index: 2;
+  z-index: 5;
 }
 
 .habit-checkbox {
@@ -992,28 +998,32 @@ function handleGoalClick(goalId) {
 /* Mobile touch improvements */
 @media (max-width: 640px) {
   .habit-checkbox {
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
-    min-height: 32px;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    touch-action: manipulation;
+    isolation: isolate;
   }
 
   .day-number {
-    width: 32px;
+    width: 36px;
   }
 
   .habit-row {
-    touch-action: pan-x;
     -webkit-user-select: none;
     user-select: none;
   }
 
   .habit-checkboxes {
-    touch-action: pan-x;
+    gap: 4px;
+    position: relative;
+    z-index: 10;
   }
 
   .category-content {
-    touch-action: pan-x pan-y;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
