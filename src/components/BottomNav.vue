@@ -7,7 +7,7 @@ const showMore = ref(false)
 
 // Check if current route is in the "more" menu
 const isMoreActive = () => {
-  const moreRoutes = ['/media', '/wellness', '/passwords', '/viopass', '/laundry', '/pets', '/collections', '/wardrobe', '/subscriptions', '/shopping', '/settings']
+  const moreRoutes = ['/media', '/passwords', '/viopass', '/laundry', '/pets', '/collections', '/wardrobe', '/subscriptions', '/settings']
   return moreRoutes.includes(route.path)
 }
 
@@ -33,10 +33,6 @@ function closeMore() {
           <RouterLink to="/media" class="more-item" @click="closeMore">
             <span class="more-item-icon">🎬</span>
             <span class="more-item-label">Media</span>
-          </RouterLink>
-          <RouterLink to="/wellness" class="more-item" @click="closeMore">
-            <span class="more-item-icon">💗</span>
-            <span class="more-item-label">Wellness</span>
           </RouterLink>
           <RouterLink to="/passwords" class="more-item" @click="closeMore">
             <span class="more-item-icon">🔐</span>
@@ -66,10 +62,6 @@ function closeMore() {
             <span class="more-item-icon">🔄</span>
             <span class="more-item-label">Subscriptions</span>
           </RouterLink>
-          <RouterLink to="/shopping" class="more-item" @click="closeMore">
-            <span class="more-item-icon">🛒</span>
-            <span class="more-item-label">Shopping</span>
-          </RouterLink>
           <RouterLink to="/settings" class="more-item" @click="closeMore">
             <span class="more-item-icon">⚙️</span>
             <span class="more-item-label">Settings</span>
@@ -96,11 +88,6 @@ function closeMore() {
       <span>Media</span>
     </RouterLink>
 
-    <RouterLink to="/wellness" class="nav-item desktop-only">
-      <span class="nav-item-icon">💗</span>
-      <span>Wellness</span>
-    </RouterLink>
-
     <RouterLink to="/passwords" class="nav-item desktop-only">
       <span class="nav-item-icon">🔐</span>
       <span>Passwords</span>
@@ -121,7 +108,6 @@ function closeMore() {
       <span>Pets</span>
     </RouterLink>
 
-
     <RouterLink to="/wardrobe" class="nav-item desktop-only">
       <span class="nav-item-icon">👗</span>
       <span>Wardrobe</span>
@@ -130,11 +116,6 @@ function closeMore() {
     <RouterLink to="/subscriptions" class="nav-item desktop-only">
       <span class="nav-item-icon">🔄</span>
       <span>Subscriptions</span>
-    </RouterLink>
-
-    <RouterLink to="/shopping" class="nav-item desktop-only">
-      <span class="nav-item-icon">🛒</span>
-      <span>Shopping</span>
     </RouterLink>
 
     <RouterLink to="/settings" class="nav-item desktop-only">
