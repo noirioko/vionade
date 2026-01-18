@@ -187,11 +187,12 @@ onUnmounted(() => {
 }
 
 .wellness-banner-vio {
-  height: 180px;
+  height: 120px;
   width: auto;
   flex-shrink: 0;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
-  margin-bottom: -60px;
+  align-self: flex-end;
+  margin-right: var(--space-sm);
 }
 
 @media (max-width: 480px) {
@@ -200,8 +201,7 @@ onUnmounted(() => {
   }
 
   .wellness-banner-vio {
-    height: 140px;
-    margin-bottom: -40px;
+    height: 100px;
   }
 }
 

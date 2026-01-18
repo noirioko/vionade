@@ -1273,11 +1273,12 @@ onUnmounted(() => {
 }
 
 .pet-banner-vio {
-  height: 140px;
+  height: 120px;
   width: auto;
   flex-shrink: 0;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
-  margin-bottom: -30px;
+  align-self: flex-end;
+  margin-right: var(--space-sm);
 }
 
 /* Layout */
@@ -1772,8 +1773,7 @@ onUnmounted(() => {
   }
 
   .pet-banner-vio {
-    height: 110px;
-    margin-bottom: -20px;
+    height: 100px;
   }
 }
 
