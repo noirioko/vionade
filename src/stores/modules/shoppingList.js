@@ -72,6 +72,17 @@ export function deletePaperItem(paperId, itemId) {
   }
 }
 
+// Update item name in paper
+export function updatePaperItem(paperId, itemId, newName) {
+  const paper = state.shoppingPapers?.find(p => p.id === paperId)
+  if (paper) {
+    const item = paper.items.find(i => i.id === itemId)
+    if (item && newName.trim()) {
+      item.name = newName.trim()
+    }
+  }
+}
+
 // Clear checked items from a paper
 export function clearCheckedFromPaper(paperId) {
   const paper = state.shoppingPapers?.find(p => p.id === paperId)

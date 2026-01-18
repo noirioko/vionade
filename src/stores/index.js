@@ -227,6 +227,7 @@ import {
   addItemToPaper,
   togglePaperItem,
   deletePaperItem,
+  updatePaperItem,
   clearCheckedFromPaper,
 } from './modules/shoppingList'
 
@@ -456,6 +457,7 @@ export function useFinanceStore() {
     addItemToPaper,
     togglePaperItem,
     deletePaperItem,
+    updatePaperItem,
     clearCheckedFromPaper,
 
     // Helpers

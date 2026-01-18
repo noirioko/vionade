@@ -14,6 +14,10 @@ const newPaperName = ref('')
 const activeInputPaper = ref(null)
 const newItemInputs = ref({})
 
+// Track editing item
+const editingItem = ref(null)
+const editingText = ref('')
+
 onMounted(() => {
   fabAction.value = openNewPaperModal
 })
@@ -75,6 +79,24 @@ function handleToggleItem(paperId, itemId) {
 
 function handleDeleteItem(paperId, itemId) {
   store.deletePaperItem(paperId, itemId)
+}
+
+function startEditItem(paperId, item) {
+  editingItem.value = { paperId, itemId: item.id }
+  editingText.value = item.name
+}
+
+function saveEditItem() {
+  if (editingItem.value && editingText.value.trim()) {
+    store.updatePaperItem(editingItem.value.paperId, editingItem.value.itemId, editingText.value.trim())
+  }
+  editingItem.value = null
+  editingText.value = ''
+}
+
+function cancelEditItem() {
+  editingItem.value = null
+  editingText.value = ''
 }
 
 function handleClearChecked(paperId) {
@@ -164,7 +186,18 @@ function formatDate(dateStr) {
             >
               <span class="checkbox-circle"></span>
             </button>
-            <span class="item-text">{{ item.name }}</span>
+            <input
+              v-if="editingItem?.paperId === paper.id && editingItem?.itemId === item.id"
+              v-model="editingText"
+              type="text"
+              class="item-edit-input"
+              @keyup.enter="saveEditItem"
+              @keyup.escape="cancelEditItem"
+              @blur="saveEditItem"
+              ref="editInput"
+              autofocus
+            />
+            <span v-else class="item-text" @click="startEditItem(paper.id, item)">{{ item.name }}</span>
             <button
               class="item-delete"
               @click="handleDeleteItem(paper.id, item.id)"
@@ -185,7 +218,17 @@ function formatDate(dateStr) {
             >
               <span class="checkbox-circle checked">✓</span>
             </button>
-            <span class="item-text">{{ item.name }}</span>
+            <input
+              v-if="editingItem?.paperId === paper.id && editingItem?.itemId === item.id"
+              v-model="editingText"
+              type="text"
+              class="item-edit-input"
+              @keyup.enter="saveEditItem"
+              @keyup.escape="cancelEditItem"
+              @blur="saveEditItem"
+              autofocus
+            />
+            <span v-else class="item-text" @click="startEditItem(paper.id, item)">{{ item.name }}</span>
             <button
               class="item-delete"
               @click="handleDeleteItem(paper.id, item.id)"
@@ -492,6 +535,19 @@ function formatDate(dateStr) {
   font-size: 0.875rem;
   color: #374151;
   font-family: 'Comic Sans MS', 'Segoe UI', sans-serif;
+  cursor: text;
+}
+
+.item-edit-input {
+  flex: 1;
+  font-size: 0.875rem;
+  color: #374151;
+  font-family: 'Comic Sans MS', 'Segoe UI', sans-serif;
+  border: none;
+  border-bottom: 2px solid #10B981;
+  background: transparent;
+  outline: none;
+  padding: 0;
 }
 
 .paper-item.checked .item-text {
@@ -732,6 +788,11 @@ function formatDate(dateStr) {
 
 [data-theme="dark"] .quick-add-input::placeholder {
   color: #6B7280 !important;
+}
+
+[data-theme="dark"] .item-edit-input {
+  color: #E5E7EB !important;
+  border-bottom-color: #8B5CF6 !important;
 }
 
 [data-theme="dark"] .paper-footer {
