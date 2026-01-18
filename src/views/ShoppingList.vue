@@ -339,15 +339,9 @@ function formatDate(dateStr) {
   gap: var(--space-lg);
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .papers-grid {
     grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1024px) {
-  .papers-grid {
-    grid-template-columns: repeat(3, 1fr);
   }
 }
 
