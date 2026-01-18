@@ -430,6 +430,8 @@ function formatDate(dateStr) {
   overflow: hidden;
   position: relative;
   border: 1px solid rgba(200, 180, 140, 0.3);
+  display: flex;
+  flex-direction: column;
 }
 
 /* Paper left edge red line */
@@ -530,6 +532,7 @@ function formatDate(dateStr) {
   padding: var(--space-sm) var(--space-md);
   padding-left: 44px;
   min-height: 120px;
+  flex: 1;
   background-image: repeating-linear-gradient(
     transparent,
     transparent 27px,
