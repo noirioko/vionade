@@ -18,6 +18,10 @@ const newItemInputs = ref({})
 const editingItem = ref(null)
 const editingText = ref('')
 
+// Track editing paper title
+const editingPaperTitle = ref(null)
+const editingTitleText = ref('')
+
 onMounted(() => {
   fabAction.value = openNewPaperModal
 })
@@ -99,6 +103,24 @@ function cancelEditItem() {
   editingText.value = ''
 }
 
+function startEditTitle(paper) {
+  editingPaperTitle.value = paper.id
+  editingTitleText.value = paper.name
+}
+
+function saveEditTitle() {
+  if (editingPaperTitle.value && editingTitleText.value.trim()) {
+    store.updateShoppingPaper(editingPaperTitle.value, editingTitleText.value.trim())
+  }
+  editingPaperTitle.value = null
+  editingTitleText.value = ''
+}
+
+function cancelEditTitle() {
+  editingPaperTitle.value = null
+  editingTitleText.value = ''
+}
+
 function handleClearChecked(paperId) {
   store.clearCheckedFromPaper(paperId)
 }
@@ -150,7 +172,17 @@ function formatDate(dateStr) {
         <!-- Paper Header -->
         <div class="paper-header">
           <div class="paper-title-row">
-            <h3 class="paper-title">{{ paper.name }}</h3>
+            <input
+              v-if="editingPaperTitle === paper.id"
+              v-model="editingTitleText"
+              type="text"
+              class="paper-title-input"
+              @keyup.enter="saveEditTitle"
+              @keyup.escape="cancelEditTitle"
+              @blur="saveEditTitle"
+              autofocus
+            />
+            <h3 v-else class="paper-title" @click="startEditTitle(paper)">{{ paper.name }}</h3>
             <button class="paper-menu-btn" @click="openEditPaper(paper)">
               <span>...</span>
             </button>
@@ -429,6 +461,21 @@ function formatDate(dateStr) {
   font-weight: 700;
   color: #374151;
   margin: 0;
+  cursor: text;
+}
+
+.paper-title-input {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #374151;
+  border: none;
+  border-bottom: 2px solid #10B981;
+  background: transparent;
+  outline: none;
+  padding: 0;
+  width: 100%;
+  flex: 1;
 }
 
 .paper-menu-btn {
@@ -754,6 +801,11 @@ function formatDate(dateStr) {
 
 [data-theme="dark"] .paper-title {
   color: #E5E7EB !important;
+}
+
+[data-theme="dark"] .paper-title-input {
+  color: #E5E7EB !important;
+  border-bottom-color: #8B5CF6 !important;
 }
 
 [data-theme="dark"] .paper-content {
