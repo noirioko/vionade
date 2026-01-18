@@ -5,98 +5,94 @@ import { useFinanceStore } from '../stores'
 const store = useFinanceStore()
 const fabAction = inject('fabAction')
 
-const showAddModal = ref(false)
-const editingItem = ref(null)
+// Modal states
+const showNewPaperModal = ref(false)
+const editingPaper = ref(null)
+const newPaperName = ref('')
 
-const form = ref({
-  name: '',
-  quantity: 1,
-  category: 'general',
-  notes: '',
-})
+// Track which paper's input is focused
+const activeInputPaper = ref(null)
+const newItemInputs = ref({})
 
 onMounted(() => {
-  fabAction.value = openAddModal
+  fabAction.value = openNewPaperModal
 })
 
 onUnmounted(() => {
   fabAction.value = null
 })
 
-function openAddModal() {
-  editingItem.value = null
-  form.value = { name: '', quantity: 1, category: 'general', notes: '' }
-  showAddModal.value = true
+// Get papers or empty array
+const papers = computed(() => store.shoppingPapers.value || [])
+
+function openNewPaperModal() {
+  editingPaper.value = null
+  newPaperName.value = ''
+  showNewPaperModal.value = true
 }
 
-// Separate checked and unchecked items
-const uncheckedItems = computed(() => {
-  return (store.shoppingList.value || []).filter(i => !i.checked)
-})
-
-const checkedItems = computed(() => {
-  return (store.shoppingList.value || []).filter(i => i.checked)
-})
-
-const totalItems = computed(() => {
-  return store.shoppingList.value?.length || 0
-})
-
-const checkedCount = computed(() => {
-  return checkedItems.value.length
-})
-
-function getCategoryIcon(categoryId) {
-  const cat = store.SHOPPING_CATEGORIES.find(c => c.id === categoryId)
-  return cat?.icon || '📦'
+function handleCreatePaper() {
+  if (!newPaperName.value.trim()) return
+  store.createShoppingPaper(newPaperName.value)
+  showNewPaperModal.value = false
+  newPaperName.value = ''
 }
 
-function getCategoryLabel(categoryId) {
-  const cat = store.SHOPPING_CATEGORIES.find(c => c.id === categoryId)
-  return cat?.label || 'General'
+function openEditPaper(paper) {
+  editingPaper.value = paper
+  newPaperName.value = paper.name
+  showNewPaperModal.value = true
 }
 
-function handleToggle(item) {
-  store.toggleShoppingItem(item.id)
+function handleUpdatePaper() {
+  if (!newPaperName.value.trim() || !editingPaper.value) return
+  store.updateShoppingPaper(editingPaper.value.id, newPaperName.value)
+  showNewPaperModal.value = false
+  editingPaper.value = null
+  newPaperName.value = ''
 }
 
-function openEdit(item) {
-  editingItem.value = item
-  form.value = {
-    name: item.name || '',
-    quantity: item.quantity || 1,
-    category: item.category || 'general',
-    notes: item.notes || '',
-  }
-  showAddModal.value = true
-}
-
-function handleSave() {
-  if (!form.value.name.trim()) return
-
-  if (editingItem.value) {
-    store.updateShoppingItem(editingItem.value.id, form.value)
-  } else {
-    store.addShoppingItem(form.value)
-  }
-
-  showAddModal.value = false
-  editingItem.value = null
-  form.value = { name: '', quantity: 1, category: 'general', notes: '' }
-}
-
-function handleDelete() {
-  if (editingItem.value && confirm('Delete this item?')) {
-    store.deleteShoppingItem(editingItem.value.id)
-    showAddModal.value = false
-    editingItem.value = null
+function handleDeletePaper() {
+  if (editingPaper.value && confirm('Delete this list and all items?')) {
+    store.deleteShoppingPaper(editingPaper.value.id)
+    showNewPaperModal.value = false
+    editingPaper.value = null
   }
 }
 
-function handleClearChecked() {
-  if (checkedItems.value.length > 0 && confirm('Clear all checked items?')) {
-    store.clearCheckedItems()
+// Quick add item with Enter
+function handleAddItem(paperId, event) {
+  const input = newItemInputs.value[paperId]
+  if (input && input.trim()) {
+    store.addItemToPaper(paperId, input)
+    newItemInputs.value[paperId] = ''
   }
+}
+
+function handleToggleItem(paperId, itemId) {
+  store.togglePaperItem(paperId, itemId)
+}
+
+function handleDeleteItem(paperId, itemId) {
+  store.deletePaperItem(paperId, itemId)
+}
+
+function handleClearChecked(paperId) {
+  store.clearCheckedFromPaper(paperId)
+}
+
+function getUncheckedCount(paper) {
+  return paper.items.filter(i => !i.checked).length
+}
+
+function getCheckedCount(paper) {
+  return paper.items.filter(i => i.checked).length
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 </script>
 
@@ -109,131 +105,144 @@ function handleClearChecked() {
     <!-- Shopping Banner -->
     <div class="shopping-banner">
       <div class="shopping-banner-content">
-        <div class="shopping-banner-title">Shopping List</div>
-        <div class="shopping-banner-subtitle">Don't forget anything!</div>
+        <div class="shopping-banner-title">Shopping Lists</div>
+        <div class="shopping-banner-subtitle">{{ papers.length }} list{{ papers.length !== 1 ? 's' : '' }}</div>
       </div>
       <img src="/images/vio_right.png" alt="Vio" class="shopping-banner-vio" />
     </div>
 
-    <!-- Stats Bar -->
-    <div class="stats-bar" v-if="totalItems > 0">
-      <div class="stat-item">
-        <span class="stat-value">{{ totalItems - checkedCount }}</span>
-        <span class="stat-label">remaining</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-value">{{ checkedCount }}</span>
-        <span class="stat-label">done</span>
-      </div>
-      <button
-        v-if="checkedCount > 0"
-        class="clear-btn"
-        @click="handleClearChecked"
-      >
-        Clear Done
-      </button>
-    </div>
-
     <!-- Empty State -->
-    <div v-if="totalItems === 0" class="empty-state">
+    <div v-if="papers.length === 0" class="empty-state">
       <img src="/images/vio_sit.png" alt="" class="empty-vio" />
-      <h3 class="empty-title">List is empty!</h3>
-      <p class="empty-text">Tap + to add items</p>
+      <h3 class="empty-title">No shopping lists yet!</h3>
+      <p class="empty-text">Tap + to create your first list</p>
     </div>
 
-    <!-- Shopping Items -->
-    <div v-else class="shopping-content">
-      <!-- Unchecked Items -->
-      <div v-if="uncheckedItems.length > 0" class="items-section">
-        <div class="section-title">To Buy</div>
-        <div class="items-list">
-          <div
-            v-for="item in uncheckedItems"
-            :key="item.id"
-            class="shopping-item"
-          >
-            <button class="check-btn" @click="handleToggle(item)">
-              <span class="check-circle"></span>
+    <!-- Paper Cards Grid -->
+    <div v-else class="papers-grid">
+      <div
+        v-for="paper in papers"
+        :key="paper.id"
+        class="paper-card"
+      >
+        <!-- Paper Header -->
+        <div class="paper-header">
+          <div class="paper-title-row">
+            <h3 class="paper-title">{{ paper.name }}</h3>
+            <button class="paper-menu-btn" @click="openEditPaper(paper)">
+              <span>...</span>
             </button>
-            <div class="item-content" @click="openEdit(item)">
-              <div class="item-name">
-                <span class="item-icon">{{ getCategoryIcon(item.category) }}</span>
-                {{ item.name }}
-                <span v-if="item.quantity > 1" class="item-qty">×{{ item.quantity }}</span>
-              </div>
-              <div v-if="item.notes" class="item-notes">{{ item.notes }}</div>
-            </div>
+          </div>
+          <div class="paper-meta">
+            <span v-if="getUncheckedCount(paper) > 0" class="meta-remaining">
+              {{ getUncheckedCount(paper) }} left
+            </span>
+            <span v-if="getCheckedCount(paper) > 0" class="meta-done">
+              {{ getCheckedCount(paper) }} done
+            </span>
+            <button
+              v-if="getCheckedCount(paper) > 0"
+              class="clear-done-btn"
+              @click="handleClearChecked(paper.id)"
+            >
+              Clear
+            </button>
           </div>
         </div>
-      </div>
 
-      <!-- Checked Items -->
-      <div v-if="checkedItems.length > 0" class="items-section checked-section">
-        <div class="section-title">Done</div>
-        <div class="items-list">
+        <!-- Paper Lines (like notebook paper) -->
+        <div class="paper-content">
+          <!-- Unchecked Items -->
           <div
-            v-for="item in checkedItems"
+            v-for="item in paper.items.filter(i => !i.checked)"
             :key="item.id"
-            class="shopping-item checked"
+            class="paper-item"
           >
-            <button class="check-btn checked" @click="handleToggle(item)">
-              <span class="check-circle checked">✓</span>
+            <button
+              class="item-checkbox"
+              @click="handleToggleItem(paper.id, item.id)"
+            >
+              <span class="checkbox-circle"></span>
             </button>
-            <div class="item-content" @click="openEdit(item)">
-              <div class="item-name">
-                <span class="item-icon">{{ getCategoryIcon(item.category) }}</span>
-                {{ item.name }}
-                <span v-if="item.quantity > 1" class="item-qty">×{{ item.quantity }}</span>
-              </div>
-            </div>
+            <span class="item-text">{{ item.name }}</span>
+            <button
+              class="item-delete"
+              @click="handleDeleteItem(paper.id, item.id)"
+            >
+              ×
+            </button>
           </div>
+
+          <!-- Checked Items -->
+          <div
+            v-for="item in paper.items.filter(i => i.checked)"
+            :key="item.id"
+            class="paper-item checked"
+          >
+            <button
+              class="item-checkbox checked"
+              @click="handleToggleItem(paper.id, item.id)"
+            >
+              <span class="checkbox-circle checked">✓</span>
+            </button>
+            <span class="item-text">{{ item.name }}</span>
+            <button
+              class="item-delete"
+              @click="handleDeleteItem(paper.id, item.id)"
+            >
+              ×
+            </button>
+          </div>
+
+          <!-- Quick Add Input -->
+          <div class="quick-add-row">
+            <span class="add-bullet">+</span>
+            <input
+              v-model="newItemInputs[paper.id]"
+              type="text"
+              class="quick-add-input"
+              placeholder="Add item..."
+              @keyup.enter="handleAddItem(paper.id)"
+            />
+          </div>
+        </div>
+
+        <!-- Paper Footer -->
+        <div class="paper-footer">
+          <span class="paper-date">{{ formatDate(paper.createdAt) }}</span>
         </div>
       </div>
     </div>
 
-    <!-- Add/Edit Modal -->
-    <div v-if="showAddModal" class="modal-overlay" @click.self="showAddModal = false">
+    <!-- New/Edit Paper Modal -->
+    <div v-if="showNewPaperModal" class="modal-overlay" @click.self="showNewPaperModal = false">
       <div class="modal">
         <div class="modal-header">
-          <h3>{{ editingItem ? 'Edit Item' : 'Add Item' }}</h3>
-          <button class="modal-close" @click="showAddModal = false">×</button>
+          <h3>{{ editingPaper ? 'Edit List' : 'New List' }}</h3>
+          <button class="modal-close" @click="showNewPaperModal = false">×</button>
         </div>
 
         <div class="modal-body">
           <div class="form-group">
-            <label>Item Name *</label>
-            <input v-model="form.name" type="text" placeholder="e.g. Milk, Eggs, Bread" />
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label>Quantity</label>
-              <input v-model.number="form.quantity" type="number" min="1" />
-            </div>
-            <div class="form-group">
-              <label>Category</label>
-              <select v-model="form.category">
-                <option
-                  v-for="cat in store.SHOPPING_CATEGORIES"
-                  :key="cat.id"
-                  :value="cat.id"
-                >
-                  {{ cat.icon }} {{ cat.label }}
-                </option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Notes</label>
-            <input v-model="form.notes" type="text" placeholder="Brand, size, etc..." />
+            <label>List Name</label>
+            <input
+              v-model="newPaperName"
+              type="text"
+              placeholder="e.g. Grocery Store, Target..."
+              @keyup.enter="editingPaper ? handleUpdatePaper() : handleCreatePaper()"
+            />
           </div>
         </div>
 
         <div class="modal-footer">
-          <button v-if="editingItem" class="btn btn-danger" @click="handleDelete">Delete</button>
-          <button class="btn btn-primary" @click="handleSave">
-            {{ editingItem ? 'Save' : 'Add Item' }}
+          <button v-if="editingPaper" class="btn btn-danger" @click="handleDeletePaper">
+            Delete List
+          </button>
+          <button
+            class="btn btn-primary"
+            @click="editingPaper ? handleUpdatePaper() : handleCreatePaper()"
+          >
+            {{ editingPaper ? 'Save' : 'Create List' }}
           </button>
         </div>
       </div>
@@ -248,7 +257,7 @@ function handleClearChecked() {
   display: flex;
   align-items: center;
   background:
-    linear-gradient(135deg, rgba(52, 211, 153, 0.8) 0%, rgba(16, 185, 129, 0.8) 50%, rgba(5, 150, 105, 0.8) 100%),
+    linear-gradient(135deg, rgba(52, 211, 153, 0.5) 0%, rgba(16, 185, 129, 0.5) 50%, rgba(5, 150, 105, 0.5) 100%),
     url('/images/kawaii-bg.jpg') center center / cover no-repeat;
   border-radius: var(--radius-xl);
   overflow: hidden;
@@ -278,11 +287,12 @@ function handleClearChecked() {
 }
 
 .shopping-banner-vio {
-  height: 140px;
+  height: 120px;
   width: auto;
   flex-shrink: 0;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
-  margin-bottom: -30px;
+  align-self: flex-end;
+  margin-right: var(--space-sm);
 }
 
 @media (max-width: 480px) {
@@ -291,55 +301,8 @@ function handleClearChecked() {
   }
 
   .shopping-banner-vio {
-    height: 110px;
-    margin-bottom: -20px;
+    height: 100px;
   }
-}
-
-/* Stats Bar */
-.stats-bar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-lg);
-  padding: var(--space-sm) var(--space-md);
-  background: var(--bg-card);
-  border: 2px solid var(--lavender-100);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--space-md);
-}
-
-.stat-item {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-xs);
-}
-
-.stat-value {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.25rem;
-  color: var(--lavender-600);
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-
-.clear-btn {
-  margin-left: auto;
-  padding: var(--space-xs) var(--space-sm);
-  background: var(--lavender-50);
-  border: 1px solid var(--lavender-200);
-  border-radius: var(--radius-md);
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--lavender-600);
-  cursor: pointer;
-}
-
-.clear-btn:hover {
-  background: var(--lavender-100);
 }
 
 /* Empty State */
@@ -369,115 +332,246 @@ function handleClearChecked() {
   margin: 0;
 }
 
-/* Shopping Items */
-.shopping-content {
-  display: flex;
-  flex-direction: column;
+/* Papers Grid */
+.papers-grid {
+  display: grid;
+  grid-template-columns: 1fr;
   gap: var(--space-lg);
 }
 
-.items-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
+@media (min-width: 640px) {
+  .papers-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
-.section-title {
-  font-size: 0.75rem;
+@media (min-width: 1024px) {
+  .papers-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Paper Card - Notebook style */
+.paper-card {
+  background: linear-gradient(to bottom, #FFFEF0 0%, #FFF9E6 100%);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    0 4px 16px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(200, 180, 140, 0.3);
+}
+
+/* Paper left edge red line */
+.paper-card::before {
+  content: '';
+  position: absolute;
+  left: 32px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(244, 63, 94, 0.3);
+}
+
+.paper-header {
+  padding: var(--space-md) var(--space-md) var(--space-sm);
+  padding-left: 44px;
+  border-bottom: 1px solid rgba(200, 180, 140, 0.2);
+}
+
+.paper-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.paper-title {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
   font-weight: 700;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: #374151;
+  margin: 0;
 }
 
-.items-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.shopping-item {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
-  background: var(--bg-card);
-  border: 2px solid var(--lavender-100);
-  border-radius: var(--radius-md);
-}
-
-.shopping-item.checked {
-  opacity: 0.6;
-}
-
-.check-btn {
-  flex-shrink: 0;
-  width: 24px;
-  height: 24px;
-  border: none;
+.paper-menu-btn {
   background: none;
+  border: none;
+  font-size: 1.25rem;
+  color: #9CA3AF;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+}
+
+.paper-menu-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #6B7280;
+}
+
+.paper-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
+  font-size: 0.75rem;
+}
+
+.meta-remaining {
+  color: #059669;
+  font-weight: 600;
+}
+
+.meta-done {
+  color: #9CA3AF;
+}
+
+.clear-done-btn {
+  background: none;
+  border: none;
+  color: #9CA3AF;
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.clear-done-btn:hover {
+  color: #6B7280;
+}
+
+/* Paper Content */
+.paper-content {
+  padding: var(--space-sm) var(--space-md);
+  padding-left: 44px;
+  min-height: 120px;
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 27px,
+    rgba(200, 180, 140, 0.2) 27px,
+    rgba(200, 180, 140, 0.2) 28px
+  );
+}
+
+/* Paper Item */
+.paper-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: 28px;
+  position: relative;
+}
+
+.paper-item.checked {
+  opacity: 0.5;
+}
+
+.item-checkbox {
+  background: none;
+  border: none;
   padding: 0;
   cursor: pointer;
-  margin-top: 2px;
+  flex-shrink: 0;
 }
 
-.check-circle {
+.checkbox-circle {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: 2px solid var(--lavender-300);
+  width: 18px;
+  height: 18px;
+  border: 2px solid #D1D5DB;
   border-radius: var(--radius-full);
-  transition: all 0.2s;
+  transition: all 0.15s;
 }
 
-.check-circle.checked {
-  background: var(--lavender-500);
-  border-color: var(--lavender-500);
+.checkbox-circle.checked {
+  background: #10B981;
+  border-color: #10B981;
   color: white;
-  font-size: 0.75rem;
+  font-size: 0.625rem;
 }
 
-.item-content {
+.item-text {
   flex: 1;
-  cursor: pointer;
+  font-size: 0.875rem;
+  color: #374151;
+  font-family: 'Comic Sans MS', 'Segoe UI', sans-serif;
 }
 
-.item-name {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.shopping-item.checked .item-name {
+.paper-item.checked .item-text {
   text-decoration: line-through;
-  color: var(--text-secondary);
+  color: #9CA3AF;
 }
 
-.item-icon {
+.item-delete {
+  background: none;
+  border: none;
+  color: #D1D5DB;
   font-size: 1rem;
-}
-
-.item-qty {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--lavender-500);
-  background: var(--lavender-50);
+  cursor: pointer;
   padding: 2px 6px;
   border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: opacity 0.15s;
 }
 
-.item-notes {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  margin-top: 2px;
+.paper-item:hover .item-delete {
+  opacity: 1;
 }
 
-.checked-section {
-  opacity: 0.7;
+.item-delete:hover {
+  color: #EF4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Quick Add Row */
+.quick-add-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: 28px;
+  margin-top: var(--space-xs);
+}
+
+.add-bullet {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #D1D5DB;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.quick-add-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+  color: #374151;
+  font-family: 'Comic Sans MS', 'Segoe UI', sans-serif;
+  outline: none;
+}
+
+.quick-add-input::placeholder {
+  color: #D1D5DB;
+  font-style: italic;
+}
+
+/* Paper Footer */
+.paper-footer {
+  padding: var(--space-xs) var(--space-md);
+  padding-left: 44px;
+  border-top: 1px solid rgba(200, 180, 140, 0.2);
+  background: rgba(200, 180, 140, 0.1);
+}
+
+.paper-date {
+  font-size: 0.6875rem;
+  color: #9CA3AF;
 }
 
 /* Modal */
@@ -542,8 +636,7 @@ function handleClearChecked() {
   margin-bottom: var(--space-xs);
 }
 
-.form-group input,
-.form-group select {
+.form-group input {
   width: 100%;
   padding: var(--space-sm);
   border: 2px solid var(--lavender-100);
@@ -552,16 +645,9 @@ function handleClearChecked() {
   background: var(--white);
 }
 
-.form-group input:focus,
-.form-group select:focus {
+.form-group input:focus {
   outline: none;
   border-color: var(--lavender-400);
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-sm);
 }
 
 .modal-footer {
@@ -582,12 +668,12 @@ function handleClearChecked() {
 }
 
 .btn-primary {
-  background: var(--lavender-500);
+  background: #10B981;
   color: white;
 }
 
 .btn-primary:hover {
-  background: var(--lavender-600);
+  background: #059669;
 }
 
 .btn-danger {
@@ -599,41 +685,68 @@ function handleClearChecked() {
 <style>
 /* Dark mode */
 [data-theme="dark"] .shopping-banner {
-  background: linear-gradient(135deg, #047857 0%, #059669 50%, #10B981 100%) !important;
+  background: linear-gradient(135deg, rgba(6, 95, 70, 0.6) 0%, rgba(16, 185, 129, 0.5) 50%, rgba(52, 211, 153, 0.4) 100%),
+    url('/images/kawaii-bg.jpg') center center / cover no-repeat !important;
 }
 
-[data-theme="dark"] .stats-bar {
-  background: #1A1625 !important;
+[data-theme="dark"] .paper-card {
+  background: linear-gradient(to bottom, #1A1625 0%, #1F1A2E 100%) !important;
   border-color: #3D3456 !important;
 }
 
-[data-theme="dark"] .stat-value {
-  color: #A78BFA !important;
+[data-theme="dark"] .paper-card::before {
+  background: rgba(139, 92, 246, 0.3) !important;
 }
 
-[data-theme="dark"] .clear-btn {
-  background: #2D2640 !important;
-  border-color: #3D3456 !important;
-  color: #A78BFA !important;
+[data-theme="dark"] .paper-header {
+  border-bottom-color: #3D3456 !important;
 }
 
-[data-theme="dark"] .shopping-item {
-  background: #1A1625 !important;
-  border-color: #3D3456 !important;
+[data-theme="dark"] .paper-title {
+  color: #E5E7EB !important;
 }
 
-[data-theme="dark"] .check-circle {
-  border-color: #6D28D9 !important;
+[data-theme="dark"] .paper-content {
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 27px,
+    rgba(61, 52, 86, 0.5) 27px,
+    rgba(61, 52, 86, 0.5) 28px
+  ) !important;
 }
 
-[data-theme="dark"] .check-circle.checked {
+[data-theme="dark"] .item-text {
+  color: #E5E7EB !important;
+}
+
+[data-theme="dark"] .paper-item.checked .item-text {
+  color: #6B7280 !important;
+}
+
+[data-theme="dark"] .checkbox-circle {
+  border-color: #4D4366 !important;
+}
+
+[data-theme="dark"] .checkbox-circle.checked {
   background: #8B5CF6 !important;
   border-color: #8B5CF6 !important;
 }
 
-[data-theme="dark"] .item-qty {
-  background: #2D2640 !important;
-  color: #A78BFA !important;
+[data-theme="dark"] .quick-add-input {
+  color: #E5E7EB !important;
+}
+
+[data-theme="dark"] .quick-add-input::placeholder {
+  color: #6B7280 !important;
+}
+
+[data-theme="dark"] .paper-footer {
+  background: rgba(61, 52, 86, 0.3) !important;
+  border-top-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .meta-remaining {
+  color: #34D399 !important;
 }
 
 [data-theme="dark"] .modal {
@@ -648,19 +761,21 @@ function handleClearChecked() {
   border-top-color: #3D3456 !important;
 }
 
-[data-theme="dark"] .form-group input,
-[data-theme="dark"] .form-group select {
+[data-theme="dark"] .form-group input {
   background: #0F0D1A !important;
   border-color: #3D3456 !important;
-  color: var(--text-primary) !important;
+  color: #E5E7EB !important;
 }
 
-[data-theme="dark"] .form-group input:focus,
-[data-theme="dark"] .form-group select:focus {
+[data-theme="dark"] .form-group input:focus {
   border-color: #8B5CF6 !important;
 }
 
 [data-theme="dark"] .btn-primary {
   background: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .btn-primary:hover {
+  background: #7C3AED !important;
 }
 </style>

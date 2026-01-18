@@ -221,6 +221,13 @@ import {
   deleteShoppingItem,
   toggleShoppingItem,
   clearCheckedItems,
+  createShoppingPaper,
+  updateShoppingPaper,
+  deleteShoppingPaper,
+  addItemToPaper,
+  togglePaperItem,
+  deletePaperItem,
+  clearCheckedFromPaper,
 } from './modules/shoppingList'
 
 // Export composable
@@ -251,6 +258,7 @@ export function useFinanceStore() {
     nutLogs: computed(() => [...state.nutLogs]),
     importantNumbers: computed(() => state.importantNumbers),
     shoppingList: computed(() => state.shoppingList),
+    shoppingPapers: computed(() => state.shoppingPapers),
     habits: computed(() => state.habits),
     settings: computed(() => state.settings),
     isLoading: computed(() => state.isLoading),
@@ -442,6 +450,13 @@ export function useFinanceStore() {
     deleteShoppingItem,
     toggleShoppingItem,
     clearCheckedItems,
+    createShoppingPaper,
+    updateShoppingPaper,
+    deleteShoppingPaper,
+    addItemToPaper,
+    togglePaperItem,
+    deletePaperItem,
+    clearCheckedFromPaper,
 
     // Helpers
     formatCurrency,

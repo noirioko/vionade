@@ -81,6 +81,7 @@ export const state = reactive({
   nutLogs: loadFromStorage('mochi_nutlogs', []),
   importantNumbers: loadFromStorage('mochi_importantnumbers', []),
   shoppingList: loadFromStorage('mochi_shoppinglist', []),
+  shoppingPapers: loadFromStorage('mochi_shoppingpapers', []),
   habits: loadFromStorage('mochi_habits', {
     currentChallenge: 'january-2026',
     completions: {},
@@ -371,6 +372,7 @@ const stateKeys = [
   { key: 'nutLogs', storage: 'mochi_nutlogs' },
   { key: 'importantNumbers', storage: 'mochi_importantnumbers' },
   { key: 'shoppingList', storage: 'mochi_shoppinglist' },
+  { key: 'shoppingPapers', storage: 'mochi_shoppingpapers' },
 ]
 
 stateKeys.forEach(({ key, storage }) => {
