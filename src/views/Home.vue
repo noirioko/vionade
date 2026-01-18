@@ -13,7 +13,6 @@ const features = [
   { icon: '🍋', label: 'Vio Pass', route: '/viopass', color: '#FBBF24' },
   { icon: '🧺', label: 'Laundry', route: '/laundry', color: '#38BDF8' },
   { icon: '🐱', label: 'Pets', route: '/pets', color: '#A3E635' },
-  { icon: '🐟', label: 'Aquarium', route: '/aquarium', color: '#22D3EE' },
   { icon: '⚙️', label: 'Settings', route: '/settings', color: '#94A3B8' },
 ]
 </script>

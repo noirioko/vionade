@@ -199,6 +199,9 @@ function closeMore() {
   padding: var(--space-sm) var(--space-md) var(--space-lg);
   z-index: 999;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  max-height: 60vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .more-handle {
