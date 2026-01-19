@@ -577,7 +577,7 @@ function handleDelete() {
   font-weight: 600;
   border: none;
   cursor: pointer;
-  background: var(--border-color);
+  background: var(--gray-200);
   color: var(--text-secondary);
   transition: all 0.15s;
 }
@@ -602,7 +602,7 @@ function handleDelete() {
 }
 
 .modal {
-  background: var(--card-bg);
+  background: var(--white);
   border-radius: 20px 20px 0 0;
   width: 100%;
   max-width: 500px;
@@ -615,7 +615,7 @@ function handleDelete() {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--lavender-200);
 }
 
 .modal-header h2 {
@@ -650,9 +650,9 @@ function handleDelete() {
   align-items: center;
   gap: 0.25rem;
   padding: 0.5rem;
-  border: 2px solid var(--border-color);
+  border: 2px solid var(--lavender-200);
   border-radius: 10px;
-  background: var(--bg-secondary);
+  background: var(--white);
   cursor: pointer;
   transition: all 0.15s;
   width: calc(25% - 0.375rem);
@@ -695,10 +695,10 @@ function handleDelete() {
 .form-group select {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--lavender-200);
   border-radius: 10px;
   font-size: 1rem;
-  background: var(--bg-secondary);
+  background: var(--lavender-50);
   color: var(--text-primary);
 }
 
@@ -713,7 +713,7 @@ function handleDelete() {
   justify-content: flex-end;
   gap: 0.75rem;
   padding: 1rem 1.25rem;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--lavender-200);
 }
 
 .save-btn {
