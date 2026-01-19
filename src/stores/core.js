@@ -155,6 +155,8 @@ export async function saveToFirebase() {
       importantNumbers: state.importantNumbers,
       shoppingList: state.shoppingList,
       shoppingPapers: state.shoppingPapers,
+      painLogs: state.painLogs,
+      nutLogs: state.nutLogs,
       settings: state.settings,
       updatedAt: new Date().toISOString(),
     })
@@ -206,6 +208,8 @@ async function loadFromFirebase() {
       if (data.importantNumbers) state.importantNumbers = data.importantNumbers
       if (data.shoppingList) state.shoppingList = data.shoppingList
       if (data.shoppingPapers) state.shoppingPapers = data.shoppingPapers
+      if (data.painLogs) state.painLogs = data.painLogs
+      if (data.nutLogs) state.nutLogs = data.nutLogs
 
       // Save to localStorage as backup
       localStorage.setItem('mochi_wallets', JSON.stringify(state.wallets))
@@ -231,6 +235,8 @@ async function loadFromFirebase() {
       localStorage.setItem('mochi_subscriptions', JSON.stringify(state.subscriptions))
       localStorage.setItem('mochi_habits', JSON.stringify(state.habits))
       localStorage.setItem('mochi_shoppingpapers', JSON.stringify(state.shoppingPapers))
+      localStorage.setItem('mochi_painlogs', JSON.stringify(state.painLogs))
+      localStorage.setItem('mochi_nutlogs', JSON.stringify(state.nutLogs))
     } else {
       // First time user - start fresh
       state.wallets = [...DEFAULT_WALLETS]
@@ -309,6 +315,8 @@ function setupRealtimeSync() {
       if (data.importantNumbers) state.importantNumbers = data.importantNumbers
       if (data.shoppingList) state.shoppingList = data.shoppingList
       if (data.shoppingPapers) state.shoppingPapers = data.shoppingPapers
+      if (data.painLogs) state.painLogs = data.painLogs
+      if (data.nutLogs) state.nutLogs = data.nutLogs
     }
   })
 }
