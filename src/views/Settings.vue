@@ -137,17 +137,18 @@ async function clearAllData() {
 </script>
 
 <template>
-  <div class="page">
+  <div class="page settings-page">
     <div class="page-header">
       <img src="/images/vio-logo.png" alt="Vionade" class="page-header-logo" />
     </div>
 
-    <!-- App Info -->
-    <div class="card section text-center app-info-card">
-      <img src="/images/vio_sit.png" alt="Vio" class="app-info-vio" />
-      <h2 style="margin-bottom: var(--space-xs);">Vionade</h2>
-      <p class="text-sm text-muted">Your kawaii finance tracker</p>
-      <p class="text-xs text-muted mt-sm">Made with 💜 for you</p>
+    <!-- Settings Banner -->
+    <div class="settings-banner">
+      <div class="settings-banner-content">
+        <div class="settings-banner-title">Settings</div>
+        <div class="settings-banner-subtitle">Your kawaii finance tracker</div>
+      </div>
+      <img src="/images/vio_sit.png" alt="Vio" class="settings-banner-vio" />
     </div>
 
     <!-- Appearance -->
@@ -526,6 +527,60 @@ async function clearAllData() {
 </template>
 
 <style scoped>
+/* Settings Banner */
+.settings-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(107, 114, 128, 0.8) 0%, rgba(156, 163, 175, 0.8) 50%, rgba(209, 213, 219, 0.8) 100%),
+    url('/images/kawaii-bg.jpg') center center / cover no-repeat;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  min-height: 120px;
+  margin-bottom: var(--space-md);
+  box-shadow: 0 4px 16px rgba(107, 114, 128, 0.3);
+}
+
+.settings-banner-content {
+  flex: 1;
+  padding: var(--space-lg);
+}
+
+.settings-banner-title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.settings-banner-subtitle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 4px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.settings-banner-vio {
+  height: 140px;
+  width: auto;
+  flex-shrink: 0;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+  margin-bottom: -30px;
+}
+
+@media (max-width: 480px) {
+  .settings-banner-title {
+    font-size: 1.5rem;
+  }
+
+  .settings-banner-vio {
+    height: 110px;
+    margin-bottom: -20px;
+  }
+}
+
 /* Vio in app info card */
 .app-info-vio {
   width: 100px;
@@ -606,5 +661,21 @@ async function clearAllData() {
 
 .toggle-btn.active .toggle-slider {
   transform: translateX(24px);
+}
+</style>
+
+<style>
+/* Dark mode */
+[data-theme="dark"] .settings-banner {
+  background: linear-gradient(135deg, #374151 0%, #4B5563 50%, #6B7280 100%) !important;
+}
+
+[data-theme="dark"] .settings-page .card {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .settings-page .section-title {
+  color: var(--text-primary) !important;
 }
 </style>

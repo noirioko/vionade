@@ -202,19 +202,58 @@ export function updateWalletAccountNumber(walletId, accountNumber) {
 export function setStartingBalance(walletId, balance) {
   const wallet = state.wallets.find(w => w.id === walletId)
   if (wallet) {
+    // Just set the balance directly, don't create a transaction
+    // (the old code was double-counting by setting balance AND adding income)
     wallet.balance = balance
     if (!state.settings.startedAt) {
       state.settings.startedAt = new Date().toISOString()
     }
-    addTransaction({
-      type: 'income',
-      walletId,
-      amount: balance,
-      category: 'other',
-      note: 'Starting balance',
-      date: new Date().toISOString(),
-    })
   }
+}
+
+// Recalculate wallet balance from all transactions
+// Use this if balance gets out of sync
+export function recalculateWalletBalance(walletId) {
+  const wallet = state.wallets.find(w => w.id === walletId)
+  if (!wallet) return 0
+
+  let balance = 0
+
+  // Check for starting balance transaction
+  const startingTx = state.transactions.find(
+    t => t.walletId === walletId && t.note === 'Starting balance' && t.type === 'income'
+  )
+  if (startingTx) {
+    balance = startingTx.amount
+  }
+
+  // Process all other transactions
+  state.transactions.forEach(t => {
+    // Skip the starting balance transaction (already counted)
+    if (t.note === 'Starting balance' && t.type === 'income' && t.walletId === walletId) {
+      return
+    }
+
+    if (t.walletId === walletId) {
+      if (t.type === 'income') {
+        balance += t.amount
+      } else if (t.type === 'expense') {
+        balance -= t.amount
+      } else if (t.type === 'transfer') {
+        // This wallet is the source of transfer
+        balance -= t.amount
+      }
+    }
+
+    // If this wallet is the destination of a transfer
+    if (t.type === 'transfer' && t.toWalletId === walletId) {
+      balance += t.amount
+    }
+  })
+
+  // Update the wallet balance
+  wallet.balance = balance
+  return balance
 }
 
 // Savings functions

@@ -259,14 +259,20 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="page">
+  <div class="page collections-page">
     <!-- Header -->
     <div class="page-header">
       <img src="/images/vio-logo.png" alt="Vionade" class="page-header-logo" />
     </div>
 
-    <h1 class="page-title">Collections</h1>
-    <p class="page-subtitle">Track your blind boxes & figures</p>
+    <!-- Collections Banner -->
+    <div class="collections-banner">
+      <div class="collections-banner-content">
+        <div class="collections-banner-title">Collections</div>
+        <div class="collections-banner-subtitle">Track your blind boxes & figures</div>
+      </div>
+      <img src="/images/vio_sit.png" alt="Vio" class="collections-banner-vio" />
+    </div>
 
     <!-- Filters -->
     <div class="filters-section">
@@ -541,18 +547,58 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.page-title {
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 0 var(--space-xs);
+/* Collections Banner */
+.collections-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(249, 115, 22, 0.8) 0%, rgba(251, 146, 60, 0.8) 50%, rgba(253, 186, 116, 0.8) 100%),
+    url('/images/kawaii-bg.jpg') center center / cover no-repeat;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  min-height: 120px;
+  margin-bottom: var(--space-md);
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.3);
 }
 
-.page-subtitle {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  margin: 0 0 var(--space-lg);
+.collections-banner-content {
+  flex: 1;
+  padding: var(--space-lg);
+}
+
+.collections-banner-title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.collections-banner-subtitle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 4px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.collections-banner-vio {
+  height: 140px;
+  width: auto;
+  flex-shrink: 0;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+  margin-bottom: -30px;
+}
+
+@media (max-width: 480px) {
+  .collections-banner-title {
+    font-size: 1.5rem;
+  }
+
+  .collections-banner-vio {
+    height: 110px;
+    margin-bottom: -20px;
+  }
 }
 
 /* Filters */
@@ -1170,6 +1216,10 @@ onUnmounted(() => {
 
 <style>
 /* Dark Mode */
+[data-theme="dark"] .collections-banner {
+  background: linear-gradient(135deg, #9A3412 0%, #C2410C 50%, #EA580C 100%) !important;
+}
+
 [data-theme="dark"] .collection-card {
   background: #1A1625 !important;
   border-color: #3D3456 !important;

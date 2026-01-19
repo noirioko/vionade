@@ -198,7 +198,7 @@ async function copyNumber(text) {
 </script>
 
 <template>
-  <div class="page passwords-page">
+  <div class="page passwords-page media-page">
     <div class="page-header">
       <img src="/images/vio-logo.png" alt="Vionade" class="page-header-logo" />
     </div>

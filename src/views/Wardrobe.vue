@@ -176,14 +176,20 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="page">
+  <div class="page wardrobe-page">
     <!-- Header -->
     <div class="page-header">
       <img src="/images/vio-logo.png" alt="Vionade" class="page-header-logo" />
     </div>
 
-    <h1 class="page-title">Wardrobe</h1>
-    <p class="page-subtitle">{{ stats.total }} items in your closet</p>
+    <!-- Wardrobe Banner -->
+    <div class="wardrobe-banner">
+      <div class="wardrobe-banner-content">
+        <div class="wardrobe-banner-title">Wardrobe</div>
+        <div class="wardrobe-banner-subtitle">{{ stats.total }} items in your closet</div>
+      </div>
+      <img src="/images/vio_wardrobe_banner.png" alt="Vio" class="wardrobe-banner-vio" />
+    </div>
 
     <!-- Stats Row -->
     <div class="stats-row">
@@ -365,18 +371,58 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.page-title {
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 0 var(--space-xs);
+/* Wardrobe Banner */
+.wardrobe-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(236, 72, 153, 0.8) 0%, rgba(244, 114, 182, 0.8) 50%, rgba(249, 168, 212, 0.8) 100%),
+    url('/images/kawaii-bg.jpg') center center / cover no-repeat;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  min-height: 120px;
+  margin-bottom: var(--space-md);
+  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.3);
 }
 
-.page-subtitle {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  margin: 0 0 var(--space-md);
+.wardrobe-banner-content {
+  flex: 1;
+  padding: var(--space-lg);
+}
+
+.wardrobe-banner-title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.wardrobe-banner-subtitle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 4px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.wardrobe-banner-vio {
+  height: 120px;
+  width: auto;
+  flex-shrink: 0;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+  align-self: flex-end;
+  margin-right: var(--space-sm);
+}
+
+@media (max-width: 480px) {
+  .wardrobe-banner-title {
+    font-size: 1.5rem;
+  }
+
+  .wardrobe-banner-vio {
+    height: 100px;
+  }
 }
 
 /* Stats Row */
@@ -807,6 +853,10 @@ onUnmounted(() => {
 
 <style>
 /* Dark Mode */
+[data-theme="dark"] .wardrobe-banner {
+  background: linear-gradient(135deg, #831843 0%, #9D174D 50%, #BE185D 100%) !important;
+}
+
 [data-theme="dark"] .stat-chip {
   background: #1A1625 !important;
   border-color: #3D3456 !important;

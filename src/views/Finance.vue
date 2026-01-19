@@ -1,401 +1,187 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, inject, onMounted, onUnmounted, watch } from 'vue'
 import { useFinanceStore } from '../stores'
-import HelpTip from '../components/HelpTip.vue'
 import EditTransactionModal from '../components/EditTransactionModal.vue'
 
-const store = useFinanceStore()
-const router = useRouter()
+// Tab Components
+import FinanceOverview from '../components/finance/FinanceOverview.vue'
+import FinanceWallets from '../components/finance/FinanceWallets.vue'
+import FinanceHistory from '../components/finance/FinanceHistory.vue'
+import FinanceWishlist from '../components/finance/FinanceWishlist.vue'
 
-// Edit transaction state
+const store = useFinanceStore()
+const fabAction = inject('fabAction')
+
+// Tab Management
+const activeTab = ref('overview') // 'overview', 'wallets', 'history', 'wishlist'
+
+function selectTab(tab) {
+  activeTab.value = tab
+}
+
+// Transaction editing (shared across tabs)
 const editingTransaction = ref(null)
 
-// Challenge state
-const showChallengeModal = ref(false)
-const newChallenge = ref({
-  type: 'limit-spending',
-  target: '',
-  period: 'week',
-})
-
-const activeChallenge = computed(() => {
-  return store.challenges.value.find(c => c.status === 'active')
-})
-
-const challengeProgress = computed(() => {
-  if (!activeChallenge.value) return 0
-  const challenge = activeChallenge.value
-
-  if (challenge.type === 'limit-spending') {
-    // Get expenses during challenge period
-    const startDate = new Date(challenge.startDate)
-    const expenses = store.transactions.value
-      .filter(t => t.type === 'expense' && new Date(t.date) >= startDate)
-      .reduce((sum, t) => sum + t.amount, 0)
-    return (expenses / challenge.target) * 100
-  }
-  return 0
-})
-
-const isOverLimit = computed(() => challengeProgress.value >= 100)
-
-const challengeSpent = computed(() => {
-  if (!activeChallenge.value) return 0
-  const startDate = new Date(activeChallenge.value.startDate)
-  return store.transactions.value
-    .filter(t => t.type === 'expense' && new Date(t.date) >= startDate)
-    .reduce((sum, t) => sum + t.amount, 0)
-})
-
-const daysLeft = computed(() => {
-  if (!activeChallenge.value) return 0
-  const end = new Date(activeChallenge.value.endDate)
-  const now = new Date()
-  const diff = Math.ceil((end - now) / (1000 * 60 * 60 * 24))
-  return Math.max(0, diff)
-})
-
-function startNewChallenge() {
-  if (!newChallenge.value.target) return
-  store.startChallenge({
-    type: newChallenge.value.type,
-    target: parseFloat(newChallenge.value.target),
-    period: newChallenge.value.period,
-  })
-  showChallengeModal.value = false
-  newChallenge.value = { type: 'limit-spending', target: '', period: 'week' }
+function openEditTransaction(transaction) {
+  editingTransaction.value = transaction
 }
 
-function giveUpChallenge() {
-  if (activeChallenge.value) {
-    store.endChallenge(activeChallenge.value.id, 'failed')
-  }
-}
+// Wishlist ref for FAB
+const wishlistRef = ref(null)
 
-// Format the "tracking since" date
-const trackingSince = computed(() => {
-  const startedAt = store.settings.value.startedAt
-  if (!startedAt) return null
-  const date = new Date(startedAt)
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+// Stats for sidebar
+const financeStats = computed(() => ({
+  wallets: store.wallets.value.length,
+  transactions: store.transactions.value.length,
+  wishlistItems: store.wishlist.value.filter(w => !w.claimed).length
+}))
+
+// FAB behavior based on active tab
+// For overview/wallets/history: return null so App.vue opens AddTransactionModal
+// For wishlist: open the wishlist add modal
+onMounted(() => {
+  updateFabAction()
 })
 
-// Month picker
-const currentDate = ref(new Date())
-
-const selectedMonth = computed(() => {
-  return currentDate.value.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+onUnmounted(() => {
+  fabAction.value = null
 })
 
-function prevMonth() {
-  const newDate = new Date(currentDate.value)
-  newDate.setMonth(newDate.getMonth() - 1)
-  currentDate.value = newDate
-}
-
-function nextMonth() {
-  const newDate = new Date(currentDate.value)
-  newDate.setMonth(newDate.getMonth() + 1)
-  // Don't go beyond current month
-  if (newDate <= new Date()) {
-    currentDate.value = newDate
-  }
-}
-
-const isCurrentMonth = computed(() => {
-  const now = new Date()
-  return currentDate.value.getMonth() === now.getMonth() &&
-         currentDate.value.getFullYear() === now.getFullYear()
-})
-
-// Filter transactions by selected month
-const monthTransactions = computed(() => {
-  const year = currentDate.value.getFullYear()
-  const month = currentDate.value.getMonth()
-  const startOfMonth = new Date(year, month, 1)
-  const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59)
-
-  return store.transactions.value.filter(t => {
-    const date = new Date(t.date)
-    return date >= startOfMonth && date <= endOfMonth
-  })
-})
-
-const monthIncome = computed(() => {
-  return monthTransactions.value
-    .filter(t => t.type === 'income')
-    .reduce((sum, t) => sum + t.amount, 0)
-})
-
-const monthExpense = computed(() => {
-  return monthTransactions.value
-    .filter(t => t.type === 'expense')
-    .reduce((sum, t) => sum + t.amount, 0)
-})
-
-function formatDate(dateString) {
-  const date = new Date(dateString)
-  const today = new Date()
-  const yesterday = new Date(today)
-  yesterday.setDate(yesterday.getDate() - 1)
-
-  if (date.toDateString() === today.toDateString()) {
-    return 'Today'
-  } else if (date.toDateString() === yesterday.toDateString()) {
-    return 'Yesterday'
+function updateFabAction() {
+  if (activeTab.value === 'wishlist') {
+    fabAction.value = () => {
+      if (wishlistRef.value) {
+        wishlistRef.value.showAddModal = true
+      }
+    }
   } else {
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    // Let App.vue handle it (opens AddTransactionModal)
+    fabAction.value = null
   }
 }
 
-function getTransactionIcon(transaction) {
-  if (transaction.type === 'transfer') return '↔️'
-  if (transaction.type === 'income') {
-    const cat = store.getCategoryById(transaction.category, 'income')
-    return cat?.icon || '💰'
-  }
-  const cat = store.getCategoryById(transaction.category, 'expense')
-  return cat?.icon || '📦'
-}
-
-function getTransactionTitle(transaction) {
-  if (transaction.type === 'transfer') {
-    const from = store.getWalletById(transaction.walletId)
-    const to = store.getWalletById(transaction.toWalletId)
-    return `${from?.name || 'Unknown'} → ${to?.name || 'Unknown'}`
-  }
-  if (transaction.note) return transaction.note
-  const cat = store.getCategoryById(
-    transaction.category,
-    transaction.type === 'income' ? 'income' : 'expense'
-  )
-  return cat?.name || 'Transaction'
-}
-
-const recentMonthTransactions = computed(() => {
-  return [...monthTransactions.value]
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
-    .slice(0, 5)
+// Update FAB when tab changes
+watch(activeTab, () => {
+  updateFabAction()
 })
 </script>
 
 <template>
-  <div class="page">
+  <div class="page finance-page media-page">
     <div class="page-header">
       <img src="/images/vio-logo.png" alt="Vionade" class="page-header-logo" />
     </div>
 
-    <!-- Total Balance Card -->
-    <div class="wallet-card section">
-      <div class="wallet-card-content">
-        <div class="wallet-card-label">Total Balance</div>
-        <div class="wallet-card-amount">{{ store.formatCurrency(store.totalBalance.value) }}</div>
-        <div class="wallet-card-subtitle">across {{ store.wallets.value.length }} wallets</div>
-        <div v-if="trackingSince" class="wallet-card-since">Tracking since {{ trackingSince }}</div>
+    <!-- Finance Banner -->
+    <div class="finance-banner">
+      <div class="finance-banner-content">
+        <div class="finance-banner-title">Finance Hub</div>
+        <div class="finance-banner-subtitle">Track income, expenses & savings</div>
       </div>
-      <img src="/images/vio_right.png" alt="" class="wallet-card-vio" />
+      <img src="/images/finance_bg.png" alt="Vio" class="finance-banner-vio" />
     </div>
 
-    <!-- Challenge Section -->
-    <div class="section challenge-section">
-      <div class="section-header">
-        <h3 class="section-title">
-          Challenge
-          <HelpTip text="Set spending limits for yourself! Try to stay under your budget for a week or month. Vio will cheer you on!" />
-        </h3>
-      </div>
-
-      <!-- Active Challenge -->
-      <div v-if="activeChallenge" class="challenge-card" :class="{ danger: challengeProgress > 80, 'over-limit': isOverLimit }">
-        <div class="challenge-header">
-          <div class="challenge-info">
-            <span class="challenge-icon">{{ isOverLimit ? '😱' : challengeProgress > 80 ? '😰' : '💪' }}</span>
-            <div>
-              <div class="challenge-title">Limit Spending</div>
-              <div class="challenge-subtitle">{{ daysLeft }} days left</div>
-            </div>
-          </div>
-          <button class="btn btn-sm btn-ghost" @click="giveUpChallenge">Give up</button>
-        </div>
-
-        <div class="challenge-progress">
-          <div class="challenge-bar">
-            <div
-              class="challenge-fill"
-              :class="{ danger: challengeProgress > 80, 'over-limit': isOverLimit }"
-              :style="{ width: Math.min(challengeProgress, 100) + '%' }"
-            ></div>
-          </div>
-          <div class="challenge-stats">
-            <span>{{ store.formatCurrency(challengeSpent) }} spent</span>
-            <span>Limit: {{ store.formatCurrency(activeChallenge.target) }}</span>
-          </div>
-        </div>
-
-        <div v-if="isOverLimit" class="challenge-warning over-limit">
-          Whoa, you're WAY past your limit! 😭 Tell me it's for a good cause...
-        </div>
-        <div v-else-if="challengeProgress > 80" class="challenge-warning">
-          Careful! You're close to your limit!
-        </div>
-      </div>
-
-      <!-- No Active Challenge -->
-      <div v-else class="challenge-empty" @click="showChallengeModal = true">
-        <span class="challenge-empty-icon">🎯</span>
-        <div class="challenge-empty-text">Start a challenge!</div>
-        <div class="challenge-empty-hint">Tap to set a spending limit</div>
-      </div>
-    </div>
-
-    <!-- Challenge Modal -->
-    <div v-if="showChallengeModal" class="modal-overlay" @click.self="showChallengeModal = false">
-      <div class="modal">
-        <div class="modal-header">
-          <h3 class="modal-title">Start a Challenge</h3>
-          <button class="modal-close" @click="showChallengeModal = false">x</button>
-        </div>
-
-        <div class="input-group">
-          <label class="input-label">Spending Limit</label>
-          <input
-            v-model="newChallenge.target"
-            type="number"
-            class="input"
-            placeholder="e.g., 500000"
-            inputmode="numeric"
-          />
-        </div>
-
-        <div class="input-group">
-          <label class="input-label">Duration</label>
-          <div class="period-grid">
-            <button
-              class="period-btn"
-              :class="{ active: newChallenge.period === 'week' }"
-              @click="newChallenge.period = 'week'"
-            >
-              1 Week
-            </button>
-            <button
-              class="period-btn"
-              :class="{ active: newChallenge.period === 'month' }"
-              @click="newChallenge.period = 'month'"
-            >
-              1 Month
-            </button>
-          </div>
-        </div>
-
-        <button class="btn btn-primary btn-lg w-full" @click="startNewChallenge">
-          Start Challenge!
-        </button>
-      </div>
-    </div>
-
-    <!-- Calendar Box with Header Ribbon -->
-    <div class="calendar-box section">
-      <div class="calendar-header">
-        <button class="month-nav" @click="prevMonth">←</button>
-        <div class="month-label">{{ selectedMonth }}</div>
-        <button
-          class="month-nav"
-          :class="{ disabled: isCurrentMonth }"
-          :disabled="isCurrentMonth"
-          @click="nextMonth"
-        >→</button>
-      </div>
-      <div class="summary-box">
-        <div class="summary-item">
-          <div class="summary-label">Income</div>
-          <div class="summary-amount income">{{ store.formatCurrency(monthIncome) }}</div>
-        </div>
-        <div class="summary-divider"></div>
-        <div class="summary-item">
-          <div class="summary-label">Expenses</div>
-          <div class="summary-amount expense">{{ store.formatCurrency(monthExpense) }}</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Quick Wallets -->
-    <div class="section">
-      <div class="section-header">
-        <h3 class="section-title">Wallets</h3>
-        <RouterLink to="/wallets" class="btn btn-ghost btn-sm">See all</RouterLink>
-      </div>
-      <div style="display: flex; gap: var(--space-sm); overflow-x: auto; padding-bottom: var(--space-sm);">
-        <div
-          v-for="wallet in store.wallets.value.slice(0, 4)"
-          :key="wallet.id"
-          class="card card-hover"
-          style="min-width: 140px; flex-shrink: 0;"
-        >
-          <div style="font-size: 1.5rem; margin-bottom: var(--space-xs);">{{ wallet.icon }}</div>
-          <div class="text-sm font-bold">{{ wallet.name }}</div>
-          <div class="amount text-sm" :class="wallet.balance >= 0 ? 'amount-positive' : 'amount-negative'">
-            {{ store.formatCurrency(wallet.balance) }}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Recent Transactions (for selected month) -->
-    <div class="section">
-      <div class="section-header">
-        <h3 class="section-title">Recent Transactions</h3>
-        <RouterLink to="/history" class="btn btn-ghost btn-sm">See all</RouterLink>
-      </div>
-
-      <div v-if="recentMonthTransactions.length === 0" class="empty-state">
-        <img src="/images/vio_sit.png" alt="" class="empty-state-vio" />
-        <div class="empty-state-title">No transactions</div>
-        <div class="empty-state-text">No transactions in {{ selectedMonth }}</div>
-      </div>
-
-      <div v-else class="list">
-        <div
-          v-for="transaction in recentMonthTransactions"
-          :key="transaction.id"
-          class="list-item list-item-clickable"
-          @click="openEditModal(transaction)"
-        >
-          <div
-            class="list-item-icon"
-            :style="{
-              background: transaction.type === 'income'
-                ? 'rgba(125, 211, 168, 0.15)'
-                : transaction.type === 'transfer'
-                  ? 'rgba(163, 196, 245, 0.15)'
-                  : 'rgba(245, 163, 181, 0.15)'
-            }"
+    <!-- Desktop Layout Container -->
+    <div class="finance-layout">
+      <!-- Desktop Sidebar -->
+      <aside class="finance-sidebar">
+        <nav class="sidebar-nav">
+          <button
+            class="sidebar-item"
+            :class="{ active: activeTab === 'overview' }"
+            @click="selectTab('overview')"
           >
-            {{ getTransactionIcon(transaction) }}
-          </div>
-          <div class="list-item-content">
-            <div class="list-item-title">{{ getTransactionTitle(transaction) }}</div>
-            <div class="list-item-subtitle">
-              {{ formatDate(transaction.date) }}
-              <span v-if="transaction.type !== 'transfer'">
-                · {{ store.getWalletById(transaction.walletId)?.name }}
-              </span>
-            </div>
-          </div>
-          <div class="list-item-amount">
-            <div
-              class="amount"
-              :class="{
-                'amount-positive': transaction.type === 'income',
-                'amount-negative': transaction.type === 'expense',
-                'text-muted': transaction.type === 'transfer'
-              }"
-            >
-              {{ transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : '' }}{{ store.formatCurrency(transaction.amount) }}
+            <span class="sidebar-icon">💰</span>
+            <span class="sidebar-label">Overview</span>
+          </button>
+          <button
+            class="sidebar-item"
+            :class="{ active: activeTab === 'wallets' }"
+            @click="selectTab('wallets')"
+          >
+            <span class="sidebar-icon">👛</span>
+            <span class="sidebar-label">Wallets</span>
+            <span class="sidebar-count">{{ financeStats.wallets }}</span>
+          </button>
+          <button
+            class="sidebar-item"
+            :class="{ active: activeTab === 'history' }"
+            @click="selectTab('history')"
+          >
+            <span class="sidebar-icon">📖</span>
+            <span class="sidebar-label">History</span>
+            <span class="sidebar-count">{{ financeStats.transactions }}</span>
+          </button>
+
+          <div class="sidebar-divider"></div>
+
+          <button
+            class="sidebar-item"
+            :class="{ active: activeTab === 'wishlist' }"
+            @click="selectTab('wishlist')"
+          >
+            <span class="sidebar-icon">🎁</span>
+            <span class="sidebar-label">Wishlist</span>
+            <span class="sidebar-count">{{ financeStats.wishlistItems }}</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-balance-card">
+          <img src="/images/vio_sit.png" alt="Vio" class="sidebar-vio" />
+          <div class="sidebar-balance-info">
+            <div class="sidebar-balance-label">Total Balance</div>
+            <div class="sidebar-balance-amount" :class="store.totalBalance.value >= 0 ? 'positive' : 'negative'">
+              {{ store.formatCurrency(store.totalBalance.value) }}
             </div>
           </div>
         </div>
-      </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="finance-content">
+        <!-- Mobile Tabs -->
+        <div class="finance-tabs mobile-only">
+          <button
+            class="finance-tab"
+            :class="{ active: activeTab === 'overview' }"
+            @click="selectTab('overview')"
+          >Overview</button>
+          <button
+            class="finance-tab"
+            :class="{ active: activeTab === 'wallets' }"
+            @click="selectTab('wallets')"
+          >Wallets</button>
+          <button
+            class="finance-tab"
+            :class="{ active: activeTab === 'history' }"
+            @click="selectTab('history')"
+          >History</button>
+          <button
+            class="finance-tab"
+            :class="{ active: activeTab === 'wishlist' }"
+            @click="selectTab('wishlist')"
+          >Wishlist</button>
+        </div>
+
+        <!-- Tab Content -->
+        <FinanceOverview
+          v-if="activeTab === 'overview'"
+          @edit-transaction="openEditTransaction"
+          @switch-tab="selectTab"
+        />
+
+        <FinanceWallets v-if="activeTab === 'wallets'" />
+
+        <FinanceHistory
+          v-if="activeTab === 'history'"
+          @edit-transaction="openEditTransaction"
+        />
+
+        <FinanceWishlist
+          v-if="activeTab === 'wishlist'"
+          ref="wishlistRef"
+        />
+      </main>
     </div>
 
     <!-- Edit Transaction Modal -->
@@ -408,555 +194,338 @@ const recentMonthTransactions = computed(() => {
 </template>
 
 <style scoped>
-/* Quick Actions Card */
-.quick-actions-card {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-lg);
-  background: linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 100%);
-  border-radius: var(--radius-xl);
-  margin-bottom: var(--space-md);
-  border: 2px solid #7DD3FC;
-}
-
-.quick-actions-content {
-  flex: 1;
-}
-
-.quick-actions-title {
-  font-family: var(--font-display);
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #0369A1;
-  margin-bottom: var(--space-md);
-}
-
-.quick-actions-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-sm);
-}
-
-.quick-action-btn {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
-  background: white;
-  border-radius: var(--radius-md);
-  text-decoration: none;
-  color: var(--text-primary);
-  font-weight: 600;
-  font-size: 0.875rem;
-  border: 2px solid transparent;
-  transition: all 0.15s;
-}
-
-.quick-action-btn:hover {
-  border-color: #7DD3FC;
-  transform: translateY(-1px);
-}
-
-.quick-action-icon {
-  font-size: 1.25rem;
-}
-
-.quick-action-label {
-  color: #0C4A6E;
-}
-
-.quick-actions-vio {
-  width: 120px;
-  height: auto;
-  flex-shrink: 0;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
-}
-
-@media (max-width: 480px) {
-  .quick-actions-vio {
-    width: 80px;
-  }
-
-  .quick-actions-title {
-    font-size: 1rem;
-  }
-
-  .quick-action-btn {
-    padding: var(--space-xs) var(--space-sm);
-    font-size: 0.75rem;
-  }
-
-  .quick-action-icon {
-    font-size: 1rem;
-  }
-}
-
-/* Habits Banner */
-.habits-banner {
-  position: relative;
-  display: flex;
-  align-items: stretch;
-  border-radius: var(--radius-xl);
-  overflow: hidden;
-  margin-bottom: var(--space-md);
-  background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 50%, #FCD34D 100%);
-  background-size: cover;
-  background-position: center;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  min-height: 140px;
-  cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-
-.habits-banner:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-}
-
-.habits-banner-content {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-lg);
-  background: linear-gradient(90deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.3) 60%, transparent 100%);
-}
-
-.habits-banner-icon {
-  width: 100px;
-  height: 100px;
-  object-fit: contain;
-  flex-shrink: 0;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
-}
-
-.habits-banner-text {
-  flex: 1;
-}
-
-.habits-banner-title {
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: white;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.habits-banner-subtitle {
-  font-size: 0.9375rem;
-  color: rgba(255, 255, 255, 0.9);
-  margin-top: 4px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-.habits-banner-char {
-  height: 140px;
-  width: auto;
-  object-fit: contain;
-  object-position: bottom right;
-  flex-shrink: 0;
-  margin-right: var(--space-md);
-}
-
-@media (max-width: 480px) {
-  .habits-banner-icon {
-    width: 72px;
-    height: 72px;
-  }
-
-  .habits-banner-char {
-    height: 100px;
-    margin-right: var(--space-sm);
-  }
-
-  .habits-banner-title {
-    font-size: 1.25rem;
-  }
-}
-
-/* Media Banner */
-.media-banner {
+/* Finance Banner - Universal banner style */
+.finance-banner {
   position: relative;
   display: flex;
   align-items: center;
+  background:
+    linear-gradient(135deg, rgba(245, 158, 11, 0.7) 0%, rgba(251, 191, 36, 0.7) 50%, rgba(252, 211, 77, 0.7) 100%),
+    url('/images/1539952.jpg') center center / cover no-repeat;
   border-radius: var(--radius-xl);
   overflow: hidden;
+  min-height: 120px;
   margin-bottom: var(--space-md);
-  background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 50%, #C4B5FD 100%);
-  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
-  min-height: 100px;
-  cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
 }
 
-.media-banner:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
-}
-
-.media-banner-content {
+.finance-banner-content {
   flex: 1;
   padding: var(--space-lg);
 }
 
-.media-banner-text {
-  flex: 1;
-}
-
-.media-banner-title {
+.finance-banner-title {
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   font-weight: 700;
   color: white;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.media-banner-subtitle {
-  font-size: 0.9375rem;
+.finance-banner-subtitle {
+  font-size: 1rem;
   color: rgba(255, 255, 255, 0.9);
   margin-top: 4px;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-.media-banner-vio {
-  height: 100px;
+.finance-banner-vio {
+  height: 300px;
   width: auto;
-  object-fit: contain;
   flex-shrink: 0;
-  margin-right: var(--space-md);
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+  animation: gentle-bounce 2s ease-in-out infinite;
+  margin-bottom: -180px;
+  margin-top: -80px;
+}
+
+@keyframes gentle-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
 }
 
 @media (max-width: 480px) {
-  .media-banner-title {
-    font-size: 1.25rem;
+  .finance-banner-title {
+    font-size: 1.5rem;
   }
 
-  .media-banner-vio {
-    height: 80px;
-    margin-right: var(--space-sm);
+  .finance-banner-vio {
+    height: 220px;
+    margin-bottom: -120px;
+    margin-top: -60px;
   }
 }
 
-/* Rounded Yellow Box with Header Ribbon */
-.calendar-box {
-  background: #FFE135;
-  border-radius: var(--radius-lg);
-  padding: var(--space-md);
-  overflow: hidden;
-}
-
-.calendar-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-md);
-  margin-bottom: var(--space-md);
-  background: url('/images/calendar_ribbon.png') center center no-repeat;
-  background-size: contain;
-  padding: var(--space-md) var(--space-sm);
-}
-
-.month-nav {
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: rgba(255, 255, 255, 0.5);
-  border-radius: var(--radius-full);
-  font-size: 1rem;
-  color: var(--lavender-600);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--transition-fast);
-}
-
-.month-nav:hover:not(.disabled) {
-  background: rgba(255, 255, 255, 0.8);
-}
-
-.month-nav.disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.month-label {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.25rem;
-  color: var(--lavender-600);
-  min-width: 160px;
-  text-align: center;
-}
-
-.summary-box {
-  display: flex;
-  align-items: center;
-  background: var(--white);
-  border-radius: var(--radius-md);
-  padding: var(--space-sm) var(--space-md);
-}
-
-.summary-item {
-  flex: 1;
-  text-align: center;
-}
-
-.summary-label {
-  font-size: 0.75rem;
-  color: var(--lavender-500);
-  margin-bottom: 2px;
-}
-
-.summary-amount {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1rem;
-}
-
-.summary-amount.income {
-  color: var(--income-color);
-}
-
-.summary-amount.expense {
-  color: var(--expense-color);
-}
-
-.summary-divider {
-  width: 2px;
-  height: 30px;
-  background: #FFD700;
-  margin: 0 var(--space-sm);
-}
-
-/* Vio sitting in empty state */
-.empty-state-vio {
-  width: 120px;
-  height: auto;
-  margin-bottom: var(--space-md);
-  opacity: 0.9;
-}
-
-/* Challenge Section */
-.challenge-section {
-  margin-bottom: var(--space-md);
-}
-
-.challenge-card {
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  padding: var(--space-md);
-  border: 2px solid var(--lavender-200);
-}
-
-.challenge-card.danger {
-  border-color: var(--expense-color);
-  background: rgba(244, 63, 94, 0.05);
-}
-
-.challenge-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-md);
-}
-
-.challenge-info {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.challenge-icon {
-  font-size: 1.75rem;
-}
-
-.challenge-title {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1rem;
-  color: var(--text-primary);
-}
-
-.challenge-subtitle {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-
-.challenge-progress {
-  margin-bottom: var(--space-sm);
-}
-
-.challenge-bar {
-  height: 12px;
-  background: var(--gray-200);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-  margin-bottom: var(--space-xs);
-}
-
-.challenge-fill {
-  height: 100%;
-  background: var(--lavender-500);
-  border-radius: var(--radius-full);
-  transition: width 0.3s ease;
-}
-
-.challenge-fill.danger {
-  background: var(--expense-color);
-}
-
-.challenge-stats {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-
-.challenge-warning {
-  margin-top: var(--space-sm);
-  padding: var(--space-sm);
-  background: rgba(244, 63, 94, 0.1);
-  border-radius: var(--radius-md);
-  font-size: 0.875rem;
-  color: var(--expense-color);
-  text-align: center;
-  font-weight: 600;
-}
-
-.challenge-warning.over-limit {
-  background: rgba(220, 38, 38, 0.15);
-  color: #DC2626;
-  font-size: 0.9375rem;
-}
-
-.challenge-card.over-limit {
-  border-color: #DC2626;
-  background: rgba(220, 38, 38, 0.08);
-}
-
-.challenge-fill.over-limit {
-  background: #DC2626;
-}
-
-.challenge-empty {
-  background: var(--bg-card);
-  border: 2px dashed var(--lavender-300);
-  border-radius: var(--radius-lg);
-  padding: var(--space-lg);
-  text-align: center;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.challenge-empty:hover {
-  border-color: var(--lavender-500);
-  background: var(--lavender-50);
-}
-
-.challenge-empty-icon {
-  font-size: 2.5rem;
+/* Layout */
+.finance-layout {
   display: block;
-  margin-bottom: var(--space-sm);
 }
 
-.challenge-empty-text {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.125rem;
-  color: var(--text-primary);
-  margin-bottom: var(--space-xs);
+/* Desktop Sidebar - hidden on mobile */
+.finance-sidebar {
+  display: none;
 }
 
-.challenge-empty-hint {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
+.finance-content {
+  width: 100%;
 }
 
-.period-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-sm);
+/* Mobile Tabs */
+.finance-tabs {
+  display: flex;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xs);
+  border: 2px solid var(--lavender-100);
+  overflow-x: auto;
 }
 
-.period-btn {
+.finance-tab {
+  flex: 1;
   padding: var(--space-sm) var(--space-md);
-  border: 2px solid var(--gray-200);
+  border: none;
   border-radius: var(--radius-md);
-  background: var(--bg-card);
-  font-size: 0.875rem;
+  background: transparent;
+  font-size: 0.8125rem;
   font-weight: 600;
+  color: var(--text-secondary);
   cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.finance-tab.active {
+  background: var(--lavender-100);
+  color: var(--lavender-700);
+}
+
+/* Mobile only class */
+.mobile-only {
+  display: flex;
+}
+
+/* Sidebar styles (shared with Media) */
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--white);
+  border: 2px solid var(--lavender-100);
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm);
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.sidebar-item:hover {
+  background: var(--lavender-50);
   color: var(--text-primary);
-  transition: all var(--transition-fast);
 }
 
-.period-btn:hover {
-  border-color: var(--lavender-300);
+.sidebar-item.active {
+  background: var(--lavender-100);
+  color: var(--lavender-700);
+  font-weight: 600;
 }
 
-.period-btn.active {
-  border-color: var(--lavender-500);
-  background: var(--lavender-500);
-  color: white;
+.sidebar-icon {
+  font-size: 1.125rem;
 }
 
-/* Clickable list items */
-.list-item-clickable {
-  cursor: pointer;
-  transition: background var(--transition-fast);
+.sidebar-label {
+  flex: 1;
 }
 
-.list-item-clickable:hover {
-  background: var(--gray-100);
+.sidebar-count {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  background: var(--lavender-50);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
 }
 
-.list-item-clickable:active {
-  background: var(--gray-200);
+.sidebar-item.active .sidebar-count {
+  background: var(--lavender-200);
+  color: var(--lavender-700);
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: var(--lavender-100);
+  margin: var(--space-sm) 0;
+}
+
+/* Sidebar Balance Card with Vio */
+.sidebar-balance-card {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  background-image:
+    linear-gradient(135deg, rgba(255, 225, 53, 0.6) 0%, rgba(252, 211, 77, 0.6) 100%),
+    url('/images/kawaii-bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: 3px solid #F59E0B;
+  border-radius: var(--radius-lg);
+  box-shadow: 4px 4px 0 rgba(245, 158, 11, 0.3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  overflow: hidden;
+  position: relative;
+}
+
+.sidebar-vio {
+  width: 70px;
+  height: auto;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+}
+
+.sidebar-balance-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-balance-label {
+  font-size: 0.6875rem;
+  color: #92400E;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+  font-weight: 600;
+}
+
+.sidebar-balance-amount {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-balance-amount.positive {
+  color: #065F46;
+}
+
+.sidebar-balance-amount.negative {
+  color: #DC2626;
+}
+
+/* Desktop Styles (768px+) */
+@media (min-width: 768px) {
+  .mobile-only {
+    display: none !important;
+  }
+
+  .finance-layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: var(--space-lg);
+  }
+
+  .finance-sidebar {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: var(--space-md);
+    height: fit-content;
+    max-height: calc(100vh - 200px);
+  }
+}
+
+/* Large Desktop (1024px+) */
+@media (min-width: 1024px) {
+  .finance-layout {
+    grid-template-columns: 260px 1fr;
+  }
+}
+
+/* Extra Large Desktop (1280px+) */
+@media (min-width: 1280px) {
+  .finance-layout {
+    grid-template-columns: 280px 1fr;
+  }
 }
 </style>
 
 <style>
-/* Dark mode */
-[data-theme="dark"] .quick-actions-card {
-  background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%) !important;
-  border-color: #4C1D95 !important;
+/* Dark mode overrides */
+[data-theme="dark"] .finance-banner {
+  background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 50%, #A78BFA 100%) !important;
 }
 
-[data-theme="dark"] .quick-actions-title {
-  color: #C4B5FD !important;
-}
-
-[data-theme="dark"] .quick-action-btn {
+[data-theme="dark"] .finance-tabs {
   background: #1A1625 !important;
   border-color: #3D3456 !important;
 }
 
-[data-theme="dark"] .quick-action-btn:hover {
+[data-theme="dark"] .finance-tab.active {
+  background: #2D2640 !important;
+  color: #C4B5FD !important;
+}
+
+[data-theme="dark"] .sidebar-nav {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .sidebar-item:hover {
+  background: #2D2640 !important;
+}
+
+[data-theme="dark"] .sidebar-item.active {
+  background: #2D2640 !important;
+  color: #C4B5FD !important;
+}
+
+[data-theme="dark"] .sidebar-divider {
+  background: #3D3456 !important;
+}
+
+[data-theme="dark"] .sidebar-balance-card {
+  background: linear-gradient(135deg, #5B21B6 0%, #7C3AED 100%) !important;
   border-color: #8B5CF6 !important;
+  box-shadow: 4px 4px 0 rgba(139, 92, 246, 0.3) !important;
 }
 
-[data-theme="dark"] .quick-action-label {
-  color: #E0E7FF !important;
+[data-theme="dark"] .sidebar-balance-label {
+  color: #E9D5FF !important;
 }
 
-/* Dark mode for Habits Banner */
-[data-theme="dark"] .habits-banner {
-  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3) !important;
+[data-theme="dark"] .sidebar-balance-amount.positive {
+  color: #6EE7B7 !important;
 }
 
-[data-theme="dark"] .habits-banner-title {
-  color: #F5F3FF !important;
+[data-theme="dark"] .sidebar-balance-amount.negative {
+  color: #FCA5A5 !important;
 }
 
-[data-theme="dark"] .habits-banner-subtitle {
-  color: #DDD6FE !important;
+[data-theme="dark"] .sidebar-count {
+  background: #2D2640 !important;
+  color: #9D8BC2 !important;
 }
 
-/* Dark mode for Media Banner */
-[data-theme="dark"] .media-banner {
-  background: linear-gradient(135deg, #4C1D95 0%, #6D28D9 50%, #7C3AED 100%) !important;
+[data-theme="dark"] .sidebar-item.active .sidebar-count {
+  background: #3D3456 !important;
+  color: #C4B5FD !important;
 }
 </style>

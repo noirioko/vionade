@@ -4,44 +4,44 @@ import './style.css'
 import App from './App.vue'
 import { auth, waitForAuth } from './firebase'
 
-// Views
-import Landing from './views/Landing.vue'
-import Home from './views/Home.vue'
-import Finance from './views/Finance.vue'
-import Wallets from './views/Wallets.vue'
-import History from './views/History.vue'
-import Wishlist from './views/Wishlist.vue'
-import Media from './views/Movies.vue'
-import VioPass from './views/VioPass.vue'
-import Laundry from './views/Laundry.vue'
-import Habits from './views/Habits.vue'
-import Passwords from './views/Passwords.vue'
-import PetTracker from './views/PetTracker.vue'
-import PetDetail from './views/PetDetail.vue'
-import AquariumTracker from './views/AquariumTracker.vue'
-import Collections from './views/Collections.vue'
-import Wardrobe from './views/Wardrobe.vue'
-import Subscriptions from './views/Subscriptions.vue'
-import Settings from './views/Settings.vue'
+// Views - lazy loaded for code splitting
+const Landing = () => import('./views/Landing.vue')
+const Home = () => import('./views/Home.vue')
+const Finance = () => import('./views/Finance.vue')
+const Media = () => import('./views/Movies.vue')
+const VioPass = () => import('./views/VioPass.vue')
+const Laundry = () => import('./views/Laundry.vue')
+const Wellness = () => import('./views/Wellness.vue')
+const Passwords = () => import('./views/Passwords.vue')
+const PetTracker = () => import('./views/PetTracker.vue')
+const PetDetail = () => import('./views/PetDetail.vue')
+const Collections = () => import('./views/Collections.vue')
+const Wardrobe = () => import('./views/Wardrobe.vue')
+const Subscriptions = () => import('./views/Subscriptions.vue')
+const ShoppingList = () => import('./views/ShoppingList.vue')
+const Settings = () => import('./views/Settings.vue')
 
 const routes = [
   { path: '/landing', name: 'Landing', component: Landing, meta: { public: true } },
   { path: '/', name: 'Home', component: Home },
   { path: '/finance', name: 'Finance', component: Finance },
-  { path: '/wallets', name: 'Wallets', component: Wallets },
-  { path: '/history', name: 'History', component: History },
-  { path: '/wishlist', name: 'Wishlist', component: Wishlist },
+  // Redirect old routes to finance
+  { path: '/wallets', redirect: '/finance' },
+  { path: '/history', redirect: '/finance' },
+  { path: '/wishlist', redirect: '/finance' },
   { path: '/media', name: 'Media', component: Media },
   { path: '/viopass', name: 'VioPass', component: VioPass },
   { path: '/laundry', name: 'Laundry', component: Laundry },
-  { path: '/habits', name: 'Habits', component: Habits },
+  { path: '/wellness', name: 'Wellness', component: Wellness },
+  { path: '/habits', redirect: '/wellness' },
   { path: '/passwords', name: 'Passwords', component: Passwords },
   { path: '/pets', name: 'Pets', component: PetTracker },
   { path: '/pets/:id', name: 'PetDetail', component: PetDetail },
-  { path: '/aquarium', name: 'Aquarium', component: AquariumTracker },
+  { path: '/aquarium', redirect: '/pets' },
   { path: '/collections', name: 'Collections', component: Collections },
   { path: '/wardrobe', name: 'Wardrobe', component: Wardrobe },
   { path: '/subscriptions', name: 'Subscriptions', component: Subscriptions },
+  { path: '/shopping', name: 'Shopping', component: ShoppingList },
   { path: '/settings', name: 'Settings', component: Settings },
 ]
 
