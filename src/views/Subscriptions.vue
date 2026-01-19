@@ -786,52 +786,57 @@ function handleDelete() {
   border-color: #5B21B6 !important;
 }
 
-[data-theme="dark"] .modal {
+[data-theme="dark"] .subscriptions-page .modal {
   background: #1A1625 !important;
 }
 
-[data-theme="dark"] .modal-header {
+[data-theme="dark"] .subscriptions-page .modal-header {
   border-color: #3D3456 !important;
 }
 
-[data-theme="dark"] .modal-footer {
-  border-color: #3D3456 !important;
+[data-theme="dark"] .subscriptions-page .modal-body {
+  background: #1A1625 !important;
 }
 
-[data-theme="dark"] .modal-header h2 {
+[data-theme="dark"] .subscriptions-page .modal-footer {
+  border-color: #3D3456 !important;
+  background: #1A1625 !important;
+}
+
+[data-theme="dark"] .subscriptions-page .modal-header h2 {
   color: var(--text-primary) !important;
 }
 
-[data-theme="dark"] .close-btn {
+[data-theme="dark"] .subscriptions-page .close-btn {
   color: #9D8BC2 !important;
 }
 
-[data-theme="dark"] .service-btn {
+[data-theme="dark"] .subscriptions-page .service-btn {
   background: #2D2640 !important;
   border-color: #3D3456 !important;
 }
 
-[data-theme="dark"] .service-btn.selected {
+[data-theme="dark"] .subscriptions-page .service-btn.selected {
   background: #3D2F5E !important;
   border-color: #8B5CF6 !important;
 }
 
-[data-theme="dark"] .form-group input,
-[data-theme="dark"] .form-group select {
+[data-theme="dark"] .subscriptions-page .form-group input,
+[data-theme="dark"] .subscriptions-page .form-group select {
   background: #1A1625 !important;
   border-color: #3D3456 !important;
   color: var(--text-primary) !important;
 }
 
-[data-theme="dark"] .toggle-btn {
+[data-theme="dark"] .subscriptions-page .toggle-btn {
   background: #3D3456 !important;
 }
 
-[data-theme="dark"] .toggle-btn.active {
+[data-theme="dark"] .subscriptions-page .toggle-btn.active {
   background: #8B5CF6 !important;
 }
 
-[data-theme="dark"] .delete-btn {
+[data-theme="dark"] .subscriptions-page .delete-btn {
   background: #4A1D1D !important;
   color: #F87171 !important;
 }
