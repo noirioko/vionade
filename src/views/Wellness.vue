@@ -21,32 +21,42 @@ function selectTab(tab) {
 const painRef = ref(null)
 const nutRef = ref(null)
 
+// Helper to check if a date is today (more robust)
+function isToday(dateStr) {
+  if (!dateStr) return false
+  const logDate = new Date(dateStr)
+  if (isNaN(logDate.getTime())) return false
+  const today = new Date()
+  return logDate.getFullYear() === today.getFullYear() &&
+         logDate.getMonth() === today.getMonth() &&
+         logDate.getDate() === today.getDate()
+}
+
 // Stats for sidebar
 const wellnessStats = computed(() => {
-  const today = new Date()
-  const todayStr = today.toDateString()
+  const painLogs = store.painLogs.value || []
+  const nutLogs = store.nutLogs.value || []
 
-  // Debug: log what we're comparing
-  console.log('Today:', todayStr)
-  console.log('Pain logs:', store.painLogs.value.map(l => ({
-    date: l.date,
-    parsed: new Date(l.date).toDateString()
-  })))
+  // Debug
+  console.log('=== Wellness Stats Debug ===')
+  console.log('Pain logs count:', painLogs.length)
+  console.log('Nut logs count:', nutLogs.length)
+  if (painLogs.length > 0) {
+    console.log('First pain log date:', painLogs[0]?.date)
+    console.log('Is first log today?', isToday(painLogs[0]?.date))
+  }
 
-  const painLogsToday = store.painLogs.value.filter(l => {
-    const logDate = new Date(l.date).toDateString()
-    return logDate === todayStr
-  }).length
-  const nutLogsToday = store.nutLogs.value.filter(l => {
-    const logDate = new Date(l.date).toDateString()
-    return logDate === todayStr
-  }).length
+  const painLogsToday = painLogs.filter(l => isToday(l.date)).length
+  const nutLogsToday = nutLogs.filter(l => isToday(l.date)).length
+
+  console.log('Pain logs today:', painLogsToday)
+  console.log('Nut logs today:', nutLogsToday)
 
   return {
     painLogsToday,
     nutLogsToday,
-    totalPainLogs: store.painLogs.value.length,
-    totalNutLogs: store.nutLogs.value.length,
+    totalPainLogs: painLogs.length,
+    totalNutLogs: nutLogs.length,
   }
 })
 
