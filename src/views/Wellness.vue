@@ -24,11 +24,22 @@ const nutRef = ref(null)
 // Stats for sidebar
 const wellnessStats = computed(() => {
   const today = new Date()
+  const todayStr = today.toDateString()
+
+  // Debug: log what we're comparing
+  console.log('Today:', todayStr)
+  console.log('Pain logs:', store.painLogs.value.map(l => ({
+    date: l.date,
+    parsed: new Date(l.date).toDateString()
+  })))
+
   const painLogsToday = store.painLogs.value.filter(l => {
-    return new Date(l.date).toDateString() === today.toDateString()
+    const logDate = new Date(l.date).toDateString()
+    return logDate === todayStr
   }).length
   const nutLogsToday = store.nutLogs.value.filter(l => {
-    return new Date(l.date).toDateString() === today.toDateString()
+    const logDate = new Date(l.date).toDateString()
+    return logDate === todayStr
   }).length
 
   return {
