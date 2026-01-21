@@ -1477,7 +1477,7 @@ function selectTab(tab, subTab = null) {
 
 .view-poster {
   flex-shrink: 0;
-  width: 100px;
+  width: 140px;
   aspect-ratio: 2/3;
   border-radius: var(--radius-md);
   overflow: hidden;
