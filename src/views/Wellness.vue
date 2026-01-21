@@ -21,40 +21,12 @@ function selectTab(tab) {
 const painRef = ref(null)
 const nutRef = ref(null)
 
-// Helper to check if a date is today (more robust)
-function isToday(dateStr) {
-  if (!dateStr) return false
-  const logDate = new Date(dateStr)
-  if (isNaN(logDate.getTime())) return false
-  const today = new Date()
-  return logDate.getFullYear() === today.getFullYear() &&
-         logDate.getMonth() === today.getMonth() &&
-         logDate.getDate() === today.getDate()
-}
-
 // Stats for sidebar
 const wellnessStats = computed(() => {
   const painLogs = store.painLogs.value || []
   const nutLogs = store.nutLogs.value || []
 
-  // Debug
-  console.log('=== Wellness Stats Debug ===')
-  console.log('Pain logs count:', painLogs.length)
-  console.log('Nut logs count:', nutLogs.length)
-  if (painLogs.length > 0) {
-    console.log('First pain log date:', painLogs[0]?.date)
-    console.log('Is first log today?', isToday(painLogs[0]?.date))
-  }
-
-  const painLogsToday = painLogs.filter(l => isToday(l.date)).length
-  const nutLogsToday = nutLogs.filter(l => isToday(l.date)).length
-
-  console.log('Pain logs today:', painLogsToday)
-  console.log('Nut logs today:', nutLogsToday)
-
   return {
-    painLogsToday,
-    nutLogsToday,
     totalPainLogs: painLogs.length,
     totalNutLogs: nutLogs.length,
   }
@@ -74,35 +46,6 @@ onMounted(() => {
 onUnmounted(() => {
   fabAction.value = null
 })
-
-// Fix dates utility - normalizes UTC midnight dates to local noon
-function fixLogDates() {
-  let fixedCount = 0
-
-  // Fix pain logs
-  store.painLogs.value.forEach(log => {
-    const d = new Date(log.date)
-    // If time is exactly midnight UTC (00:00:00.000Z), it was likely saved wrong
-    if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0) {
-      // Convert to local noon on the same date
-      const localDate = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12, 0, 0)
-      store.updatePainLog(log.id, { date: localDate.toISOString() })
-      fixedCount++
-    }
-  })
-
-  // Fix nut logs
-  store.nutLogs.value.forEach(log => {
-    const d = new Date(log.date)
-    if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0) {
-      const localDate = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12, 0, 0)
-      store.updateNutLog(log.id, { date: localDate.toISOString() })
-      fixedCount++
-    }
-  })
-
-  alert(`Fixed ${fixedCount} log dates!`)
-}
 </script>
 
 <template>
@@ -132,7 +75,7 @@ function fixLogDates() {
           >
             <span class="sidebar-icon">🤕</span>
             <span class="sidebar-label">Pain Tracker</span>
-            <span class="sidebar-count">{{ wellnessStats.painLogsToday }}</span>
+            <span class="sidebar-count">{{ wellnessStats.totalPainLogs }}</span>
           </button>
           <button
             class="sidebar-item"
@@ -141,7 +84,7 @@ function fixLogDates() {
           >
             <span class="sidebar-icon">🥜</span>
             <span class="sidebar-label">Nut Tracker</span>
-            <span class="sidebar-count">{{ wellnessStats.nutLogsToday }}</span>
+            <span class="sidebar-count">{{ wellnessStats.totalNutLogs }}</span>
           </button>
           <button
             class="sidebar-item"
@@ -161,10 +104,7 @@ function fixLogDates() {
           </div>
         </div>
 
-        <button class="fix-dates-btn" @click="fixLogDates">
-          🔧 Fix Date Counts
-        </button>
-      </aside>
+        </aside>
 
       <!-- Main Content Area -->
       <main class="wellness-content">
@@ -406,23 +346,6 @@ function fixLogDates() {
   color: white;
 }
 
-.fix-dates-btn {
-  display: none;
-  width: 100%;
-  padding: var(--space-xs) var(--space-sm);
-  margin-top: var(--space-sm);
-  background: var(--lavender-100);
-  border: 1px dashed var(--lavender-300);
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-  cursor: pointer;
-}
-
-.fix-dates-btn:hover {
-  background: var(--lavender-200);
-}
-
 /* Desktop Styles (768px+) */
 @media (min-width: 768px) {
   .mobile-only {
@@ -442,10 +365,6 @@ function fixLogDates() {
     top: var(--space-md);
     height: fit-content;
     max-height: calc(100vh - 200px);
-  }
-
-  .fix-dates-btn {
-    display: block;
   }
 }
 
