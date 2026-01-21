@@ -53,6 +53,35 @@ onMounted(() => {
 onUnmounted(() => {
   fabAction.value = null
 })
+
+// Fix dates utility - normalizes UTC midnight dates to local noon
+function fixLogDates() {
+  let fixedCount = 0
+
+  // Fix pain logs
+  store.painLogs.value.forEach(log => {
+    const d = new Date(log.date)
+    // If time is exactly midnight UTC (00:00:00.000Z), it was likely saved wrong
+    if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0) {
+      // Convert to local noon on the same date
+      const localDate = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12, 0, 0)
+      store.updatePainLog(log.id, { date: localDate.toISOString() })
+      fixedCount++
+    }
+  })
+
+  // Fix nut logs
+  store.nutLogs.value.forEach(log => {
+    const d = new Date(log.date)
+    if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0) {
+      const localDate = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12, 0, 0)
+      store.updateNutLog(log.id, { date: localDate.toISOString() })
+      fixedCount++
+    }
+  })
+
+  alert(`Fixed ${fixedCount} log dates!`)
+}
 </script>
 
 <template>
@@ -110,6 +139,10 @@ onUnmounted(() => {
             <div class="sidebar-stats-number">{{ wellnessStats.totalNutLogs }}</div>
           </div>
         </div>
+
+        <button class="fix-dates-btn" @click="fixLogDates">
+          🔧 Fix Date Counts
+        </button>
       </aside>
 
       <!-- Main Content Area -->
@@ -352,6 +385,23 @@ onUnmounted(() => {
   color: white;
 }
 
+.fix-dates-btn {
+  display: none;
+  width: 100%;
+  padding: var(--space-xs) var(--space-sm);
+  margin-top: var(--space-sm);
+  background: var(--lavender-100);
+  border: 1px dashed var(--lavender-300);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.fix-dates-btn:hover {
+  background: var(--lavender-200);
+}
+
 /* Desktop Styles (768px+) */
 @media (min-width: 768px) {
   .mobile-only {
@@ -371,6 +421,10 @@ onUnmounted(() => {
     top: var(--space-md);
     height: fit-content;
     max-height: calc(100vh - 200px);
+  }
+
+  .fix-dates-btn {
+    display: block;
   }
 }
 
