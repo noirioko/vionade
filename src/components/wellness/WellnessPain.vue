@@ -10,11 +10,19 @@ const showAddModal = ref(false)
 const editingLog = ref(null)
 const editingDayLogs = ref(null) // For editing a whole day's logs
 
+// Helper to get local date string (YYYY-MM-DD)
+function getLocalDateString(date = new Date()) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 const form = ref({
   types: ['headache'],
   intensity: 1,
   note: '',
-  date: new Date().toISOString().split('T')[0],
+  date: getLocalDateString(),
 })
 
 // Month picker for overview
@@ -178,7 +186,7 @@ function openAddModal() {
     types: ['headache'],
     intensity: 1,
     note: '',
-    date: new Date().toISOString().split('T')[0],
+    date: getLocalDateString(),
   }
   showAddModal.value = true
 }
@@ -192,16 +200,20 @@ function openEditDayLogs(dayGroup) {
     types,
     intensity: firstLog.intensity,
     note: firstLog.note || '',
-    date: new Date(firstLog.date).toISOString().split('T')[0],
+    date: getLocalDateString(new Date(firstLog.date)),
   }
   showAddModal.value = true
 }
 
 function saveLog() {
+  // Parse the form date and set to noon local time to avoid timezone issues
+  const [year, month, day] = form.value.date.split('-').map(Number)
+  const localDate = new Date(year, month - 1, day, 12, 0, 0)
+
   const baseData = {
     intensity: form.value.intensity,
     note: form.value.note.trim(),
-    date: new Date(form.value.date).toISOString(),
+    date: localDate.toISOString(),
   }
 
   if (editingDayLogs.value) {
