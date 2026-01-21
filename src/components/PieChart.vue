@@ -10,6 +10,14 @@ const props = defineProps({
   size: {
     type: Number,
     default: 200
+  },
+  showCurrency: {
+    type: Boolean,
+    default: true
+  },
+  valueLabel: {
+    type: String,
+    default: ''
   }
 })
 
@@ -73,13 +81,16 @@ function createArcPath(cx, cy, r, startAngle, endAngle) {
   `
 }
 
-function formatCurrency(amount) {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)
+function formatValue(amount) {
+  if (props.showCurrency) {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount)
+  }
+  return props.valueLabel ? `${amount} ${props.valueLabel}` : amount
 }
 
 function handleMouseEnter(segment, event) {
@@ -150,7 +161,7 @@ function updateTooltipPosition(event) {
           <span class="tooltip-icon">{{ hoveredSegment.icon }}</span>
           <span class="tooltip-name">{{ hoveredSegment.name }}</span>
         </div>
-        <div class="tooltip-amount">{{ formatCurrency(hoveredSegment.value) }}</div>
+        <div class="tooltip-amount">{{ formatValue(hoveredSegment.value) }}</div>
         <div class="tooltip-percent">{{ hoveredSegment.percentage.toFixed(1) }}%</div>
       </div>
 

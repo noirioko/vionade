@@ -300,6 +300,8 @@ defineExpose({ openAddModal })
         v-if="monthStats.pieChartData.length > 0"
         :data="monthStats.pieChartData"
         :size="160"
+        :show-currency="false"
+        value-label="logs"
       />
       <div v-else class="chart-empty">
         <span class="chart-empty-icon">📊</span>
