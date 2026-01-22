@@ -121,6 +121,11 @@ let onSignOutCallback = null
 let saveTimeout = null
 let hasPendingChanges = false
 
+// Call this BEFORE making local state changes to prevent Firebase sync from overwriting
+export function markPendingChanges() {
+  hasPendingChanges = true
+}
+
 export function setOnSignOutCallback(callback) {
   onSignOutCallback = callback
 }

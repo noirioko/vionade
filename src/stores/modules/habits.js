@@ -1,7 +1,10 @@
 // Habits module - 30-day habit tracker
-import { state } from '../core'
+import { state, markPendingChanges } from '../core'
 
 export function toggleHabitCompletion(habitId, day) {
+  // Mark pending BEFORE state change to prevent Firebase sync race condition
+  markPendingChanges()
+
   const key = `${habitId}-${day}`
   const newCompletions = { ...state.habits.completions }
 
@@ -19,6 +22,9 @@ export function toggleHabitCompletion(habitId, day) {
 }
 
 export function toggleWeeklyBonus(bonusId, week) {
+  // Mark pending BEFORE state change to prevent Firebase sync race condition
+  markPendingChanges()
+
   const key = `${bonusId}-${week}`
   const newWeeklyBonuses = { ...state.habits.weeklyBonuses }
 
@@ -36,6 +42,9 @@ export function toggleWeeklyBonus(bonusId, week) {
 }
 
 export function toggleEndOfMonthGoal(goalId) {
+  // Mark pending BEFORE state change to prevent Firebase sync race condition
+  markPendingChanges()
+
   const key = `${goalId}`
   const newEndOfMonthGoals = { ...state.habits.endOfMonthGoals }
 
