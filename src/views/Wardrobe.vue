@@ -203,7 +203,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="page wardrobe-page">
+  <div class="page wardrobe-page media-page">
     <!-- Header -->
     <div class="page-header">
       <img src="/images/vio-logo.png" alt="Vionade" class="page-header-logo" />
@@ -215,95 +215,148 @@ onUnmounted(() => {
         <div class="wardrobe-banner-title">Wardrobe</div>
         <div class="wardrobe-banner-subtitle">{{ stats.total }} items in your closet</div>
       </div>
-      <img src="/images/vio_sit.png" alt="Vio" class="wardrobe-banner-vio" />
+      <img src="/images/vio_banner_full.png" alt="Vio" class="wardrobe-banner-vio" />
     </div>
 
-    <!-- Quick Filter Tags (clickable brands/locations/collections) -->
-    <div v-if="brands.length > 0 || locations.length > 0 || collections.length > 0" class="quick-filters">
-      <div class="quick-filter-section" v-if="brands.length > 0">
-        <span class="quick-filter-label">Brands:</span>
-        <div class="quick-filter-tags">
+    <!-- Desktop Layout Container -->
+    <div class="wardrobe-layout">
+      <!-- Desktop Sidebar -->
+      <aside class="wardrobe-sidebar">
+        <nav class="sidebar-nav">
           <button
-            v-for="brand in brands"
-            :key="brand"
-            class="quick-tag"
-            :class="{ active: activeTagFilter?.type === 'brand' && activeTagFilter?.value === brand }"
-            @click="filterByTag('brand', brand)"
-          >{{ brand }}</button>
-        </div>
-      </div>
-      <div class="quick-filter-section" v-if="locations.length > 0">
-        <span class="quick-filter-label">Locations:</span>
-        <div class="quick-filter-tags">
+            class="sidebar-item"
+            :class="{ active: categoryFilter === 'all' && !showFavoritesOnly }"
+            @click="categoryFilter = 'all'; showFavoritesOnly = false"
+          >
+            <span class="sidebar-icon">👕</span>
+            <span class="sidebar-label">All Items</span>
+            <span class="sidebar-count">{{ stats.total }}</span>
+          </button>
           <button
-            v-for="loc in locations"
-            :key="loc"
-            class="quick-tag location"
-            :class="{ active: activeTagFilter?.type === 'location' && activeTagFilter?.value === loc }"
-            @click="filterByTag('location', loc)"
-          >{{ loc }}</button>
-        </div>
-      </div>
-      <div class="quick-filter-section" v-if="collections.length > 0">
-        <span class="quick-filter-label">Series:</span>
-        <div class="quick-filter-tags">
-          <button
-            v-for="col in collections"
-            :key="col"
-            class="quick-tag collection"
-            :class="{ active: activeTagFilter?.type === 'collection' && activeTagFilter?.value === col }"
-            @click="filterByTag('collection', col)"
-          >{{ col }}</button>
-        </div>
-      </div>
-    </div>
+            class="sidebar-item"
+            :class="{ active: showFavoritesOnly }"
+            @click="showFavoritesOnly = !showFavoritesOnly"
+          >
+            <span class="sidebar-icon">❤️</span>
+            <span class="sidebar-label">Favorites</span>
+            <span class="sidebar-count">{{ stats.favorites }}</span>
+          </button>
 
-    <!-- Active Filter Chip -->
-    <div v-if="activeTagFilter" class="active-filter-bar">
-      <span class="active-filter-label">Showing:</span>
-      <button class="active-filter-chip" @click="clearTagFilter">
-        <span class="chip-icon">
-          {{ activeTagFilter.type === 'brand' ? '🏷️' : activeTagFilter.type === 'location' ? '📍' : '📦' }}
-        </span>
-        {{ activeTagFilter.value }}
-        <span class="chip-close">×</span>
-      </button>
-    </div>
+          <div class="sidebar-divider"></div>
 
-    <!-- Filters -->
-    <div class="filters-section">
-      <div class="filter-row">
-        <input
-          v-model="searchQuery"
-          type="text"
-          class="search-input"
-          placeholder="Search clothes..."
-        />
-      </div>
-
-      <div class="filter-row">
-        <div class="filter-pills">
-          <button
-            class="filter-pill"
-            :class="{ active: categoryFilter === 'all' }"
-            @click="categoryFilter = 'all'"
-          >All</button>
           <button
             v-for="cat in store.WARDROBE_CATEGORIES"
             :key="cat.id"
-            class="filter-pill"
-            :class="{ active: categoryFilter === cat.id }"
-            @click="categoryFilter = cat.id"
-          >{{ cat.emoji }}</button>
-        </div>
-        <label class="favorites-toggle">
-          <input v-model="showFavoritesOnly" type="checkbox" />
-          ❤️ Only
-        </label>
-      </div>
-    </div>
+            class="sidebar-item"
+            :class="{ active: categoryFilter === cat.id && !showFavoritesOnly }"
+            @click="categoryFilter = cat.id; showFavoritesOnly = false"
+          >
+            <span class="sidebar-icon">{{ cat.emoji }}</span>
+            <span class="sidebar-label">{{ cat.name }}</span>
+            <span class="sidebar-count">{{ stats.byCategory[cat.id] || 0 }}</span>
+          </button>
+        </nav>
 
-    <!-- Empty State -->
+        <div class="sidebar-stats">
+          <div class="sidebar-stat-row">
+            <span>Brands</span>
+            <span class="sidebar-stat-number">{{ stats.brands }}</span>
+          </div>
+          <div class="sidebar-stat-row">
+            <span>Locations</span>
+            <span class="sidebar-stat-number">{{ stats.locations }}</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="wardrobe-content">
+        <!-- Mobile Quick Filter Tags -->
+        <div v-if="brands.length > 0 || locations.length > 0 || collections.length > 0" class="quick-filters mobile-only">
+          <div class="quick-filter-section" v-if="brands.length > 0">
+            <span class="quick-filter-label">Brands:</span>
+            <div class="quick-filter-tags">
+              <button
+                v-for="brand in brands"
+                :key="brand"
+                class="quick-tag"
+                :class="{ active: activeTagFilter?.type === 'brand' && activeTagFilter?.value === brand }"
+                @click="filterByTag('brand', brand)"
+              >{{ brand }}</button>
+            </div>
+          </div>
+          <div class="quick-filter-section" v-if="locations.length > 0">
+            <span class="quick-filter-label">Locations:</span>
+            <div class="quick-filter-tags">
+              <button
+                v-for="loc in locations"
+                :key="loc"
+                class="quick-tag location"
+                :class="{ active: activeTagFilter?.type === 'location' && activeTagFilter?.value === loc }"
+                @click="filterByTag('location', loc)"
+              >{{ loc }}</button>
+            </div>
+          </div>
+          <div class="quick-filter-section" v-if="collections.length > 0">
+            <span class="quick-filter-label">Series:</span>
+            <div class="quick-filter-tags">
+              <button
+                v-for="col in collections"
+                :key="col"
+                class="quick-tag collection"
+                :class="{ active: activeTagFilter?.type === 'collection' && activeTagFilter?.value === col }"
+                @click="filterByTag('collection', col)"
+              >{{ col }}</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Filter Chip -->
+        <div v-if="activeTagFilter" class="active-filter-bar">
+          <span class="active-filter-label">Showing:</span>
+          <button class="active-filter-chip" @click="clearTagFilter">
+            <span class="chip-icon">
+              {{ activeTagFilter.type === 'brand' ? '🏷️' : activeTagFilter.type === 'location' ? '📍' : '📦' }}
+            </span>
+            {{ activeTagFilter.value }}
+            <span class="chip-close">×</span>
+          </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-section">
+          <div class="filter-row">
+            <input
+              v-model="searchQuery"
+              type="text"
+              class="search-input"
+              placeholder="Search clothes..."
+            />
+          </div>
+
+          <div class="filter-row mobile-only">
+            <div class="filter-pills">
+              <button
+                class="filter-pill"
+                :class="{ active: categoryFilter === 'all' }"
+                @click="categoryFilter = 'all'"
+              >All</button>
+              <button
+                v-for="cat in store.WARDROBE_CATEGORIES"
+                :key="cat.id"
+                class="filter-pill"
+                :class="{ active: categoryFilter === cat.id }"
+                @click="categoryFilter = cat.id"
+              >{{ cat.emoji }}</button>
+            </div>
+            <label class="favorites-toggle">
+              <input v-model="showFavoritesOnly" type="checkbox" />
+              ❤️ Only
+            </label>
+          </div>
+        </div>
+
+        <!-- Empty State -->
     <div v-if="filteredItems.length === 0" class="empty-state">
       <img src="/images/vio_sit.png" alt="Vio" class="empty-vio" />
       <p v-if="searchQuery || categoryFilter !== 'all' || showFavoritesOnly || activeTagFilter">
@@ -363,6 +416,8 @@ onUnmounted(() => {
           {{ getCategoryInfo(item.category).emoji }}
         </span>
       </div>
+    </div>
+      </main>
     </div>
 
     <!-- Add/Edit Item Modal -->
@@ -499,9 +554,16 @@ onUnmounted(() => {
 }
 
 .wardrobe-banner-vio {
-  height: 120px;
+  height: 300px;
   width: auto;
   flex-shrink: 0;
+  margin-bottom: -180px;
+  animation: gentle-bounce 2s ease-in-out infinite;
+}
+
+@keyframes gentle-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
   align-self: flex-end;
   margin-right: var(--space-sm);
@@ -509,7 +571,128 @@ onUnmounted(() => {
 
 @media (max-width: 480px) {
   .wardrobe-banner-title { font-size: 1.5rem; }
-  .wardrobe-banner-vio { height: 100px; }
+  .wardrobe-banner-vio { height: 220px; margin-bottom: -120px; }
+}
+
+/* Desktop Layout */
+.wardrobe-sidebar {
+  display: none;
+}
+
+.mobile-only {
+  display: flex;
+}
+
+@media (min-width: 768px) {
+  .wardrobe-layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: var(--space-lg);
+  }
+
+  .wardrobe-sidebar {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: var(--space-md);
+    height: fit-content;
+    max-height: calc(100vh - 200px);
+  }
+
+  .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: var(--white);
+    border: 2px solid var(--lavender-100);
+    border-radius: var(--radius-lg);
+    padding: var(--space-sm);
+  }
+
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border: none;
+    border-radius: var(--radius-md);
+    background: transparent;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+  }
+
+  .sidebar-item:hover {
+    background: var(--lavender-50);
+    color: var(--text-primary);
+  }
+
+  .sidebar-item.active {
+    background: var(--lavender-100);
+    color: var(--lavender-700);
+    font-weight: 600;
+  }
+
+  .sidebar-icon {
+    font-size: 1.125rem;
+  }
+
+  .sidebar-label {
+    flex: 1;
+  }
+
+  .sidebar-count {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    background: var(--lavender-50);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+  }
+
+  .sidebar-item.active .sidebar-count {
+    background: var(--lavender-200);
+    color: var(--lavender-700);
+  }
+
+  .sidebar-divider {
+    height: 1px;
+    background: var(--lavender-100);
+    margin: var(--space-xs) 0;
+  }
+
+  .sidebar-stats {
+    margin-top: var(--space-md);
+    padding: var(--space-md);
+    background: var(--white);
+    border: 2px solid var(--lavender-100);
+    border-radius: var(--radius-lg);
+  }
+
+  .sidebar-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    padding: var(--space-xs) 0;
+  }
+
+  .sidebar-stat-number {
+    font-weight: 700;
+    color: #BE185D;
+  }
+
+  .mobile-only {
+    display: none !important;
+  }
+
+  .items-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
 }
 
 /* Quick Filters */
@@ -969,6 +1152,49 @@ onUnmounted(() => {
 /* Dark Mode */
 [data-theme="dark"] .wardrobe-banner {
   background: linear-gradient(135deg, #831843 0%, #9D174D 50%, #BE185D 100%) !important;
+}
+
+/* Dark mode sidebar */
+[data-theme="dark"] .sidebar-nav {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .sidebar-item {
+  color: #C4B5FD !important;
+}
+
+[data-theme="dark"] .sidebar-item:hover {
+  background: #2D2640 !important;
+  color: #E9D5FF !important;
+}
+
+[data-theme="dark"] .sidebar-item.active {
+  background: #3D3456 !important;
+  color: #A78BFA !important;
+}
+
+[data-theme="dark"] .sidebar-count {
+  background: #2D2640 !important;
+  color: #A78BFA !important;
+}
+
+[data-theme="dark"] .sidebar-item.active .sidebar-count {
+  background: #5B21B6 !important;
+  color: #E9D5FF !important;
+}
+
+[data-theme="dark"] .sidebar-divider {
+  background: #3D3456 !important;
+}
+
+[data-theme="dark"] .sidebar-stats {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .sidebar-stat-number {
+  color: #A78BFA !important;
 }
 
 [data-theme="dark"] .quick-filters {

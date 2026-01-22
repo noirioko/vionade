@@ -334,7 +334,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="page collections-page">
+  <div class="page collections-page media-page">
     <!-- Header -->
     <div class="page-header">
       <img src="/images/vio-logo.png" alt="Vionade" class="page-header-logo" />
@@ -346,97 +346,145 @@ onUnmounted(() => {
         <div class="collections-banner-title">Collections</div>
         <div class="collections-banner-subtitle">{{ stats.ownedItems }}/{{ stats.totalItems }} items collected</div>
       </div>
-      <img src="/images/vio_sit.png" alt="Vio" class="collections-banner-vio" />
+      <img src="/images/vio_banner_full.png" alt="Vio" class="collections-banner-vio" />
     </div>
 
-    <!-- Stats Row -->
-    <div class="stats-row">
-      <div class="stat-chip">
-        <span class="stat-emoji">📦</span>
-        <span class="stat-value">{{ stats.totalCollections }}</span>
-        <span class="stat-label">series</span>
-      </div>
-      <div class="stat-chip">
-        <span class="stat-emoji">🎁</span>
-        <span class="stat-value">{{ stats.ownedItems }}</span>
-        <span class="stat-label">owned</span>
-      </div>
-      <div v-if="stats.brands > 0" class="stat-chip">
-        <span class="stat-emoji">🏷️</span>
-        <span class="stat-value">{{ stats.brands }}</span>
-        <span class="stat-label">brands</span>
-      </div>
-      <div class="stat-chip">
-        <span class="stat-emoji">💰</span>
-        <span class="stat-value">{{ store.formatCurrency(stats.totalSpent) }}</span>
-        <span class="stat-label">spent</span>
-      </div>
-    </div>
-
-    <!-- View Mode Tabs -->
-    <div class="view-tabs">
-      <button class="view-tab" :class="{ active: viewMode === 'all' }" @click="viewMode = 'all'">
-        All
-      </button>
-      <button class="view-tab" :class="{ active: viewMode === 'brand' }" @click="viewMode = 'brand'">
-        By Brand
-      </button>
-      <button class="view-tab" :class="{ active: viewMode === 'location' }" @click="viewMode = 'location'">
-        By Location
-      </button>
-    </div>
-
-    <!-- Filters -->
-    <div class="filters-section">
-      <div class="filter-row">
-        <div class="filter-pills">
+    <!-- Desktop Layout Container -->
+    <div class="collections-layout">
+      <!-- Desktop Sidebar -->
+      <aside class="collections-sidebar">
+        <nav class="sidebar-nav">
           <button
-            class="filter-pill"
+            class="sidebar-item"
             :class="{ active: typeFilter === 'all' }"
             @click="typeFilter = 'all'"
-          >All</button>
+          >
+            <span class="sidebar-icon">📦</span>
+            <span class="sidebar-label">All Collections</span>
+            <span class="sidebar-count">{{ stats.totalCollections }}</span>
+          </button>
+
+          <div class="sidebar-divider"></div>
+
           <button
             v-for="type in COLLECTION_TYPES"
             :key="type.id"
-            class="filter-pill"
+            class="sidebar-item"
             :class="{ active: typeFilter === type.id }"
             @click="typeFilter = type.id"
-          >{{ type.emoji }} {{ type.name }}</button>
-        </div>
-      </div>
+          >
+            <span class="sidebar-icon">{{ type.emoji }}</span>
+            <span class="sidebar-label">{{ type.name }}</span>
+            <span class="sidebar-count">{{ filteredCollections.filter(c => c.type === type.id).length }}</span>
+          </button>
+        </nav>
 
-      <div class="filter-row">
-        <input
-          v-model="searchQuery"
-          type="text"
-          class="search-input"
-          placeholder="Search collections..."
-        />
-        <label class="show-complete-toggle">
-          <input v-model="showComplete" type="checkbox" />
-          Show complete
-        </label>
-      </div>
-
-      <!-- Quick Filters (clickable tags) -->
-      <div v-if="brands.length > 0 || locations.length > 0" class="quick-filters">
-        <div v-if="brands.length > 0" class="quick-filter-group">
-          <span class="quick-filter-label">Brands:</span>
-          <div class="quick-filter-pills">
-            <button
-              v-for="brand in brands"
-              :key="brand"
-              class="quick-tag brand"
-              :class="{ active: activeTagFilter?.type === 'brand' && activeTagFilter?.value === brand }"
-              @click="filterByTag('brand', brand)"
-            >{{ brand }}</button>
+        <div class="sidebar-stats">
+          <div class="sidebar-stat-row">
+            <span>🎁 Owned</span>
+            <span class="sidebar-stat-number">{{ stats.ownedItems }}</span>
+          </div>
+          <div class="sidebar-stat-row">
+            <span>🏷️ Brands</span>
+            <span class="sidebar-stat-number">{{ stats.brands }}</span>
+          </div>
+          <div class="sidebar-stat-row">
+            <span>💰 Spent</span>
+            <span class="sidebar-stat-number">{{ store.formatCurrency(stats.totalSpent) }}</span>
           </div>
         </div>
-        <div v-if="locations.length > 0" class="quick-filter-group">
-          <span class="quick-filter-label">Locations:</span>
-          <div class="quick-filter-pills">
-            <button
-              v-for="loc in locations"
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="collections-content">
+        <!-- Mobile Stats Row -->
+        <div class="stats-row mobile-only">
+          <div class="stat-chip">
+            <span class="stat-emoji">📦</span>
+            <span class="stat-value">{{ stats.totalCollections }}</span>
+            <span class="stat-label">series</span>
+          </div>
+          <div class="stat-chip">
+            <span class="stat-emoji">🎁</span>
+            <span class="stat-value">{{ stats.ownedItems }}</span>
+            <span class="stat-label">owned</span>
+          </div>
+          <div v-if="stats.brands > 0" class="stat-chip">
+            <span class="stat-emoji">🏷️</span>
+            <span class="stat-value">{{ stats.brands }}</span>
+            <span class="stat-label">brands</span>
+          </div>
+          <div class="stat-chip">
+            <span class="stat-emoji">💰</span>
+            <span class="stat-value">{{ store.formatCurrency(stats.totalSpent) }}</span>
+            <span class="stat-label">spent</span>
+          </div>
+        </div>
+
+        <!-- Mobile View Mode Tabs -->
+        <div class="view-tabs mobile-only">
+          <button class="view-tab" :class="{ active: viewMode === 'all' }" @click="viewMode = 'all'">
+            All
+          </button>
+          <button class="view-tab" :class="{ active: viewMode === 'brand' }" @click="viewMode = 'brand'">
+            By Brand
+          </button>
+          <button class="view-tab" :class="{ active: viewMode === 'location' }" @click="viewMode = 'location'">
+            By Location
+          </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-section">
+          <div class="filter-row mobile-only">
+            <div class="filter-pills">
+              <button
+                class="filter-pill"
+                :class="{ active: typeFilter === 'all' }"
+                @click="typeFilter = 'all'"
+              >All</button>
+              <button
+                v-for="type in COLLECTION_TYPES"
+                :key="type.id"
+                class="filter-pill"
+                :class="{ active: typeFilter === type.id }"
+                @click="typeFilter = type.id"
+              >{{ type.emoji }} {{ type.name }}</button>
+            </div>
+          </div>
+
+          <div class="filter-row">
+            <input
+              v-model="searchQuery"
+              type="text"
+              class="search-input"
+              placeholder="Search collections..."
+            />
+            <label class="show-complete-toggle">
+              <input v-model="showComplete" type="checkbox" />
+              Show complete
+            </label>
+          </div>
+
+          <!-- Mobile Quick Filters (clickable tags) -->
+          <div v-if="brands.length > 0 || locations.length > 0" class="quick-filters mobile-only">
+            <div v-if="brands.length > 0" class="quick-filter-group">
+              <span class="quick-filter-label">Brands:</span>
+              <div class="quick-filter-pills">
+                <button
+                  v-for="brand in brands"
+                  :key="brand"
+                  class="quick-tag brand"
+                  :class="{ active: activeTagFilter?.type === 'brand' && activeTagFilter?.value === brand }"
+                  @click="filterByTag('brand', brand)"
+                >{{ brand }}</button>
+              </div>
+            </div>
+            <div v-if="locations.length > 0" class="quick-filter-group">
+              <span class="quick-filter-label">Locations:</span>
+              <div class="quick-filter-pills">
+                <button
+                  v-for="loc in locations"
               :key="loc"
               class="quick-tag location"
               :class="{ active: activeTagFilter?.type === 'location' && activeTagFilter?.value === loc }"
@@ -658,6 +706,8 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
+      </main>
+    </div>
 
     <!-- Add/Edit Collection Modal -->
     <div v-if="showCollectionModal" class="modal-overlay" @click.self="showCollectionModal = false">
@@ -850,16 +900,144 @@ onUnmounted(() => {
 }
 
 .collections-banner-vio {
-  height: 140px;
+  height: 300px;
   width: auto;
   flex-shrink: 0;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
-  margin-bottom: -30px;
+  margin-bottom: -180px;
+  animation: gentle-bounce 2s ease-in-out infinite;
+}
+
+@keyframes gentle-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
 }
 
 @media (max-width: 480px) {
   .collections-banner-title { font-size: 1.5rem; }
-  .collections-banner-vio { height: 110px; margin-bottom: -20px; }
+  .collections-banner-vio { height: 220px; margin-bottom: -120px; }
+}
+
+/* Desktop Layout */
+.collections-sidebar {
+  display: none;
+}
+
+.mobile-only {
+  display: flex;
+}
+
+@media (min-width: 768px) {
+  .collections-layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: var(--space-lg);
+  }
+
+  .collections-sidebar {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: var(--space-md);
+    height: fit-content;
+    max-height: calc(100vh - 200px);
+  }
+
+  .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: var(--white);
+    border: 2px solid var(--lavender-100);
+    border-radius: var(--radius-lg);
+    padding: var(--space-sm);
+  }
+
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border: none;
+    border-radius: var(--radius-md);
+    background: transparent;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+  }
+
+  .sidebar-item:hover {
+    background: var(--lavender-50);
+    color: var(--text-primary);
+  }
+
+  .sidebar-item.active {
+    background: var(--lavender-100);
+    color: var(--lavender-700);
+    font-weight: 600;
+  }
+
+  .sidebar-icon {
+    font-size: 1.125rem;
+  }
+
+  .sidebar-label {
+    flex: 1;
+  }
+
+  .sidebar-count {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    background: var(--lavender-50);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+  }
+
+  .sidebar-item.active .sidebar-count {
+    background: var(--lavender-200);
+    color: var(--lavender-700);
+  }
+
+  .sidebar-divider {
+    height: 1px;
+    background: var(--lavender-100);
+    margin: var(--space-xs) 0;
+  }
+
+  .sidebar-stats {
+    margin-top: var(--space-md);
+    padding: var(--space-md);
+    background: var(--white);
+    border: 2px solid var(--lavender-100);
+    border-radius: var(--radius-lg);
+  }
+
+  .sidebar-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    padding: var(--space-xs) 0;
+  }
+
+  .sidebar-stat-number {
+    font-weight: 700;
+    color: #C2410C;
+  }
+
+  .mobile-only {
+    display: none !important;
+  }
+
+  .collections-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  }
 }
 
 /* Stats Row */
@@ -1560,6 +1738,49 @@ onUnmounted(() => {
 /* Dark Mode */
 [data-theme="dark"] .collections-banner {
   background: linear-gradient(135deg, #9A3412 0%, #C2410C 50%, #EA580C 100%) !important;
+}
+
+/* Dark mode sidebar */
+[data-theme="dark"] .sidebar-nav {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .sidebar-item {
+  color: #C4B5FD !important;
+}
+
+[data-theme="dark"] .sidebar-item:hover {
+  background: #2D2640 !important;
+  color: #E9D5FF !important;
+}
+
+[data-theme="dark"] .sidebar-item.active {
+  background: #3D3456 !important;
+  color: #A78BFA !important;
+}
+
+[data-theme="dark"] .sidebar-count {
+  background: #2D2640 !important;
+  color: #A78BFA !important;
+}
+
+[data-theme="dark"] .sidebar-item.active .sidebar-count {
+  background: #5B21B6 !important;
+  color: #E9D5FF !important;
+}
+
+[data-theme="dark"] .sidebar-divider {
+  background: #3D3456 !important;
+}
+
+[data-theme="dark"] .sidebar-stats {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .sidebar-stat-number {
+  color: #A78BFA !important;
 }
 
 [data-theme="dark"] .stat-chip {
