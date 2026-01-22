@@ -22,7 +22,7 @@ const fabAction = ref(null)
 provide('fabAction', fabAction)
 
 // Pages where we show the FAB
-const pagesWithFab = ['/finance', '/media', '/laundry', '/passwords', '/pets', '/collections', '/wardrobe', '/subscriptions']
+const pagesWithFab = ['/finance', '/media', '/laundry', '/passwords', '/pets', '/collections', '/wardrobe', '/subscriptions', '/shopping']
 
 const showFab = computed(() => pagesWithFab.includes(route.path))
 

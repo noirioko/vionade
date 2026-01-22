@@ -9,6 +9,27 @@ export const COLLECTION_TYPES = [
   { id: 'other', name: 'Other', emoji: '✨' },
 ]
 
+// Get all unique brands (case-preserved)
+export function getCollectionBrands() {
+  const brands = new Set()
+  state.collections.forEach(c => {
+    if (c.brand) brands.add(c.brand)
+  })
+  return Array.from(brands).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
+}
+
+// Smart brand normalization - finds existing brand case-insensitively
+// If "Uniqlo" exists and user types "uniqlo", returns "Uniqlo"
+export function normalizeBrand(inputBrand) {
+  if (!inputBrand) return ''
+  const trimmed = inputBrand.trim()
+  if (!trimmed) return ''
+
+  const existingBrands = getCollectionBrands()
+  const match = existingBrands.find(b => b.toLowerCase() === trimmed.toLowerCase())
+  return match || trimmed
+}
+
 // Collection CRUD
 export function addCollection(collection) {
   const id = generateId()
@@ -16,6 +37,7 @@ export function addCollection(collection) {
     id,
     name: collection.name || '',
     type: collection.type || 'blindbox',
+    brand: normalizeBrand(collection.brand),
     photo: collection.photo || null,
     totalItems: collection.totalItems || 0,
     pricePerItem: collection.pricePerItem || null,
@@ -29,6 +51,10 @@ export function addCollection(collection) {
 export function updateCollection(id, updates) {
   const collection = state.collections.find(c => c.id === id)
   if (collection) {
+    // Normalize brand if it's being updated
+    if (updates.brand !== undefined) {
+      updates.brand = normalizeBrand(updates.brand)
+    }
     Object.assign(collection, updates)
   }
 }
@@ -120,9 +146,21 @@ export function getCollectionsWithStats() {
   }))
 }
 
+// Get unique locations from collections and items
+export function getCollectionLocations() {
+  const locations = new Set()
+  state.collections.forEach(c => {
+    if (c.location) locations.add(c.location)
+  })
+  state.collectionItems.forEach(i => {
+    if (i.location) locations.add(i.location)
+  })
+  return Array.from(locations).sort()
+}
+
 // Filter collections
 export function getFilteredCollections(options = {}) {
-  const { type, search, showComplete = true } = options
+  const { type, brand, search, showComplete = true } = options
 
   let collections = getCollectionsWithStats()
 
@@ -130,10 +168,15 @@ export function getFilteredCollections(options = {}) {
     collections = collections.filter(c => c.type === type)
   }
 
+  if (brand && brand !== 'all') {
+    collections = collections.filter(c => c.brand === brand)
+  }
+
   if (search) {
     const lower = search.toLowerCase()
     collections = collections.filter(c =>
       c.name.toLowerCase().includes(lower) ||
+      c.brand?.toLowerCase().includes(lower) ||
       c.items.some(i => i.name.toLowerCase().includes(lower))
     )
   }
@@ -146,4 +189,45 @@ export function getFilteredCollections(options = {}) {
   collections.sort((a, b) => a.name.localeCompare(b.name))
 
   return collections
+}
+
+// Get collections grouped by a field
+export function getCollectionsGrouped(groupBy, options = {}) {
+  const collections = getFilteredCollections(options)
+  const groups = {}
+  const ungrouped = []
+
+  collections.forEach(collection => {
+    const key = collection[groupBy]
+    if (key) {
+      if (!groups[key]) groups[key] = []
+      groups[key].push(collection)
+    } else {
+      ungrouped.push(collection)
+    }
+  })
+
+  // Convert to array and sort by group name
+  const sortedGroups = Object.entries(groups)
+    .sort(([a], [b]) => a.toLowerCase().localeCompare(b.toLowerCase()))
+    .map(([name, items]) => ({
+      name,
+      collections: items,
+      count: items.length,
+      totalItems: items.reduce((sum, c) => sum + c.stats.total, 0),
+      ownedItems: items.reduce((sum, c) => sum + c.stats.owned, 0),
+    }))
+
+  // Add ungrouped items at the end if any
+  if (ungrouped.length > 0) {
+    sortedGroups.push({
+      name: 'No Brand',
+      collections: ungrouped,
+      count: ungrouped.length,
+      totalItems: ungrouped.reduce((sum, c) => sum + c.stats.total, 0),
+      ownedItems: ungrouped.reduce((sum, c) => sum + c.stats.owned, 0),
+    })
+  }
+
+  return sortedGroups
 }

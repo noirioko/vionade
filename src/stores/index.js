@@ -150,6 +150,9 @@ import {
   toggleItemOwned,
   getCollectionsWithStats,
   getFilteredCollections,
+  getCollectionLocations,
+  getCollectionBrands,
+  getCollectionsGrouped,
 } from './modules/collections'
 
 // Wardrobe module
@@ -161,7 +164,10 @@ import {
   getWardrobeItemById,
   toggleWardrobeFavorite,
   getWardrobeLocations,
+  getWardrobeBrands,
+  getWardrobeCollections,
   getFilteredWardrobe,
+  getWardrobeGrouped,
   getWardrobeStats,
 } from './modules/wardrobe'
 
@@ -230,6 +236,9 @@ import {
   updatePaperItem,
   clearCheckedFromPaper,
 } from './modules/shoppingList'
+
+// Export constants for direct use
+export { COLLECTION_TYPES }
 
 // Export composable
 export function useFinanceStore() {
@@ -392,6 +401,9 @@ export function useFinanceStore() {
     toggleItemOwned,
     getCollectionsWithStats,
     getFilteredCollections,
+    getCollectionLocations,
+    getCollectionBrands,
+    getCollectionsGrouped,
 
     // Wardrobe actions
     addWardrobeItem,
@@ -400,7 +412,10 @@ export function useFinanceStore() {
     getWardrobeItemById,
     toggleWardrobeFavorite,
     getWardrobeLocations,
+    getWardrobeBrands,
+    getWardrobeCollections,
     getFilteredWardrobe,
+    getWardrobeGrouped,
     getWardrobeStats,
 
     // Subscription actions

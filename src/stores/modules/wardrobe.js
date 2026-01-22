@@ -25,6 +25,7 @@ export function addWardrobeItem(item) {
     location: item.location || '',
     color: item.color || '',
     brand: item.brand || '',
+    collection: item.collection || '',
     notes: item.notes || '',
     favorite: item.favorite || false,
     createdAt: new Date().toISOString(),
@@ -67,9 +68,27 @@ export function getWardrobeLocations() {
   return Array.from(locations).sort()
 }
 
+// Get all unique brands
+export function getWardrobeBrands() {
+  const brands = new Set()
+  state.wardrobe.forEach(item => {
+    if (item.brand) brands.add(item.brand)
+  })
+  return Array.from(brands).sort()
+}
+
+// Get all unique collections
+export function getWardrobeCollections() {
+  const collections = new Set()
+  state.wardrobe.forEach(item => {
+    if (item.collection) collections.add(item.collection)
+  })
+  return Array.from(collections).sort()
+}
+
 // Filter wardrobe items
 export function getFilteredWardrobe(options = {}) {
-  const { category, location, search, favoritesOnly = false } = options
+  const { category, location, brand, collection, search, favoritesOnly = false } = options
 
   let items = [...state.wardrobe]
 
@@ -81,12 +100,21 @@ export function getFilteredWardrobe(options = {}) {
     items = items.filter(i => i.location === location)
   }
 
+  if (brand && brand !== 'all') {
+    items = items.filter(i => i.brand === brand)
+  }
+
+  if (collection && collection !== 'all') {
+    items = items.filter(i => i.collection === collection)
+  }
+
   if (search) {
     const lower = search.toLowerCase()
     items = items.filter(i =>
       i.name.toLowerCase().includes(lower) ||
       i.brand?.toLowerCase().includes(lower) ||
       i.color?.toLowerCase().includes(lower) ||
+      i.collection?.toLowerCase().includes(lower) ||
       i.notes?.toLowerCase().includes(lower)
     )
   }
@@ -104,6 +132,35 @@ export function getFilteredWardrobe(options = {}) {
   return items
 }
 
+// Get wardrobe items grouped by a field
+export function getWardrobeGrouped(groupBy, options = {}) {
+  const items = getFilteredWardrobe(options)
+  const groups = {}
+  const ungrouped = []
+
+  items.forEach(item => {
+    const key = item[groupBy]
+    if (key) {
+      if (!groups[key]) groups[key] = []
+      groups[key].push(item)
+    } else {
+      ungrouped.push(item)
+    }
+  })
+
+  // Convert to array and sort by group name
+  const sortedGroups = Object.entries(groups)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, items]) => ({ name, items, count: items.length }))
+
+  // Add ungrouped items at the end if any
+  if (ungrouped.length > 0) {
+    sortedGroups.push({ name: 'Uncategorized', items: ungrouped, count: ungrouped.length })
+  }
+
+  return sortedGroups
+}
+
 // Get wardrobe stats
 export function getWardrobeStats() {
   const items = state.wardrobe
@@ -118,5 +175,7 @@ export function getWardrobeStats() {
     byCategory,
     favorites: items.filter(i => i.favorite).length,
     locations: getWardrobeLocations().length,
+    brands: getWardrobeBrands().length,
+    collections: getWardrobeCollections().length,
   }
 }

@@ -1,11 +1,17 @@
 <script setup>
 import { ref, computed, inject, onMounted, onUnmounted } from 'vue'
-import { useFinanceStore } from '../stores'
+import { useFinanceStore, COLLECTION_TYPES } from '../stores'
 import { useToast } from '../composables/useToast'
 
 const store = useFinanceStore()
 const toast = useToast()
 const fabAction = inject('fabAction')
+
+// Tag filter state (clickable filtering)
+const activeTagFilter = ref(null) // { type: 'brand' | 'location', value: string }
+
+// View mode: 'all', 'brand', 'location'
+const viewMode = ref('all')
 
 // Filter state
 const typeFilter = ref('all')
@@ -26,6 +32,7 @@ const expandedCollections = ref(new Set())
 const collectionForm = ref({
   name: '',
   type: 'blindbox',
+  brand: '',
   photo: '',
   totalItems: 0,
   pricePerItem: '',
@@ -44,13 +51,51 @@ const itemForm = ref({
 
 const isUploadingImage = ref(false)
 
-// Filtered collections
+// Filtered collections (flat list)
 const filteredCollections = computed(() => {
-  return store.getFilteredCollections({
+  let collections = store.getFilteredCollections({
     type: typeFilter.value,
     search: searchQuery.value,
     showComplete: showComplete.value,
   })
+
+  // Apply tag filter if active
+  if (activeTagFilter.value) {
+    const { type, value } = activeTagFilter.value
+    if (type === 'brand') {
+      collections = collections.filter(c => c.brand === value)
+    } else if (type === 'location') {
+      collections = collections.filter(c => c.location === value)
+    }
+  }
+
+  return collections
+})
+
+// Grouped collections
+const groupedCollections = computed(() => {
+  if (viewMode.value === 'all') return null
+  return store.getCollectionsGrouped(viewMode.value, {
+    type: typeFilter.value,
+    search: searchQuery.value,
+    showComplete: showComplete.value,
+  })
+})
+
+// Autocomplete data
+const locations = computed(() => store.getCollectionLocations())
+const brands = computed(() => store.getCollectionBrands())
+
+// Stats
+const stats = computed(() => {
+  const collections = store.getCollectionsWithStats()
+  return {
+    totalCollections: collections.length,
+    totalItems: collections.reduce((sum, c) => sum + c.stats.total, 0),
+    ownedItems: collections.reduce((sum, c) => sum + c.stats.owned, 0),
+    totalSpent: collections.reduce((sum, c) => sum + c.stats.totalSpent, 0),
+    brands: brands.value.length,
+  }
 })
 
 // Toggle collection expansion
@@ -72,6 +117,7 @@ function openAddCollection() {
   collectionForm.value = {
     name: '',
     type: 'blindbox',
+    brand: '',
     photo: '',
     totalItems: 0,
     pricePerItem: '',
@@ -86,6 +132,7 @@ function openEditCollection(collection) {
   collectionForm.value = {
     name: collection.name,
     type: collection.type,
+    brand: collection.brand || '',
     photo: collection.photo || '',
     totalItems: collection.totalItems,
     pricePerItem: collection.pricePerItem || '',
@@ -97,7 +144,10 @@ function openEditCollection(collection) {
 
 function saveCollection() {
   const trimmedName = collectionForm.value.name.trim()
-  if (!trimmedName) return
+  if (!trimmedName) {
+    toast.error('Collection name is required')
+    return
+  }
 
   const parsedPrice = parseFloat(collectionForm.value.pricePerItem)
   const parsedTotal = parseInt(collectionForm.value.totalItems)
@@ -105,6 +155,7 @@ function saveCollection() {
   const data = {
     ...collectionForm.value,
     name: trimmedName,
+    brand: collectionForm.value.brand.trim(),
     location: collectionForm.value.location.trim(),
     notes: collectionForm.value.notes.trim(),
     pricePerItem: !isNaN(parsedPrice) ? parsedPrice : null,
@@ -113,8 +164,10 @@ function saveCollection() {
 
   if (editingCollection.value) {
     store.updateCollection(editingCollection.value.id, data)
+    toast.success('Collection updated!')
   } else {
     store.addCollection(data)
+    toast.success('Collection added!')
   }
   showCollectionModal.value = false
 }
@@ -123,6 +176,7 @@ function deleteCollection(id) {
   if (confirm('Delete this collection and all its items?')) {
     store.deleteCollection(id)
     showCollectionModal.value = false
+    toast.success('Collection deleted')
   }
 }
 
@@ -157,7 +211,10 @@ function openEditItem(item, collectionId) {
 
 function saveItem() {
   const trimmedName = itemForm.value.name.trim()
-  if (!trimmedName) return
+  if (!trimmedName) {
+    toast.error('Item name is required')
+    return
+  }
 
   const parsedPrice = parseFloat(itemForm.value.pricePaid)
 
@@ -172,8 +229,10 @@ function saveItem() {
 
   if (editingItem.value) {
     store.updateCollectionItem(editingItem.value.id, data)
+    toast.success('Item updated!')
   } else {
     store.addCollectionItem(data)
+    toast.success('Item added!')
   }
   showItemModal.value = false
 }
@@ -182,6 +241,7 @@ function deleteItem(id) {
   if (confirm('Delete this item?')) {
     store.deleteCollectionItem(id)
     showItemModal.value = false
+    toast.success('Item deleted')
   }
 }
 
@@ -245,7 +305,22 @@ function handleImageUpload(event, target) {
 
 // Get type info
 function getTypeInfo(typeId) {
-  return store.COLLECTION_TYPES.find(t => t.id === typeId) || store.COLLECTION_TYPES[0]
+  return COLLECTION_TYPES.find(t => t.id === typeId) || COLLECTION_TYPES[0]
+}
+
+// Tag filter functions
+function filterByTag(type, value, event) {
+  if (event) event.stopPropagation()
+  activeTagFilter.value = { type, value }
+}
+
+function clearTagFilter() {
+  activeTagFilter.value = null
+}
+
+// Render a single collection card (reusable)
+function renderCollectionCard(collection) {
+  return collection
 }
 
 // FAB action
@@ -269,9 +344,46 @@ onUnmounted(() => {
     <div class="collections-banner">
       <div class="collections-banner-content">
         <div class="collections-banner-title">Collections</div>
-        <div class="collections-banner-subtitle">Track your blind boxes & figures</div>
+        <div class="collections-banner-subtitle">{{ stats.ownedItems }}/{{ stats.totalItems }} items collected</div>
       </div>
       <img src="/images/vio_sit.png" alt="Vio" class="collections-banner-vio" />
+    </div>
+
+    <!-- Stats Row -->
+    <div class="stats-row">
+      <div class="stat-chip">
+        <span class="stat-emoji">📦</span>
+        <span class="stat-value">{{ stats.totalCollections }}</span>
+        <span class="stat-label">series</span>
+      </div>
+      <div class="stat-chip">
+        <span class="stat-emoji">🎁</span>
+        <span class="stat-value">{{ stats.ownedItems }}</span>
+        <span class="stat-label">owned</span>
+      </div>
+      <div v-if="stats.brands > 0" class="stat-chip">
+        <span class="stat-emoji">🏷️</span>
+        <span class="stat-value">{{ stats.brands }}</span>
+        <span class="stat-label">brands</span>
+      </div>
+      <div class="stat-chip">
+        <span class="stat-emoji">💰</span>
+        <span class="stat-value">{{ store.formatCurrency(stats.totalSpent) }}</span>
+        <span class="stat-label">spent</span>
+      </div>
+    </div>
+
+    <!-- View Mode Tabs -->
+    <div class="view-tabs">
+      <button class="view-tab" :class="{ active: viewMode === 'all' }" @click="viewMode = 'all'">
+        All
+      </button>
+      <button class="view-tab" :class="{ active: viewMode === 'brand' }" @click="viewMode = 'brand'">
+        By Brand
+      </button>
+      <button class="view-tab" :class="{ active: viewMode === 'location' }" @click="viewMode = 'location'">
+        By Location
+      </button>
     </div>
 
     <!-- Filters -->
@@ -284,7 +396,7 @@ onUnmounted(() => {
             @click="typeFilter = 'all'"
           >All</button>
           <button
-            v-for="type in store.COLLECTION_TYPES"
+            v-for="type in COLLECTION_TYPES"
             :key="type.id"
             class="filter-pill"
             :class="{ active: typeFilter === type.id }"
@@ -305,6 +417,43 @@ onUnmounted(() => {
           Show complete
         </label>
       </div>
+
+      <!-- Quick Filters (clickable tags) -->
+      <div v-if="brands.length > 0 || locations.length > 0" class="quick-filters">
+        <div v-if="brands.length > 0" class="quick-filter-group">
+          <span class="quick-filter-label">Brands:</span>
+          <div class="quick-filter-pills">
+            <button
+              v-for="brand in brands"
+              :key="brand"
+              class="quick-tag brand"
+              :class="{ active: activeTagFilter?.type === 'brand' && activeTagFilter?.value === brand }"
+              @click="filterByTag('brand', brand)"
+            >{{ brand }}</button>
+          </div>
+        </div>
+        <div v-if="locations.length > 0" class="quick-filter-group">
+          <span class="quick-filter-label">Locations:</span>
+          <div class="quick-filter-pills">
+            <button
+              v-for="loc in locations"
+              :key="loc"
+              class="quick-tag location"
+              :class="{ active: activeTagFilter?.type === 'location' && activeTagFilter?.value === loc }"
+              @click="filterByTag('location', loc)"
+            >{{ loc }}</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Filter Bar -->
+      <div v-if="activeTagFilter" class="active-filter-bar">
+        <span class="active-filter-label">Filtered by:</span>
+        <span class="active-filter-tag" :class="activeTagFilter.type">
+          {{ activeTagFilter.type === 'brand' ? '🏷️' : '📍' }} {{ activeTagFilter.value }}
+        </span>
+        <button class="clear-filter-btn" @click="clearTagFilter">× Clear</button>
+      </div>
     </div>
 
     <!-- Empty State -->
@@ -316,8 +465,108 @@ onUnmounted(() => {
       <p v-else>No collections yet! Tap + to add your first one.</p>
     </div>
 
-    <!-- Collections List -->
-    <div class="collections-list">
+    <!-- Grouped View -->
+    <template v-else-if="viewMode !== 'all' && groupedCollections">
+      <div v-for="group in groupedCollections" :key="group.name" class="group-section">
+        <div class="group-header">
+          <div class="group-header-left">
+            <span class="group-name">{{ group.name }}</span>
+            <span class="group-meta">{{ group.count }} series</span>
+          </div>
+          <span class="group-progress">{{ group.ownedItems }}/{{ group.totalItems }}</span>
+        </div>
+
+        <div class="collections-list">
+          <div
+            v-for="collection in group.collections"
+            :key="collection.id"
+            class="collection-card"
+            :class="{ expanded: isExpanded(collection.id), complete: collection.stats.isComplete }"
+          >
+            <!-- Collection Header -->
+            <div class="collection-header" @click="toggleExpand(collection.id)">
+              <div class="collection-photo">
+                <img v-if="collection.photo" :src="collection.photo" :alt="collection.name" />
+                <span v-else>{{ getTypeInfo(collection.type).emoji }}</span>
+              </div>
+              <div class="collection-info">
+                <div class="collection-name-row">
+                  <span class="collection-name">{{ collection.name }}</span>
+                  <span class="collection-type-badge" :class="collection.type">
+                    {{ getTypeInfo(collection.type).name }}
+                  </span>
+                </div>
+                <div class="collection-progress">
+                  <div class="progress-bar">
+                    <div
+                      class="progress-fill"
+                      :style="{ width: collection.stats.progress + '%' }"
+                      :class="{ complete: collection.stats.isComplete }"
+                    ></div>
+                  </div>
+                  <span class="progress-text">
+                    {{ collection.stats.owned }}/{{ collection.stats.total }}
+                    <span v-if="collection.stats.isComplete" class="complete-badge">Complete!</span>
+                  </span>
+                </div>
+                <div class="collection-tags">
+                  <span
+                    v-if="collection.brand"
+                    class="clickable-tag brand"
+                    @click.stop="filterByTag('brand', collection.brand, $event)"
+                  >🏷️ {{ collection.brand }}</span>
+                  <span
+                    v-if="collection.location"
+                    class="clickable-tag location"
+                    @click.stop="filterByTag('location', collection.location, $event)"
+                  >📍 {{ collection.location }}</span>
+                </div>
+              </div>
+              <button class="expand-btn">{{ isExpanded(collection.id) ? '▼' : '▶' }}</button>
+            </div>
+
+            <!-- Expanded Content -->
+            <div v-if="isExpanded(collection.id)" class="collection-content">
+              <div class="collection-actions">
+                <button class="action-btn edit" @click.stop="openEditCollection(collection)">Edit</button>
+                <button class="action-btn add" @click.stop="openAddItem(collection.id)">+ Add Item</button>
+              </div>
+
+              <div v-if="collection.location" class="collection-meta">
+                <span class="meta-icon">📍</span> {{ collection.location }}
+              </div>
+
+              <div class="items-grid">
+                <div
+                  v-for="item in collection.items"
+                  :key="item.id"
+                  class="item-card"
+                  :class="{ owned: item.owned, missing: !item.owned }"
+                  @click="openEditItem(item, collection.id)"
+                >
+                  <div class="item-check" @click.stop="quickToggleOwned(item.id)">
+                    {{ item.owned ? '✓' : '' }}
+                  </div>
+                  <div class="item-photo">
+                    <img v-if="item.photo" :src="item.photo" :alt="item.name" />
+                    <span v-else>{{ item.owned ? '✨' : '?' }}</span>
+                  </div>
+                  <div class="item-name">{{ item.name }}</div>
+                </div>
+
+                <div class="item-card add-item" @click="openAddItem(collection.id)">
+                  <span class="add-icon">+</span>
+                  <span class="add-text">Add</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Regular List View -->
+    <div v-else class="collections-list">
       <div
         v-for="collection in filteredCollections"
         :key="collection.id"
@@ -350,8 +599,20 @@ onUnmounted(() => {
                 <span v-if="collection.stats.isComplete" class="complete-badge">Complete!</span>
               </span>
             </div>
+            <div class="collection-tags">
+              <span
+                v-if="collection.brand"
+                class="clickable-tag brand"
+                @click.stop="filterByTag('brand', collection.brand, $event)"
+              >🏷️ {{ collection.brand }}</span>
+              <span
+                v-if="collection.location"
+                class="clickable-tag location"
+                @click.stop="filterByTag('location', collection.location, $event)"
+              >📍 {{ collection.location }}</span>
+            </div>
             <div v-if="collection.stats.totalSpent > 0" class="collection-spent">
-              Spent: Rp{{ collection.stats.totalSpent.toLocaleString() }}
+              Spent: {{ store.formatCurrency(collection.stats.totalSpent) }}
             </div>
           </div>
           <button class="expand-btn">{{ isExpanded(collection.id) ? '▼' : '▶' }}</button>
@@ -359,13 +620,11 @@ onUnmounted(() => {
 
         <!-- Expanded Content -->
         <div v-if="isExpanded(collection.id)" class="collection-content">
-          <!-- Actions -->
           <div class="collection-actions">
             <button class="action-btn edit" @click.stop="openEditCollection(collection)">Edit</button>
             <button class="action-btn add" @click.stop="openAddItem(collection.id)">+ Add Item</button>
           </div>
 
-          <!-- Location & Notes -->
           <div v-if="collection.location" class="collection-meta">
             <span class="meta-icon">📍</span> {{ collection.location }}
           </div>
@@ -373,7 +632,6 @@ onUnmounted(() => {
             {{ collection.notes }}
           </div>
 
-          <!-- Items Grid -->
           <div class="items-grid">
             <div
               v-for="item in collection.items"
@@ -392,7 +650,6 @@ onUnmounted(() => {
               <div class="item-name">{{ item.name }}</div>
             </div>
 
-            <!-- Add Item Card -->
             <div class="item-card add-item" @click="openAddItem(collection.id)">
               <span class="add-icon">+</span>
               <span class="add-text">Add</span>
@@ -428,21 +685,25 @@ onUnmounted(() => {
 
           <div class="form-group">
             <label>Collection Name</label>
-            <input v-model="collectionForm.name" type="text" placeholder="Sonny Angel Fruit Series" />
+            <input v-model="collectionForm.name" type="text" placeholder="Labubu Forest Series" />
           </div>
 
-          <div class="form-group">
-            <label>Type</label>
-            <div class="type-options">
-              <button
-                v-for="type in store.COLLECTION_TYPES"
-                :key="type.id"
-                class="type-btn"
-                :class="{ active: collectionForm.type === type.id }"
-                @click="collectionForm.type = type.id"
-              >
-                {{ type.emoji }} {{ type.name }}
-              </button>
+          <div class="form-row">
+            <div class="form-group half">
+              <label>Brand</label>
+              <input v-model="collectionForm.brand" type="text" placeholder="Pop Mart" list="brand-suggestions" />
+              <datalist id="brand-suggestions">
+                <option v-for="b in brands" :key="b" :value="b" />
+              </datalist>
+              <span class="field-hint">Auto-detects existing brands</span>
+            </div>
+            <div class="form-group half">
+              <label>Type</label>
+              <select v-model="collectionForm.type">
+                <option v-for="type in COLLECTION_TYPES" :key="type.id" :value="type.id">
+                  {{ type.emoji }} {{ type.name }}
+                </option>
+              </select>
             </div>
           </div>
 
@@ -459,7 +720,10 @@ onUnmounted(() => {
 
           <div class="form-group">
             <label>Location</label>
-            <input v-model="collectionForm.location" type="text" placeholder="Display shelf, box, etc." />
+            <input v-model="collectionForm.location" type="text" placeholder="Display shelf, box, etc." list="location-suggestions" />
+            <datalist id="location-suggestions">
+              <option v-for="loc in locations" :key="loc" :value="loc" />
+            </datalist>
           </div>
 
           <div class="form-group">
@@ -527,7 +791,10 @@ onUnmounted(() => {
             </div>
             <div class="form-group half">
               <label>Location</label>
-              <input v-model="itemForm.location" type="text" placeholder="Where is it?" />
+              <input v-model="itemForm.location" type="text" placeholder="Where is it?" list="item-location-suggestions" />
+              <datalist id="item-location-suggestions">
+                <option v-for="loc in locations" :key="loc" :value="loc" />
+              </datalist>
             </div>
           </div>
 
@@ -591,20 +858,65 @@ onUnmounted(() => {
 }
 
 @media (max-width: 480px) {
-  .collections-banner-title {
-    font-size: 1.5rem;
-  }
+  .collections-banner-title { font-size: 1.5rem; }
+  .collections-banner-vio { height: 110px; margin-bottom: -20px; }
+}
 
-  .collections-banner-vio {
-    height: 110px;
-    margin-bottom: -20px;
-  }
+/* Stats Row */
+.stats-row {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.stat-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-xs) var(--space-md);
+  background: white;
+  border: 2px solid var(--border-color);
+  border-radius: 20px;
+}
+
+.stat-emoji { font-size: 0.875rem; }
+.stat-value { font-weight: 700; font-size: 0.875rem; }
+.stat-label { font-size: 0.6875rem; color: var(--text-secondary); }
+
+/* View Tabs */
+.view-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: var(--space-md);
+  padding: 4px;
+  background: var(--gray-100);
+  border-radius: 12px;
+}
+
+.view-tab {
+  flex: 1;
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.view-tab:hover { color: var(--text-primary); }
+
+.view-tab.active {
+  background: white;
+  color: #f97316;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Filters */
-.filters-section {
-  margin-bottom: var(--space-lg);
-}
+.filters-section { margin-bottom: var(--space-lg); }
 
 .filter-row {
   display: flex;
@@ -614,11 +926,7 @@ onUnmounted(() => {
   flex-wrap: wrap;
 }
 
-.filter-pills {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-}
+.filter-pills { display: flex; gap: 4px; flex-wrap: wrap; }
 
 .filter-pill {
   padding: 6px 12px;
@@ -631,13 +939,11 @@ onUnmounted(() => {
   transition: all 0.15s;
 }
 
-.filter-pill:hover {
-  border-color: #f472b6;
-}
+.filter-pill:hover { border-color: #f97316; }
 
 .filter-pill.active {
-  background: linear-gradient(135deg, #f472b6 0%, #c084fc 100%);
-  border-color: #c084fc;
+  background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+  border-color: #f97316;
   color: white;
 }
 
@@ -660,16 +966,34 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 
-/* Empty State */
-.empty-state {
-  text-align: center;
-  padding: var(--space-xl);
-}
+/* Group Section */
+.group-section { margin-bottom: var(--space-xl); }
 
-.empty-vio {
-  width: 80px;
+.group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-md);
+  background: linear-gradient(135deg, #fef3c7 0%, #ffedd5 100%);
+  border-radius: 12px;
   margin-bottom: var(--space-md);
 }
+
+.group-header-left { display: flex; align-items: baseline; gap: var(--space-sm); }
+.group-name { font-weight: 700; font-size: 1rem; color: #c2410c; }
+.group-meta { font-size: 0.75rem; color: var(--text-secondary); }
+.group-progress {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: white;
+  padding: 2px 10px;
+  border-radius: 10px;
+}
+
+/* Empty State */
+.empty-state { text-align: center; padding: var(--space-xl); }
+.empty-vio { width: 80px; margin-bottom: var(--space-md); }
 
 /* Collections List */
 .collections-list {
@@ -687,13 +1011,8 @@ onUnmounted(() => {
   transition: all 0.2s;
 }
 
-.collection-card.complete {
-  border-color: #4ade80;
-}
-
-.collection-card.expanded {
-  border-color: #c084fc;
-}
+.collection-card.complete { border-color: #4ade80; }
+.collection-card.expanded { border-color: #f97316; }
 
 /* Collection Header */
 .collection-header {
@@ -708,7 +1027,7 @@ onUnmounted(() => {
   width: 60px;
   height: 60px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #fce7f3 0%, #f3e8ff 100%);
+  background: linear-gradient(135deg, #fef3c7 0%, #ffedd5 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -717,16 +1036,9 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-.collection-photo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+.collection-photo img { width: 100%; height: 100%; object-fit: cover; }
 
-.collection-info {
-  flex: 1;
-  min-width: 0;
-}
+.collection-info { flex: 1; min-width: 0; }
 
 .collection-name-row {
   display: flex;
@@ -752,32 +1064,12 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-.collection-type-badge.blindbox {
-  background: #fef3c7;
-  color: #d97706;
-}
+.collection-type-badge.blindbox { background: #fef3c7; color: #d97706; }
+.collection-type-badge.figure { background: #dbeafe; color: #2563eb; }
+.collection-type-badge.plush { background: #fce7f3; color: #db2777; }
+.collection-type-badge.other { background: #f3e8ff; color: #9333ea; }
 
-.collection-type-badge.figure {
-  background: #dbeafe;
-  color: #2563eb;
-}
-
-.collection-type-badge.plush {
-  background: #fce7f3;
-  color: #db2777;
-}
-
-.collection-type-badge.other {
-  background: #f3e8ff;
-  color: #9333ea;
-}
-
-/* Progress Bar */
-.collection-progress {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
+.collection-progress { display: flex; align-items: center; gap: var(--space-sm); }
 
 .progress-bar {
   flex: 1;
@@ -789,14 +1081,12 @@ onUnmounted(() => {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #f472b6 0%, #c084fc 100%);
+  background: linear-gradient(90deg, #f97316 0%, #fb923c 100%);
   border-radius: 4px;
   transition: width 0.3s;
 }
 
-.progress-fill.complete {
-  background: linear-gradient(90deg, #4ade80 0%, #22d3ee 100%);
-}
+.progress-fill.complete { background: linear-gradient(90deg, #4ade80 0%, #22d3ee 100%); }
 
 .progress-text {
   font-size: 0.75rem;
@@ -805,9 +1095,157 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 
-.complete-badge {
-  color: #22c55e;
-  margin-left: 4px;
+.complete-badge { color: #22c55e; margin-left: 4px; }
+
+/* Clickable Tags */
+.collection-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.clickable-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.clickable-tag.brand {
+  background: #fce7f3;
+  color: #be185d;
+}
+
+.clickable-tag.brand:hover {
+  background: #f9a8d4;
+  transform: scale(1.05);
+}
+
+.clickable-tag.location {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.clickable-tag.location:hover {
+  background: #93c5fd;
+  transform: scale(1.05);
+}
+
+/* Quick Filters */
+.quick-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.quick-filter-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.quick-filter-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 60px;
+}
+
+.quick-filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.quick-tag {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.quick-tag.brand {
+  background: #fce7f3;
+  color: #be185d;
+}
+
+.quick-tag.brand:hover,
+.quick-tag.brand.active {
+  background: #ec4899;
+  color: white;
+}
+
+.quick-tag.location {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.quick-tag.location:hover,
+.quick-tag.location.active {
+  background: #3b82f6;
+  color: white;
+}
+
+/* Active Filter Bar */
+.active-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: linear-gradient(135deg, #fef3c7 0%, #ffedd5 100%);
+  border-radius: 12px;
+  margin-top: var(--space-md);
+}
+
+.active-filter-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.active-filter-tag {
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.active-filter-tag.brand {
+  background: #ec4899;
+  color: white;
+}
+
+.active-filter-tag.location {
+  background: #3b82f6;
+  color: white;
+}
+
+.clear-filter-btn {
+  margin-left: auto;
+  padding: 4px 12px;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.clear-filter-btn:hover {
+  background: #f3f4f6;
+  color: var(--text-primary);
 }
 
 .collection-spent {
@@ -826,7 +1264,7 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
-/* Collection Content (expanded) */
+/* Collection Content */
 .collection-content {
   padding: 0 var(--space-md) var(--space-md);
   border-top: 1px solid var(--border-color);
@@ -848,13 +1286,10 @@ onUnmounted(() => {
   background: white;
 }
 
-.action-btn.edit:hover {
-  border-color: #c084fc;
-  color: #c084fc;
-}
+.action-btn.edit:hover { border-color: #f97316; color: #f97316; }
 
 .action-btn.add {
-  background: linear-gradient(135deg, #f472b6 0%, #c084fc 100%);
+  background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
   border-color: transparent;
   color: white;
 }
@@ -896,21 +1331,9 @@ onUnmounted(() => {
   transition: all 0.15s;
 }
 
-.item-card.owned {
-  border-color: #4ade80;
-  background: #f0fdf4;
-}
-
-.item-card.missing {
-  border-color: #fca5a5;
-  background: #fef2f2;
-  opacity: 0.7;
-}
-
-.item-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
+.item-card.owned { border-color: #4ade80; background: #f0fdf4; }
+.item-card.missing { border-color: #fca5a5; background: #fef2f2; opacity: 0.7; }
+.item-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
 
 .item-check {
   position: absolute;
@@ -930,13 +1353,8 @@ onUnmounted(() => {
   transition: opacity 0.15s;
 }
 
-.item-card.owned .item-check {
-  opacity: 1;
-}
-
-.item-card.missing .item-check {
-  background: #f87171;
-}
+.item-card.owned .item-check { opacity: 1; }
+.item-card.missing .item-check { background: #f87171; }
 
 .item-photo {
   width: 40px;
@@ -951,11 +1369,7 @@ onUnmounted(() => {
   margin-bottom: 4px;
 }
 
-.item-photo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+.item-photo img { width: 100%; height: 100%; object-fit: cover; }
 
 .item-name {
   font-size: 0.625rem;
@@ -967,22 +1381,9 @@ onUnmounted(() => {
   max-width: 100%;
 }
 
-.item-card.add-item {
-  border-style: dashed;
-  border-color: #c084fc;
-  background: #faf5ff;
-}
-
-.add-icon {
-  font-size: 1.25rem;
-  color: #c084fc;
-}
-
-.add-text {
-  font-size: 0.625rem;
-  color: #c084fc;
-  font-weight: 600;
-}
+.item-card.add-item { border-style: dashed; border-color: #f97316; background: #fff7ed; }
+.add-icon { font-size: 1.25rem; color: #f97316; }
+.add-text { font-size: 0.625rem; color: #f97316; font-weight: 600; }
 
 /* Modal */
 .modal-overlay {
@@ -1012,10 +1413,7 @@ onUnmounted(() => {
   border-bottom: 2px solid var(--border-color);
 }
 
-.modal-header h3 {
-  margin: 0;
-  font-family: var(--font-display);
-}
+.modal-header h3 { margin: 0; font-family: var(--font-display); }
 
 .modal-close {
   width: 32px;
@@ -1027,9 +1425,7 @@ onUnmounted(() => {
   color: var(--text-secondary);
 }
 
-.modal-body {
-  padding: var(--space-lg);
-}
+.modal-body { padding: var(--space-lg); }
 
 /* Photo Upload */
 .photo-upload-section {
@@ -1046,7 +1442,7 @@ onUnmounted(() => {
   width: 80px;
   height: 80px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #fce7f3 0%, #f3e8ff 100%);
+  background: linear-gradient(135deg, #fef3c7 0%, #ffedd5 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1055,21 +1451,13 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-.photo-preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+.photo-preview img { width: 100%; height: 100%; object-fit: cover; }
 
-.photo-actions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
+.photo-actions { display: flex; flex-direction: column; gap: var(--space-xs); }
 
 .upload-photo-btn {
   padding: var(--space-sm) var(--space-md);
-  background: linear-gradient(135deg, #f472b6 0%, #c084fc 100%);
+  background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
   border: none;
   border-radius: 8px;
   font-weight: 600;
@@ -1090,9 +1478,7 @@ onUnmounted(() => {
 }
 
 /* Form */
-.form-group {
-  margin-bottom: var(--space-md);
-}
+.form-group { margin-bottom: var(--space-md); }
 
 .form-group label {
   display: block;
@@ -1102,7 +1488,8 @@ onUnmounted(() => {
 }
 
 .form-group input,
-.form-group textarea {
+.form-group textarea,
+.form-group select {
   width: 100%;
   padding: var(--space-sm) var(--space-md);
   border: 2px solid var(--border-color);
@@ -1110,53 +1497,20 @@ onUnmounted(() => {
   font-size: 1rem;
 }
 
-.form-group textarea {
-  resize: none;
-  font-family: inherit;
+.form-group textarea { resize: none; font-family: inherit; }
+
+.field-hint {
+  display: block;
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
 }
 
-.form-row {
-  display: flex;
-  gap: var(--space-md);
-}
-
-.form-group.half {
-  flex: 1;
-}
-
-/* Type Options */
-.type-options {
-  display: flex;
-  gap: var(--space-xs);
-  flex-wrap: wrap;
-}
-
-.type-btn {
-  padding: var(--space-sm) var(--space-md);
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  background: white;
-  transition: all 0.15s;
-}
-
-.type-btn:hover {
-  border-color: #c084fc;
-}
-
-.type-btn.active {
-  background: linear-gradient(135deg, #f472b6 0%, #c084fc 100%);
-  border-color: transparent;
-  color: white;
-}
+.form-row { display: flex; gap: var(--space-md); }
+.form-group.half { flex: 1; }
 
 /* Owned Toggle */
-.owned-toggle {
-  display: flex;
-  gap: var(--space-xs);
-}
+.owned-toggle { display: flex; gap: var(--space-xs); }
 
 .owned-btn {
   flex: 1;
@@ -1169,17 +1523,8 @@ onUnmounted(() => {
   background: white;
 }
 
-.owned-btn.active {
-  background: #4ade80;
-  border-color: #22c55e;
-  color: white;
-}
-
-.owned-btn.missing.active {
-  background: #f87171;
-  border-color: #ef4444;
-  color: white;
-}
+.owned-btn.active { background: #4ade80; border-color: #22c55e; color: white; }
+.owned-btn.missing.active { background: #f87171; border-color: #ef4444; color: white; }
 
 .modal-footer {
   display: flex;
@@ -1190,7 +1535,7 @@ onUnmounted(() => {
 
 .save-btn {
   padding: var(--space-sm) var(--space-xl);
-  background: linear-gradient(135deg, #f472b6 0%, #c084fc 100%);
+  background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
   border: none;
   border-radius: 12px;
   font-weight: 700;
@@ -1208,10 +1553,7 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
-.delete-btn:hover {
-  background: #FF6B6B;
-  color: white;
-}
+.delete-btn:hover { background: #FF6B6B; color: white; }
 </style>
 
 <style>
@@ -1220,18 +1562,28 @@ onUnmounted(() => {
   background: linear-gradient(135deg, #9A3412 0%, #C2410C 50%, #EA580C 100%) !important;
 }
 
+[data-theme="dark"] .stat-chip {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .view-tabs { background: #2D2640 !important; }
+[data-theme="dark"] .view-tab { color: #A78BFA !important; }
+[data-theme="dark"] .view-tab.active { background: #1A1625 !important; color: #FB923C !important; }
+
+[data-theme="dark"] .group-header {
+  background: linear-gradient(135deg, #3D3456 0%, #4D4466 100%) !important;
+}
+[data-theme="dark"] .group-name { color: #FDBA74 !important; }
+[data-theme="dark"] .group-progress { background: #1A1625 !important; }
+
 [data-theme="dark"] .collection-card {
   background: #1A1625 !important;
   border-color: #3D3456 !important;
 }
 
-[data-theme="dark"] .collection-card.expanded {
-  border-color: #8B5CF6 !important;
-}
-
-[data-theme="dark"] .collection-card.complete {
-  border-color: #4ade80 !important;
-}
+[data-theme="dark"] .collection-card.expanded { border-color: #8B5CF6 !important; }
+[data-theme="dark"] .collection-card.complete { border-color: #4ade80 !important; }
 
 [data-theme="dark"] .collection-photo {
   background: linear-gradient(135deg, #3D3456 0%, #4D4466 100%) !important;
@@ -1253,78 +1605,96 @@ onUnmounted(() => {
   color: var(--text-primary) !important;
 }
 
-[data-theme="dark"] .progress-bar {
-  background: #3D3456 !important;
-}
+[data-theme="dark"] .progress-bar { background: #3D3456 !important; }
+[data-theme="dark"] .progress-fill { background: linear-gradient(90deg, #8B5CF6 0%, #A78BFA 100%) !important; }
 
 [data-theme="dark"] .item-card {
   background: #1A1625 !important;
   border-color: #3D3456 !important;
 }
 
-[data-theme="dark"] .item-card.owned {
-  background: #1a2e1a !important;
-  border-color: #4ade80 !important;
+[data-theme="dark"] .item-card.owned { background: #1a2e1a !important; border-color: #4ade80 !important; }
+[data-theme="dark"] .item-card.missing { background: #2e1a1a !important; border-color: #f87171 !important; }
+[data-theme="dark"] .item-card.add-item { background: #2D2640 !important; border-color: #8B5CF6 !important; }
+[data-theme="dark"] .add-icon, [data-theme="dark"] .add-text { color: #A78BFA !important; }
+
+[data-theme="dark"] .item-photo { background: #3D3456 !important; }
+
+[data-theme="dark"] .modal { background: #1A1625 !important; }
+[data-theme="dark"] .photo-upload-section { background: #2D2640 !important; }
+[data-theme="dark"] .photo-preview { background: linear-gradient(135deg, #3D3456 0%, #4D4466 100%) !important; }
+
+[data-theme="dark"] .action-btn { background: #1A1625 !important; border-color: #3D3456 !important; }
+[data-theme="dark"] .action-btn.add { background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%) !important; }
+
+[data-theme="dark"] .collection-content { border-top-color: #3D3456 !important; }
+[data-theme="dark"] .collection-meta.notes { background: #2D2640 !important; }
+
+[data-theme="dark"] .owned-btn { background: #1A1625 !important; border-color: #3D3456 !important; }
+[data-theme="dark"] .upload-photo-btn, [data-theme="dark"] .save-btn {
+  background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%) !important;
 }
 
-[data-theme="dark"] .item-card.missing {
-  background: #2e1a1a !important;
-  border-color: #f87171 !important;
+/* Dark mode - Clickable Tags */
+[data-theme="dark"] .clickable-tag.brand {
+  background: #831843 !important;
+  color: #f9a8d4 !important;
 }
 
-[data-theme="dark"] .item-card.add-item {
-  background: #2D2640 !important;
-  border-color: #8B5CF6 !important;
+[data-theme="dark"] .clickable-tag.brand:hover {
+  background: #be185d !important;
+  color: white !important;
 }
 
-[data-theme="dark"] .item-photo {
-  background: #3D3456 !important;
+[data-theme="dark"] .clickable-tag.location {
+  background: #1e3a5f !important;
+  color: #93c5fd !important;
 }
 
-[data-theme="dark"] .modal {
-  background: #1A1625 !important;
+[data-theme="dark"] .clickable-tag.location:hover {
+  background: #1d4ed8 !important;
+  color: white !important;
 }
 
-[data-theme="dark"] .photo-upload-section {
-  background: #2D2640 !important;
+/* Dark mode - Quick Filters */
+[data-theme="dark"] .quick-tag.brand {
+  background: #831843 !important;
+  color: #f9a8d4 !important;
 }
 
-[data-theme="dark"] .photo-preview {
+[data-theme="dark"] .quick-tag.brand:hover,
+[data-theme="dark"] .quick-tag.brand.active {
+  background: #be185d !important;
+  color: white !important;
+}
+
+[data-theme="dark"] .quick-tag.location {
+  background: #1e3a5f !important;
+  color: #93c5fd !important;
+}
+
+[data-theme="dark"] .quick-tag.location:hover,
+[data-theme="dark"] .quick-tag.location.active {
+  background: #1d4ed8 !important;
+  color: white !important;
+}
+
+/* Dark mode - Active Filter Bar */
+[data-theme="dark"] .active-filter-bar {
   background: linear-gradient(135deg, #3D3456 0%, #4D4466 100%) !important;
 }
 
-[data-theme="dark"] .type-btn {
+[data-theme="dark"] .active-filter-label {
+  color: #A78BFA !important;
+}
+
+[data-theme="dark"] .clear-filter-btn {
   background: #1A1625 !important;
   border-color: #3D3456 !important;
+  color: #A78BFA !important;
 }
 
-[data-theme="dark"] .type-btn:hover {
-  border-color: #8B5CF6 !important;
-}
-
-[data-theme="dark"] .type-btn.active {
-  background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%) !important;
-}
-
-[data-theme="dark"] .owned-btn {
-  background: #1A1625 !important;
-  border-color: #3D3456 !important;
-}
-
-[data-theme="dark"] .action-btn {
-  background: #1A1625 !important;
-  border-color: #3D3456 !important;
-}
-
-[data-theme="dark"] .action-btn.add {
-  background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%) !important;
-}
-
-[data-theme="dark"] .collection-meta.notes {
+[data-theme="dark"] .clear-filter-btn:hover {
   background: #2D2640 !important;
-}
-
-[data-theme="dark"] .collection-content {
-  border-top-color: #3D3456 !important;
 }
 </style>

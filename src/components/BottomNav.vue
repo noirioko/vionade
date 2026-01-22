@@ -113,6 +113,10 @@ function closeMore() {
       <span>Pets</span>
     </RouterLink>
 
+    <RouterLink to="/collections" class="nav-item desktop-only">
+      <span class="nav-item-icon">🎁</span>
+      <span>Collections</span>
+    </RouterLink>
 
     <RouterLink to="/wardrobe" class="nav-item desktop-only">
       <span class="nav-item-icon">👗</span>

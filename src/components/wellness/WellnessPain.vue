@@ -814,5 +814,12 @@ defineExpose({ openAddModal })
 [data-theme="dark"] .intensity-btn {
   background: #1A1625 !important;
   border-color: #3D3456 !important;
+  color: #E9D5FF !important;
+}
+
+[data-theme="dark"] .intensity-btn.active {
+  border-color: #EC4899 !important;
+  background: var(--level-color) !important;
+  color: #1A1625 !important;
 }
 </style>

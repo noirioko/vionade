@@ -13,6 +13,10 @@ const features = [
   { icon: '🍋', label: 'Vio Pass', route: '/viopass', color: '#FBBF24' },
   { icon: '🧺', label: 'Laundry', route: '/laundry', color: '#38BDF8' },
   { icon: '🐱', label: 'Pets', route: '/pets', color: '#A3E635' },
+  { icon: '🎁', label: 'Collections', route: '/collections', color: '#F97316' },
+  { icon: '👗', label: 'Wardrobe', route: '/wardrobe', color: '#EC4899' },
+  { icon: '🔄', label: 'Subscriptions', route: '/subscriptions', color: '#8B5CF6' },
+  { icon: '🛒', label: 'Shopping', route: '/shopping', color: '#22C55E' },
   { icon: '⚙️', label: 'Settings', route: '/settings', color: '#94A3B8' },
 ]
 </script>
