@@ -14,6 +14,12 @@ const saveTodayAmount = ref('')
 const savingsType = ref('monthly')
 const showSaveSuccess = ref(false)
 
+// Category filter
+const categoryFilter = ref('all') // 'all' or a category ID
+
+// Search
+const searchQuery = ref('')
+
 function saveToday() {
   const amount = parseFloat(saveTodayAmount.value)
   if (!amount || amount <= 0) return
@@ -186,6 +192,7 @@ const expensesByCategory = computed(() => {
 
   return store.EXPENSE_CATEGORIES
     .map(cat => ({
+      id: cat.id,
       name: cat.name,
       value: categoryTotals[cat.id] || 0,
       color: cat.color,
@@ -194,6 +201,15 @@ const expensesByCategory = computed(() => {
     .filter(item => item.value > 0)
     .sort((a, b) => b.value - a.value)
 })
+
+function handleCategoryClick(segment) {
+  // Find the category ID from the name
+  const cat = store.EXPENSE_CATEGORIES.find(c => c.name === segment.name)
+  if (cat) {
+    categoryFilter.value = cat.id
+    filter.value = 'expense' // Switch to expense filter since categories are for expenses
+  }
+}
 
 const filteredTransactions = computed(() => {
   let transactions = [...store.transactions.value]
@@ -209,10 +225,37 @@ const filteredTransactions = computed(() => {
     )
   }
 
+  if (categoryFilter.value !== 'all') {
+    transactions = transactions.filter(t =>
+      t.type === 'expense' && (t.category || 'other') === categoryFilter.value
+    )
+  }
+
   if (selectedDate.value) {
     transactions = transactions.filter(t => {
       const tDate = new Date(t.date)
       return tDate.toDateString() === selectedDate.value.toDateString()
+    })
+  }
+
+  // Search filter - searches note, category name, wallet name
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase().trim()
+    transactions = transactions.filter(t => {
+      const note = (t.note || '').toLowerCase()
+      const cat = store.getCategoryById(t.category, t.type === 'income' ? 'income' : 'expense')
+      const catName = (cat?.name || '').toLowerCase()
+      const wallet = store.getWalletById(t.walletId)
+      const walletName = (wallet?.name || '').toLowerCase()
+      const toWallet = t.toWalletId ? store.getWalletById(t.toWalletId) : null
+      const toWalletName = (toWallet?.name || '').toLowerCase()
+      const amount = t.amount.toString()
+
+      return note.includes(query) ||
+             catName.includes(query) ||
+             walletName.includes(query) ||
+             toWalletName.includes(query) ||
+             amount.includes(query)
     })
   }
 
@@ -366,21 +409,44 @@ function getTransactionTitle(transaction) {
           <span class="transaction-count">{{ filteredTransactions.length }} total</span>
         </div>
 
-        <!-- Filter Row: Type + Wallet -->
+        <!-- Search Bar -->
+        <div class="search-row">
+          <div class="search-input-wrapper">
+            <span class="search-icon">🔍</span>
+            <input
+              v-model="searchQuery"
+              type="text"
+              class="search-input"
+              placeholder="Search transactions..."
+            />
+            <button v-if="searchQuery" class="search-clear" @click="searchQuery = ''">&times;</button>
+          </div>
+        </div>
+
+        <!-- Filter Row: Type + Wallet + Category -->
         <div class="filter-row">
           <div class="tabs">
-            <button class="tab" :class="{ active: filter === 'all' }" @click="filter = 'all'">All</button>
-            <button class="tab" :class="{ active: filter === 'income' }" @click="filter = 'income'">In</button>
+            <button class="tab" :class="{ active: filter === 'all' }" @click="filter = 'all'; categoryFilter = 'all'">All</button>
+            <button class="tab" :class="{ active: filter === 'income' }" @click="filter = 'income'; categoryFilter = 'all'">In</button>
             <button class="tab" :class="{ active: filter === 'expense' }" @click="filter = 'expense'">Out</button>
-            <button class="tab" :class="{ active: filter === 'transfer' }" @click="filter = 'transfer'">Move</button>
+            <button class="tab" :class="{ active: filter === 'transfer' }" @click="filter = 'transfer'; categoryFilter = 'all'">Move</button>
           </div>
 
-          <select v-model="walletFilter" class="wallet-filter">
-            <option value="all">All Wallets</option>
-            <option v-for="wallet in store.wallets.value" :key="wallet.id" :value="wallet.id">
-              {{ wallet.icon }} {{ wallet.name }}
-            </option>
-          </select>
+          <div class="filter-dropdowns">
+            <select v-model="walletFilter" class="filter-select">
+              <option value="all">All Wallets</option>
+              <option v-for="wallet in store.wallets.value" :key="wallet.id" :value="wallet.id">
+                {{ wallet.icon }} {{ wallet.name }}
+              </option>
+            </select>
+
+            <select v-model="categoryFilter" class="filter-select" :disabled="filter !== 'expense' && filter !== 'all'">
+              <option value="all">All Categories</option>
+              <option v-for="cat in store.EXPENSE_CATEGORIES" :key="cat.id" :value="cat.id">
+                {{ cat.icon }} {{ cat.name }}
+              </option>
+            </select>
+          </div>
         </div>
 
           <!-- Transaction List -->
@@ -503,7 +569,8 @@ function getTransactionTitle(transaction) {
         <!-- Spending Breakdown -->
         <div class="spending-card">
           <h3 class="section-title">Spending Breakdown</h3>
-          <PieChart :data="expensesByCategory" :size="160" />
+          <p class="spending-hint">Tap a category to filter transactions</p>
+          <PieChart :data="expensesByCategory" :size="160" :clickable="true" @category-click="handleCategoryClick" />
         </div>
       </div>
 
@@ -660,6 +727,66 @@ function getTransactionTitle(transaction) {
 }
 
 /* Filter Row */
+/* Search Bar */
+.search-row {
+  margin-bottom: var(--space-sm);
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 0.875rem;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  padding-left: 36px;
+  padding-right: 36px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-full);
+  background: var(--white);
+  font-size: 0.875rem;
+  transition: border-color 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--lavender-500);
+}
+
+.search-input::placeholder {
+  color: var(--gray-400);
+}
+
+.search-clear {
+  position: absolute;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: var(--gray-200);
+  border-radius: var(--radius-full);
+  font-size: 1rem;
+  cursor: pointer;
+  color: var(--gray-500);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.search-clear:hover {
+  background: var(--gray-300);
+}
+
 .filter-row {
   display: flex;
   flex-wrap: wrap;
@@ -668,7 +795,13 @@ function getTransactionTitle(transaction) {
   margin-bottom: var(--space-md);
 }
 
-.wallet-filter {
+.filter-dropdowns {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.filter-select {
   padding: var(--space-xs) var(--space-sm);
   border: 2px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -677,12 +810,17 @@ function getTransactionTitle(transaction) {
   font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
-  min-width: 120px;
+  min-width: 110px;
 }
 
-.wallet-filter:focus {
+.filter-select:focus {
   outline: none;
   border-color: var(--lavender-500);
+}
+
+.filter-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Calendar - Compact */
@@ -1086,6 +1224,12 @@ function getTransactionTitle(transaction) {
 }
 
 .spending-card .section-title {
+  margin-bottom: var(--space-xs);
+}
+
+.spending-hint {
+  font-size: 0.6875rem;
+  color: var(--gray-400);
   margin-bottom: var(--space-sm);
 }
 
@@ -1137,6 +1281,7 @@ function getTransactionTitle(transaction) {
     grid-template-columns: 1fr 1fr 1fr;
     gap: var(--space-md);
   }
+
 }
 
 @media (min-width: 1024px) {
@@ -1249,5 +1394,34 @@ function getTransactionTitle(transaction) {
 [data-theme="dark"] .spending-card {
   background: #1A1625 !important;
   border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .spending-hint {
+  color: #6B6B7B !important;
+}
+
+[data-theme="dark"] .filter-select {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+  color: #9D8BC2 !important;
+}
+
+[data-theme="dark"] .search-input {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+  color: #E5E5E5 !important;
+}
+
+[data-theme="dark"] .search-input::placeholder {
+  color: #6B6B7B !important;
+}
+
+[data-theme="dark"] .search-clear {
+  background: #3D3456 !important;
+  color: #9D8BC2 !important;
+}
+
+[data-theme="dark"] .search-clear:hover {
+  background: #4D4466 !important;
 }
 </style>

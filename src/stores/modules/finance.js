@@ -80,11 +80,13 @@ export function addTransaction(transaction) {
   state.transactions.push(newTransaction)
 
   const wallet = state.wallets.find(w => w.id === transaction.walletId)
+  const amount = Math.round(transaction.amount) // Round to avoid floating point errors
+
   if (wallet) {
     if (transaction.type === 'income') {
-      wallet.balance += transaction.amount
+      wallet.balance = Math.round(wallet.balance + amount)
     } else if (transaction.type === 'expense') {
-      wallet.balance -= transaction.amount
+      wallet.balance = Math.round(wallet.balance - amount)
     }
   }
 
@@ -92,8 +94,8 @@ export function addTransaction(transaction) {
     const fromWallet = state.wallets.find(w => w.id === transaction.walletId)
     const toWallet = state.wallets.find(w => w.id === transaction.toWalletId)
     if (fromWallet && toWallet) {
-      fromWallet.balance -= transaction.amount
-      toWallet.balance += transaction.amount
+      fromWallet.balance = Math.round(fromWallet.balance - amount)
+      toWallet.balance = Math.round(toWallet.balance + amount)
     }
   }
 
@@ -188,7 +190,10 @@ export function updateTransaction(id, updates) {
 export function updateWalletBalance(walletId, balance) {
   const wallet = state.wallets.find(w => w.id === walletId)
   if (wallet) {
-    wallet.balance = balance
+    // Round to avoid floating point errors (IDR has no decimals)
+    wallet.balance = Math.round(balance)
+    // Store as starting balance for recalculation reference
+    wallet.startingBalance = Math.round(balance)
   }
 }
 
@@ -217,14 +222,17 @@ export function recalculateWalletBalance(walletId) {
   const wallet = state.wallets.find(w => w.id === walletId)
   if (!wallet) return 0
 
-  let balance = 0
+  // Start with stored starting balance, or check for "Starting balance" transaction
+  let balance = wallet.startingBalance || 0
 
-  // Check for starting balance transaction
-  const startingTx = state.transactions.find(
-    t => t.walletId === walletId && t.note === 'Starting balance' && t.type === 'income'
-  )
-  if (startingTx) {
-    balance = startingTx.amount
+  // Fallback: check for starting balance transaction (legacy support)
+  if (!balance) {
+    const startingTx = state.transactions.find(
+      t => t.walletId === walletId && t.note === 'Starting balance' && t.type === 'income'
+    )
+    if (startingTx) {
+      balance = startingTx.amount
+    }
   }
 
   // Process all other transactions
@@ -251,9 +259,77 @@ export function recalculateWalletBalance(walletId) {
     }
   })
 
+  // Round to avoid floating point errors
+  balance = Math.round(balance)
+
   // Update the wallet balance
   wallet.balance = balance
   return balance
+}
+
+// Clear transactions for a SPECIFIC wallet only
+export function clearWalletTransactions(walletId) {
+  // Count before
+  const beforeCount = state.transactions.length
+
+  // Remove only transactions involving this wallet
+  state.transactions = state.transactions.filter(t => {
+    // Keep transactions that don't involve this wallet
+    return t.walletId !== walletId && t.toWalletId !== walletId
+  })
+
+  // Reset only THIS wallet's balance
+  const wallet = state.wallets.find(w => w.id === walletId)
+  if (wallet) {
+    wallet.balance = 0
+    wallet.startingBalance = 0
+  }
+
+  const deleted = beforeCount - state.transactions.length
+  return deleted
+}
+
+// Fix all wallet balances - rounds to integers and calculates proper starting balances
+export function fixAllWalletBalances() {
+  const results = []
+
+  state.wallets.forEach(wallet => {
+    const oldBalance = wallet.balance
+
+    // Calculate what the balance SHOULD be from transactions (starting from 0)
+    let calculatedFromTx = 0
+    state.transactions.forEach(t => {
+      if (t.note === 'Starting balance' && t.type === 'income' && t.walletId === wallet.id) {
+        return // Skip starting balance transactions
+      }
+
+      if (t.walletId === wallet.id) {
+        if (t.type === 'income') calculatedFromTx += t.amount
+        else if (t.type === 'expense') calculatedFromTx -= t.amount
+        else if (t.type === 'transfer') calculatedFromTx -= t.amount
+      }
+      if (t.type === 'transfer' && t.toWalletId === wallet.id) {
+        calculatedFromTx += t.amount
+      }
+    })
+
+    // The starting balance = current balance - calculated from transactions
+    // This way: startingBalance + transactions = current balance
+    const startingBalance = Math.round(oldBalance - calculatedFromTx)
+
+    wallet.startingBalance = startingBalance
+    wallet.balance = Math.round(oldBalance) // Fix any floating point errors
+
+    results.push({
+      name: wallet.name,
+      oldBalance,
+      newBalance: wallet.balance,
+      startingBalance,
+      changed: oldBalance !== wallet.balance
+    })
+  })
+
+  return results
 }
 
 // Savings functions
@@ -308,4 +384,30 @@ export function endChallenge(id, status) {
 
 export function getActiveChallenge() {
   return state.challenges.find(c => c.status === 'active')
+}
+
+// Start fresh - clear all transactions and set opening balances
+export function startFreshMonth(openingBalances = {}) {
+  // Clear all transactions
+  state.transactions = []
+
+  // Reset all wallets to 0 first
+  state.wallets.forEach(wallet => {
+    wallet.balance = 0
+    wallet.startingBalance = 0
+  })
+
+  // Set opening balances for specified wallets
+  Object.entries(openingBalances).forEach(([walletId, balance]) => {
+    const wallet = state.wallets.find(w => w.id === walletId)
+    if (wallet) {
+      wallet.balance = Math.round(balance)
+      wallet.startingBalance = Math.round(balance)
+    }
+  })
+
+  // Update settings
+  state.settings.startedAt = new Date().toISOString()
+
+  return true
 }

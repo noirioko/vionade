@@ -18,11 +18,18 @@ const props = defineProps({
   valueLabel: {
     type: String,
     default: ''
+  },
+  clickable: {
+    type: Boolean,
+    default: false
   }
 })
 
+const emit = defineEmits(['category-click'])
+
 const hoveredSegment = ref(null)
 const tooltipPos = ref({ x: 0, y: 0 })
+const showTooltip = ref(false) // Only show tooltip when hovering on pie segment, not legend
 
 const total = computed(() => {
   return props.data.reduce((sum, item) => sum + item.value, 0)
@@ -95,25 +102,64 @@ function formatValue(amount) {
 
 function handleMouseEnter(segment, event) {
   hoveredSegment.value = segment
+  showTooltip.value = true
   updateTooltipPosition(event)
 }
 
 function handleMouseMove(event) {
-  if (hoveredSegment.value) {
+  if (hoveredSegment.value && showTooltip.value) {
     updateTooltipPosition(event)
   }
 }
 
 function handleMouseLeave() {
   hoveredSegment.value = null
+  showTooltip.value = false
+}
+
+function handleLegendEnter(segment) {
+  hoveredSegment.value = segment
+  showTooltip.value = false // Don't show tooltip for legend hover
+}
+
+function handleLegendLeave() {
+  hoveredSegment.value = null
+  showTooltip.value = false
+}
+
+function handleSegmentClick(segment) {
+  if (props.clickable) {
+    emit('category-click', segment)
+  }
+}
+
+function handleLegendClick(segment) {
+  if (props.clickable) {
+    emit('category-click', segment)
+  }
 }
 
 function updateTooltipPosition(event) {
-  const rect = event.currentTarget.closest('.pie-chart-wrapper').getBoundingClientRect()
-  tooltipPos.value = {
-    x: event.clientX - rect.left + 10,
-    y: event.clientY - rect.top - 40
+  const wrapper = event.currentTarget.closest('.pie-chart-wrapper')
+  if (!wrapper) return
+
+  const rect = wrapper.getBoundingClientRect()
+  let x = event.clientX - rect.left
+  let y = event.clientY - rect.top - 50
+
+  // Keep tooltip within bounds
+  const tooltipWidth = 140
+  if (x + tooltipWidth / 2 > rect.width) {
+    x = rect.width - tooltipWidth / 2 - 10
   }
+  if (x - tooltipWidth / 2 < 0) {
+    x = tooltipWidth / 2 + 10
+  }
+  if (y < 10) {
+    y = event.clientY - rect.top + 20
+  }
+
+  tooltipPos.value = { x, y }
 }
 </script>
 
@@ -135,10 +181,11 @@ function updateTooltipPosition(event) {
             stroke="white"
             stroke-width="2"
             class="pie-segment"
-            :class="{ hovered: hoveredSegment?.name === segment.name }"
+            :class="{ hovered: hoveredSegment?.name === segment.name, clickable: clickable }"
             @mouseenter="handleMouseEnter(segment, $event)"
             @mousemove="handleMouseMove"
             @mouseleave="handleMouseLeave"
+            @click="handleSegmentClick(segment)"
           />
         </g>
         <!-- Center hole for donut effect -->
@@ -153,7 +200,7 @@ function updateTooltipPosition(event) {
 
       <!-- Tooltip -->
       <div
-        v-if="hoveredSegment"
+        v-if="hoveredSegment && showTooltip"
         class="pie-tooltip"
         :style="{ left: tooltipPos.x + 'px', top: tooltipPos.y + 'px' }"
       >
@@ -171,9 +218,10 @@ function updateTooltipPosition(event) {
           v-for="segment in segments"
           :key="segment.name"
           class="pie-legend-item"
-          :class="{ hovered: hoveredSegment?.name === segment.name }"
-          @mouseenter="hoveredSegment = segment"
-          @mouseleave="hoveredSegment = null"
+          :class="{ hovered: hoveredSegment?.name === segment.name, clickable: clickable }"
+          @mouseenter="handleLegendEnter(segment)"
+          @mouseleave="handleLegendLeave"
+          @click="handleLegendClick(segment)"
         >
           <span class="pie-legend-color" :style="{ background: segment.color }"></span>
           <span class="pie-legend-icon">{{ segment.icon }}</span>
@@ -285,6 +333,14 @@ function updateTooltipPosition(event) {
 .pie-legend-item.hovered {
   background: var(--lavender-100);
   transform: scale(1.05);
+}
+
+.pie-legend-item.clickable {
+  cursor: pointer;
+}
+
+.pie-legend-item.clickable:active {
+  transform: scale(0.98);
 }
 
 .pie-legend-color {

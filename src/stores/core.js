@@ -22,6 +22,7 @@ export const EXPENSE_CATEGORIES = [
   { id: 'fnb', name: 'F&B', icon: '🍽️', color: '#fb923c' },
   { id: 'groceries', name: 'Groceries', icon: '🛒', color: '#4ade80' },
   { id: 'clothes', name: 'Clothes', icon: '👗', color: '#f472b6' },
+  { id: 'salon', name: 'Salon / Beauty', icon: '💅', color: '#f9a8d4' },
   { id: 'pets', name: 'Pets', icon: '🐱', color: '#a3e635' },
   { id: 'bills', name: 'Bills', icon: '⚡', color: '#60a5fa' },
   { id: 'subscription', name: 'Subscription', icon: '🔄', color: '#8b5cf6' },
@@ -56,74 +57,104 @@ export function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2)
 }
 
-// Create reactive store state
-export const state = reactive({
-  wallets: loadFromStorage('mochi_wallets', DEFAULT_WALLETS),
-  transactions: loadFromStorage('mochi_transactions', []),
-  savings: loadFromStorage('mochi_savings', []),
-  wishlist: loadFromStorage('mochi_wishlist', []),
-  challenges: loadFromStorage('mochi_challenges', []),
-  movies: loadFromStorage('mochi_movies', []),
-  series: loadFromStorage('mochi_series', []),
-  books: loadFromStorage('mochi_books', []),
-  youtubeVideos: loadFromStorage('mochi_youtube_videos', []),
-  youtubeChannels: loadFromStorage('mochi_youtube_channels', []),
-  passwords: loadFromStorage('mochi_passwords', []),
-  pets: loadFromStorage('mochi_pets', []),
-  petLogs: loadFromStorage('mochi_petlogs', []),
-  petSessions: loadFromStorage('mochi_petsessions', []),
-  tankLogs: loadFromStorage('mochi_tanklogs', []),
-  collections: loadFromStorage('mochi_collections', []),
-  collectionItems: loadFromStorage('mochi_collectionitems', []),
-  wardrobe: loadFromStorage('mochi_wardrobe', []),
-  subscriptions: loadFromStorage('mochi_subscriptions', []),
-  painLogs: loadFromStorage('mochi_painlogs', []),
-  nutLogs: loadFromStorage('mochi_nutlogs', []),
-  importantNumbers: loadFromStorage('mochi_importantnumbers', []),
-  shoppingList: loadFromStorage('mochi_shoppinglist', []),
-  shoppingPapers: loadFromStorage('mochi_shoppingpapers', []),
-  habits: loadFromStorage('mochi_habits', {
-    currentChallenge: 'january-2026',
-    completions: {},
-    weeklyBonuses: {},
-    endOfMonthGoals: {},
-  }),
-  vioPass: loadFromStorage('mochi_viopass', {
-    checkins: [],
-    currentStreak: 0,
-    longestStreak: 0,
-    lastCheckinDate: null,
-  }),
-  settings: loadFromStorage('mochi_settings', {
-    currency: 'IDR',
-    hasCompletedOnboarding: false,
-    startedAt: null,
-    theme: 'light',
-    targets: {
-      monthlyIncome: 0,
-      monthlyExpense: 0,
-      monthlySavings: 0,
-    },
-    lifetimeGoal: {
-      name: 'House Fund',
-      target: 0,
-    },
-  }),
-  userId: null,
-  userEmail: null,
-  isLoading: true,
-  isSyncing: false,
-})
+// Create reactive store state - use global to survive HMR
+// This ensures all module instances share the same state
+if (!window.__vionadeState) {
+  window.__vionadeState = reactive({
+    wallets: loadFromStorage('mochi_wallets', DEFAULT_WALLETS),
+    transactions: loadFromStorage('mochi_transactions', []),
+    savings: loadFromStorage('mochi_savings', []),
+    wishlist: loadFromStorage('mochi_wishlist', []),
+    challenges: loadFromStorage('mochi_challenges', []),
+    movies: loadFromStorage('mochi_movies', []),
+    series: loadFromStorage('mochi_series', []),
+    books: loadFromStorage('mochi_books', []),
+    youtubeVideos: loadFromStorage('mochi_youtube_videos', []),
+    youtubeChannels: loadFromStorage('mochi_youtube_channels', []),
+    passwords: loadFromStorage('mochi_passwords', []),
+    pets: loadFromStorage('mochi_pets', []),
+    petLogs: loadFromStorage('mochi_petlogs', []),
+    petSessions: loadFromStorage('mochi_petsessions', []),
+    tankLogs: loadFromStorage('mochi_tanklogs', []),
+    collections: loadFromStorage('mochi_collections', []),
+    collectionItems: loadFromStorage('mochi_collectionitems', []),
+    wardrobe: loadFromStorage('mochi_wardrobe', []),
+    subscriptions: loadFromStorage('mochi_subscriptions', []),
+    painLogs: loadFromStorage('mochi_painlogs', []),
+    nutLogs: loadFromStorage('mochi_nutlogs', []),
+    importantNumbers: loadFromStorage('mochi_importantnumbers', []),
+    shoppingList: loadFromStorage('mochi_shoppinglist', []),
+    shoppingPapers: loadFromStorage('mochi_shoppingpapers', []),
+    habits: loadFromStorage('mochi_habits', {
+      currentChallenge: 'january-2026',
+      completions: {},
+      weeklyBonuses: {},
+      endOfMonthGoals: {},
+    }),
+    vioPass: loadFromStorage('mochi_viopass', {
+      checkins: [],
+      currentStreak: 0,
+      longestStreak: 0,
+      lastCheckinDate: null,
+    }),
+    settings: loadFromStorage('mochi_settings', {
+      currency: 'IDR',
+      hasCompletedOnboarding: false,
+      startedAt: null,
+      theme: 'light',
+      targets: {
+        monthlyIncome: 0,
+        monthlyExpense: 0,
+        monthlySavings: 0,
+      },
+      lifetimeGoal: {
+        name: 'House Fund',
+        target: 0,
+      },
+    }),
+    userId: null,
+    userEmail: null,
+    isLoading: true,
+    isSyncing: false,
+  })
+}
+
+export const state = window.__vionadeState
 
 // Firebase sync
-let unsubscribe = null
 let onSignOutCallback = null
 let saveTimeout = null
-let hasPendingChanges = false
+
+// Use global flags to survive HMR (hot module replacement)
+if (typeof window.__vionadePendingChanges === 'undefined') {
+  window.__vionadePendingChanges = false
+}
+if (typeof window.__vionadeSyncPaused === 'undefined') {
+  window.__vionadeSyncPaused = false
+}
+
+function getHasPendingChanges() {
+  return window.__vionadePendingChanges
+}
+function setHasPendingChanges(value) {
+  window.__vionadePendingChanges = value
+}
+
+// Pause/resume sync - use this during bulk operations
+export function pauseSync() {
+  window.__vionadeSyncPaused = true
+  console.log('[Firebase] Sync PAUSED')
+}
+
+export function resumeSync() {
+  window.__vionadeSyncPaused = false
+  console.log('[Firebase] Sync RESUMED')
+}
 
 // Call this BEFORE making local state changes to prevent Firebase sync from overwriting
 export function markPendingChanges() {
-  hasPendingChanges = true
+  setHasPendingChanges(true)
+  console.log('[Firebase] Marked pending changes')
 }
 
 export function setOnSignOutCallback(callback) {
@@ -134,6 +165,7 @@ export async function saveToFirebase() {
   if (!state.userId || state.isSyncing) return
 
   state.isSyncing = true
+  setHasPendingChanges(true) // Ensure flag is set during save
   try {
     await setDoc(doc(db, 'users', state.userId), {
       wallets: state.wallets,
@@ -165,19 +197,26 @@ export async function saveToFirebase() {
       settings: state.settings,
       updatedAt: new Date().toISOString(),
     })
+    console.log('[Firebase] Saved successfully, transactions:', state.transactions.length)
+    // Keep pending flag true for 3 seconds after save to prevent sync overwrite
+    setTimeout(() => {
+      setHasPendingChanges(false)
+      console.log('[Firebase] Pending changes flag cleared')
+    }, 3000)
   } catch (error) {
     console.error('Save to Firebase error:', error)
+    setHasPendingChanges(false)
   } finally {
     state.isSyncing = false
   }
 }
 
 export function debouncedSaveToFirebase() {
-  hasPendingChanges = true
+  setHasPendingChanges(true)
   if (saveTimeout) clearTimeout(saveTimeout)
   saveTimeout = setTimeout(async () => {
     await saveToFirebase()
-    hasPendingChanges = false
+    // Note: saveToFirebase already handles clearing the flag after 3 seconds
   }, 1000)
 }
 
@@ -290,11 +329,37 @@ async function loadFromFirebase() {
 }
 
 function setupRealtimeSync() {
-  if (!state.userId || unsubscribe) return
+  if (!state.userId) return
 
-  unsubscribe = onSnapshot(doc(db, 'users', state.userId), (docSnap) => {
-    if (docSnap.exists() && !state.isSyncing && !hasPendingChanges) {
+  // Use global unsubscribe to prevent multiple listeners from HMR
+  // First, clean up any existing listener
+  if (window.__vionadeUnsubscribe) {
+    console.log('[Firebase] Cleaning up old listener')
+    window.__vionadeUnsubscribe()
+    window.__vionadeUnsubscribe = null
+  }
+
+  console.log('[Firebase] Setting up realtime sync listener')
+  window.__vionadeUnsubscribe = onSnapshot(doc(db, 'users', state.userId), (docSnap) => {
+    if (docSnap.exists()) {
       const data = docSnap.data()
+
+      // Log sync attempts for debugging
+      if (window.__vionadeSyncPaused) {
+        console.log('[Firebase Sync] BLOCKED - sync is paused')
+        return
+      }
+      if (state.isSyncing) {
+        console.log('[Firebase Sync] BLOCKED - currently syncing')
+        return
+      }
+      if (getHasPendingChanges()) {
+        console.log('[Firebase Sync] BLOCKED - has pending changes')
+        return
+      }
+
+      console.log('[Firebase Sync] Applying remote data, transactions:', data.transactions?.length || 0)
+
       if (data.wallets) state.wallets = data.wallets
       if (data.transactions) state.transactions = data.transactions
       if (data.settings) state.settings = { ...state.settings, ...data.settings }
@@ -334,9 +399,9 @@ export async function initFirebase() {
       loadFromFirebase()
       setupRealtimeSync()
     } else {
-      if (unsubscribe) {
-        unsubscribe()
-        unsubscribe = null
+      if (window.__vionadeUnsubscribe) {
+        window.__vionadeUnsubscribe()
+        window.__vionadeUnsubscribe = null
       }
       state.userId = null
       state.userEmail = null
