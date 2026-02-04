@@ -6,12 +6,13 @@ import { useFinanceStore } from '../stores'
 import WellnessHabits from '../components/wellness/WellnessHabits.vue'
 import WellnessPain from '../components/wellness/WellnessPain.vue'
 import WellnessNut from '../components/wellness/WellnessNut.vue'
+import WellnessCafe from '../components/wellness/WellnessCafe.vue'
 
 const store = useFinanceStore()
 const fabAction = inject('fabAction')
 
 // Tab Management
-const activeTab = ref('pain') // 'pain', 'nut', 'habits'
+const activeTab = ref('pain') // 'pain', 'nut', 'habits', 'cafe'
 
 function selectTab(tab) {
   activeTab.value = tab
@@ -20,15 +21,18 @@ function selectTab(tab) {
 // Refs for FAB
 const painRef = ref(null)
 const nutRef = ref(null)
+const cafeRef = ref(null)
 
 // Stats for sidebar
 const wellnessStats = computed(() => {
   const painLogs = store.painLogs.value || []
   const nutLogs = store.nutLogs.value || []
+  const cafeVisits = store.cafeVisits.value || []
 
   return {
     totalPainLogs: painLogs.length,
     totalNutLogs: nutLogs.length,
+    totalCafeVisits: cafeVisits.length,
   }
 })
 
@@ -39,6 +43,8 @@ onMounted(() => {
       painRef.value.openAddModal()
     } else if (activeTab.value === 'nut' && nutRef.value) {
       nutRef.value.openAddModal()
+    } else if (activeTab.value === 'cafe' && cafeRef.value) {
+      cafeRef.value.openAddModal()
     }
   }
 })
@@ -94,6 +100,15 @@ onUnmounted(() => {
             <span class="sidebar-icon">✅</span>
             <span class="sidebar-label">Habits</span>
           </button>
+          <button
+            class="sidebar-item"
+            :class="{ active: activeTab === 'cafe' }"
+            @click="selectTab('cafe')"
+          >
+            <span class="sidebar-icon">☕</span>
+            <span class="sidebar-label">Cafe Check-in</span>
+            <span class="sidebar-count">{{ wellnessStats.totalCafeVisits }}</span>
+          </button>
         </nav>
 
         <div class="sidebar-stats-card">
@@ -125,6 +140,11 @@ onUnmounted(() => {
             :class="{ active: activeTab === 'habits' }"
             @click="selectTab('habits')"
           >Habits</button>
+          <button
+            class="wellness-tab"
+            :class="{ active: activeTab === 'cafe' }"
+            @click="selectTab('cafe')"
+          >Cafe</button>
         </div>
 
         <!-- Tab Content -->
@@ -139,6 +159,11 @@ onUnmounted(() => {
         />
 
         <WellnessHabits v-if="activeTab === 'habits'" />
+
+        <WellnessCafe
+          v-if="activeTab === 'cafe'"
+          ref="cafeRef"
+        />
       </main>
     </div>
   </div>

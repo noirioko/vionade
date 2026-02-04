@@ -82,9 +82,12 @@ if (!window.__vionadeState) {
     subscriptions: loadFromStorage('mochi_subscriptions', []),
     painLogs: loadFromStorage('mochi_painlogs', []),
     nutLogs: loadFromStorage('mochi_nutlogs', []),
+    cafeVisits: loadFromStorage('mochi_cafevisits', []),
     importantNumbers: loadFromStorage('mochi_importantnumbers', []),
     shoppingList: loadFromStorage('mochi_shoppinglist', []),
     shoppingPapers: loadFromStorage('mochi_shoppingpapers', []),
+    closedMonths: loadFromStorage('mochi_closedmonths', []),
+    debts: loadFromStorage('mochi_debts', []),
     habits: loadFromStorage('mochi_habits', {
       currentChallenge: 'january-2026',
       completions: {},
@@ -192,8 +195,11 @@ export async function saveToFirebase() {
       importantNumbers: state.importantNumbers,
       shoppingList: state.shoppingList,
       shoppingPapers: state.shoppingPapers,
+      closedMonths: state.closedMonths,
+      debts: state.debts,
       painLogs: state.painLogs,
       nutLogs: state.nutLogs,
+      cafeVisits: state.cafeVisits,
       settings: state.settings,
       updatedAt: new Date().toISOString(),
     })
@@ -252,8 +258,11 @@ async function loadFromFirebase() {
       if (data.importantNumbers) state.importantNumbers = data.importantNumbers
       if (data.shoppingList) state.shoppingList = data.shoppingList
       if (data.shoppingPapers) state.shoppingPapers = data.shoppingPapers
+      if (data.closedMonths) state.closedMonths = data.closedMonths
+      if (data.debts) state.debts = data.debts
       if (data.painLogs) state.painLogs = data.painLogs
       if (data.nutLogs) state.nutLogs = data.nutLogs
+      if (data.cafeVisits) state.cafeVisits = data.cafeVisits
 
       // Save to localStorage as backup
       localStorage.setItem('mochi_wallets', JSON.stringify(state.wallets))
@@ -279,8 +288,11 @@ async function loadFromFirebase() {
       localStorage.setItem('mochi_subscriptions', JSON.stringify(state.subscriptions))
       localStorage.setItem('mochi_habits', JSON.stringify(state.habits))
       localStorage.setItem('mochi_shoppingpapers', JSON.stringify(state.shoppingPapers))
+      localStorage.setItem('mochi_closedmonths', JSON.stringify(state.closedMonths))
+      localStorage.setItem('mochi_debts', JSON.stringify(state.debts))
       localStorage.setItem('mochi_painlogs', JSON.stringify(state.painLogs))
       localStorage.setItem('mochi_nutlogs', JSON.stringify(state.nutLogs))
+      localStorage.setItem('mochi_cafevisits', JSON.stringify(state.cafeVisits))
     } else {
       // First time user - start fresh
       state.wallets = [...DEFAULT_WALLETS]
@@ -385,8 +397,11 @@ function setupRealtimeSync() {
       if (data.importantNumbers) state.importantNumbers = data.importantNumbers
       if (data.shoppingList) state.shoppingList = data.shoppingList
       if (data.shoppingPapers) state.shoppingPapers = data.shoppingPapers
+      if (data.closedMonths) state.closedMonths = data.closedMonths
+      if (data.debts) state.debts = data.debts
       if (data.painLogs) state.painLogs = data.painLogs
       if (data.nutLogs) state.nutLogs = data.nutLogs
+      if (data.cafeVisits) state.cafeVisits = data.cafeVisits
     }
   })
 }
@@ -452,9 +467,12 @@ const stateKeys = [
   { key: 'habits', storage: 'mochi_habits' },
   { key: 'painLogs', storage: 'mochi_painlogs' },
   { key: 'nutLogs', storage: 'mochi_nutlogs' },
+  { key: 'cafeVisits', storage: 'mochi_cafevisits' },
   { key: 'importantNumbers', storage: 'mochi_importantnumbers' },
   { key: 'shoppingList', storage: 'mochi_shoppinglist' },
   { key: 'shoppingPapers', storage: 'mochi_shoppingpapers' },
+  { key: 'closedMonths', storage: 'mochi_closedmonths' },
+  { key: 'debts', storage: 'mochi_debts' },
 ]
 
 stateKeys.forEach(({ key, storage }) => {
@@ -493,6 +511,7 @@ export async function resetAllData() {
   state.wardrobe = []
   state.painLogs = []
   state.nutLogs = []
+  state.debts = []
   state.importantNumbers = []
   state.shoppingList = []
   state.habits = {

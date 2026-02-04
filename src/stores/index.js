@@ -38,6 +38,9 @@ import {
   fixAllWalletBalances,
   clearWalletTransactions,
   startFreshMonth,
+  archiveMonth,
+  deleteArchivedMonth,
+  getClosedMonths,
   addSavings,
   deleteSavings,
   startChallenge,
@@ -218,6 +221,14 @@ import {
   getThisMonthNutCount,
 } from './modules/nut'
 
+// Cafe module
+import {
+  addCafeVisit,
+  updateCafeVisit,
+  deleteCafeVisit,
+  getCafeStats,
+} from './modules/cafe'
+
 // Important Numbers module
 import {
   addImportantNumber,
@@ -242,6 +253,19 @@ import {
   updatePaperItem,
   clearCheckedFromPaper,
 } from './modules/shoppingList'
+
+// Debts module
+import {
+  addDebt,
+  updateDebt,
+  markDebtPaid,
+  reactivateDebt,
+  deleteDebt,
+  getActiveDebts,
+  getPaidDebts,
+  getTotalOwedToMe,
+  getTotalIOwe,
+} from './modules/debts'
 
 // Export constants for direct use
 export { COLLECTION_TYPES }
@@ -272,6 +296,7 @@ export function useFinanceStore() {
     wardrobe: computed(() => state.wardrobe),
     painLogs: computed(() => [...state.painLogs]),
     nutLogs: computed(() => [...state.nutLogs]),
+    cafeVisits: computed(() => [...state.cafeVisits]),
     importantNumbers: computed(() => state.importantNumbers),
     shoppingList: computed(() => state.shoppingList),
     shoppingPapers: computed(() => state.shoppingPapers),
@@ -310,6 +335,9 @@ export function useFinanceStore() {
     fixAllWalletBalances,
     clearWalletTransactions,
     startFreshMonth,
+    archiveMonth,
+    deleteArchivedMonth,
+    getClosedMonths,
     saveToFirebase,
     addSavings,
     deleteSavings,
@@ -463,6 +491,12 @@ export function useFinanceStore() {
     getTotalNutCount,
     getThisMonthNutCount,
 
+    // Cafe actions
+    addCafeVisit,
+    updateCafeVisit,
+    deleteCafeVisit,
+    getCafeStats,
+
     // Important Numbers actions
     addImportantNumber,
     updateImportantNumber,
@@ -483,6 +517,18 @@ export function useFinanceStore() {
     deletePaperItem,
     updatePaperItem,
     clearCheckedFromPaper,
+
+    // Debt actions
+    debts: computed(() => state.debts),
+    addDebt,
+    updateDebt,
+    markDebtPaid,
+    reactivateDebt,
+    deleteDebt,
+    getActiveDebts,
+    getPaidDebts,
+    getTotalOwedToMe,
+    getTotalIOwe,
 
     // Helpers
     formatCurrency,
