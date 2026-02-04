@@ -102,14 +102,59 @@ export const challenges = {
       { id: 29, name: 'Bikin video/catatan refleksi hari ke-30', desc: 'What changed? What worked?', points: 5 },
       { id: 30, name: 'Reward yourself with something nice', desc: 'NOT food. Maybe new art supplies? Skincare? Fish stuff?', points: 5 }
     ]
+  },
+
+  'february-2026': {
+    id: 'february-2026',
+    name: 'Frugal Feb',
+    subtitle: 'Less spending, more saving!',
+    bannerBg: '/images/monthly-banner-bg/february-banner.jpg',
+    bannerIcon: '/images/monthly-banner-bg/february-icon.png',
+    bannerChar: '/images/monthly-banner-bg/february-right-char.png',
+    startDate: '2026-02-01',
+    endDate: '2026-02-28',
+    totalDays: 28,
+
+    categories: {
+      daily: {
+        id: 'daily',
+        emoji: '✨',
+        name: 'DAILY ESSENTIALS',
+        habits: [
+          { id: 101, name: 'Make bed after waking', desc: 'Start the day with a small win', points: 1 },
+          { id: 102, name: 'Skincare PM', desc: 'Evening skincare routine', points: 1 },
+          { id: 103, name: 'Read 1 page minimum', desc: 'Any book counts!', points: 1 },
+          { id: 104, name: 'No cafe today', desc: 'Saved money by not going to cafe!', points: 1 }
+        ]
+      }
+    },
+
+    weeklyBonuses: [
+      { id: 201, name: 'Full week streak on all 4 habits', desc: 'Complete all habits for 7 days straight', points: 3 },
+      { id: 202, name: 'No regret cafe visits this week', desc: 'All cafe visits marked as "worth it"', points: 2 }
+    ],
+
+    endOfMonthGoals: [
+      { id: 301, name: 'Finish 1 book this month', desc: 'Complete at least one book', points: 5 },
+      { id: 302, name: 'Reflection: What worked in February?', desc: 'Write/record your thoughts', points: 5 }
+    ]
   }
 }
 
 // Helper to get current challenge
 export function getCurrentChallenge() {
-  // For now, always return January 2026
-  // Later we can make this dynamic based on date
-  return challenges['january-2026']
+  // Return February 2026 as current
+  return challenges['february-2026']
+}
+
+// Get challenge by ID
+export function getChallengeById(id) {
+  return challenges[id]
+}
+
+// Get all challenge IDs
+export function getAllChallengeIds() {
+  return Object.keys(challenges)
 }
 
 // Get all habits as flat array

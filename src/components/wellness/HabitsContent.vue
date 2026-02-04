@@ -1,12 +1,22 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useFinanceStore } from '../../stores'
-import { getCurrentChallenge, getAllHabits, getMaxPoints } from '../../data/habitChallenges'
+import { getCurrentChallenge, getAllHabits, getMaxPoints, getAllChallengeIds, getChallengeById } from '../../data/habitChallenges'
 
 const store = useFinanceStore()
-const challenge = getCurrentChallenge()
-const allHabits = getAllHabits()
-const maxPoints = getMaxPoints()
+
+// Challenge selection
+const allChallengeIds = getAllChallengeIds()
+const currentChallengeId = getCurrentChallenge().id
+const selectedChallengeId = ref(currentChallengeId)
+
+// Reactive challenge data based on selection
+const challenge = computed(() => getChallengeById(selectedChallengeId.value))
+const allHabits = computed(() => getAllHabits(selectedChallengeId.value))
+const maxPoints = computed(() => getMaxPoints(selectedChallengeId.value))
+
+// Check if viewing current/active challenge
+const isCurrentChallenge = computed(() => selectedChallengeId.value === currentChallengeId)
 
 // Collapsed state for categories
 const collapsedCategories = ref({})
@@ -17,15 +27,15 @@ function toggleCategory(categoryId) {
 
 // Calculate current day of challenge
 const currentDay = computed(() => {
-  const start = new Date(challenge.startDate)
+  const start = new Date(challenge.value.startDate)
   const today = new Date()
   const diff = Math.floor((today - start) / (1000 * 60 * 60 * 24)) + 1
-  return Math.min(Math.max(diff, 1), challenge.totalDays)
+  return Math.min(Math.max(diff, 1), challenge.value.totalDays)
 })
 
 // Calculate days remaining
 const daysRemaining = computed(() => {
-  const end = new Date(challenge.endDate)
+  const end = new Date(challenge.value.endDate)
   const today = new Date()
   const diff = Math.ceil((end - today) / (1000 * 60 * 60 * 24))
   return Math.max(diff, 0)
@@ -43,7 +53,7 @@ const totalPoints = computed(() => {
   // Daily habit completions
   Object.keys(store.habits.value.completions).forEach(key => {
     if (store.habits.value.completions[key]) {
-      const habit = allHabits.find(h => h.id === parseInt(key.split('-')[0]))
+      const habit = allHabits.value.find(h => h.id === parseInt(key.split('-')[0]))
       if (habit) points += habit.points
     }
   })
@@ -51,7 +61,7 @@ const totalPoints = computed(() => {
   // Weekly bonuses
   Object.keys(store.habits.value.weeklyBonuses).forEach(key => {
     if (store.habits.value.weeklyBonuses[key]) {
-      const bonus = challenge.weeklyBonuses.find(b => b.id === parseInt(key.split('-')[0]))
+      const bonus = challenge.value.weeklyBonuses.find(b => b.id === parseInt(key.split('-')[0]))
       if (bonus) points += bonus.points
     }
   })
@@ -59,7 +69,7 @@ const totalPoints = computed(() => {
   // End of month goals
   Object.keys(store.habits.value.endOfMonthGoals).forEach(key => {
     if (store.habits.value.endOfMonthGoals[key]) {
-      const goal = challenge.endOfMonthGoals.find(g => g.id === parseInt(key))
+      const goal = challenge.value.endOfMonthGoals.find(g => g.id === parseInt(key))
       if (goal) points += goal.points
     }
   })
@@ -69,17 +79,16 @@ const totalPoints = computed(() => {
 
 // Calculate percentage
 const progressPercent = computed(() => {
-  return Math.round((totalPoints.value / maxPoints) * 100)
+  return Math.round((totalPoints.value / maxPoints.value) * 100)
 })
 
 // Calculate current streak (consecutive days with at least 1 habit completed)
 const currentStreak = computed(() => {
   let streak = 0
-  const today = new Date()
 
   for (let i = 0; i < currentDay.value; i++) {
     const checkDay = currentDay.value - i
-    const dayHasCompletion = allHabits.some(habit =>
+    const dayHasCompletion = allHabits.value.some(habit =>
       store.isHabitCompleted(habit.id, checkDay)
     )
 
@@ -96,13 +105,13 @@ const currentStreak = computed(() => {
 
 // Get completions for today
 const todayCompletions = computed(() => {
-  return allHabits.filter(habit =>
+  return allHabits.value.filter(habit =>
     store.isHabitCompleted(habit.id, currentDay.value)
   ).length
 })
 
-// Days array for grid
-const days = Array.from({ length: challenge.totalDays }, (_, i) => i + 1)
+// Days array for grid (reactive)
+const days = computed(() => Array.from({ length: challenge.value.totalDays }, (_, i) => i + 1))
 
 // Selected day for logging (defaults to today)
 const selectedDay = ref(null)
@@ -158,9 +167,29 @@ function handleGoalClick(goalId) {
 
 <template>
   <div class="habits-content">
+    <!-- Challenge Selector -->
+    <div class="challenge-selector" v-if="allChallengeIds.length > 1">
+      <button
+        v-for="id in allChallengeIds"
+        :key="id"
+        class="challenge-tab"
+        :class="{ active: selectedChallengeId === id, current: id === currentChallengeId }"
+        @click="selectedChallengeId = id"
+      >
+        {{ getChallengeById(id).name.replace(' Challenge', '') }}
+        <span v-if="id === currentChallengeId" class="current-badge">Active</span>
+      </button>
+    </div>
+
+    <!-- Archive Notice -->
+    <div v-if="!isCurrentChallenge" class="archive-notice">
+      📁 Viewing archived challenge. <button @click="selectedChallengeId = currentChallengeId" class="back-link">Back to current</button>
+    </div>
+
     <!-- Event Banner -->
     <div
       class="event-banner"
+      :class="{ archived: !isCurrentChallenge, 'february-theme': selectedChallengeId.includes('february') }"
       :style="challenge.bannerBg ? { backgroundImage: `url(${challenge.bannerBg})` } : {}"
     >
       <div class="banner-content">
@@ -425,6 +454,90 @@ function handleGoalClick(goalId) {
   width: 100%;
 }
 
+/* Challenge Selector */
+.challenge-selector {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  overflow-x: auto;
+  padding-bottom: var(--space-xs);
+}
+
+.challenge-tab {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-card);
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-full);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  transition: all 0.2s;
+}
+
+.challenge-tab:hover {
+  border-color: var(--lavender-400);
+  color: var(--lavender-600);
+}
+
+.challenge-tab.active {
+  background: var(--lavender-500);
+  border-color: var(--lavender-500);
+  color: white;
+}
+
+.challenge-tab .current-badge {
+  background: rgba(255, 255, 255, 0.25);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.challenge-tab:not(.active) .current-badge {
+  background: var(--income-color);
+  color: white;
+}
+
+/* Archive Notice */
+.archive-notice {
+  background: #FEF3C7;
+  border: 2px solid #F59E0B;
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-md);
+  font-size: 0.875rem;
+  color: #92400E;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.back-link {
+  background: none;
+  border: none;
+  color: #B45309;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  font-size: inherit;
+}
+
+.back-link:hover {
+  color: #92400E;
+}
+
+.event-banner.archived {
+  opacity: 0.85;
+  filter: grayscale(30%);
+}
+
 /* Event Banner */
 .event-banner {
   position: relative;
@@ -447,6 +560,15 @@ function handleGoalClick(goalId) {
   gap: var(--space-md);
   padding: var(--space-lg);
   background: linear-gradient(90deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.3) 60%, transparent 100%);
+}
+
+/* February pink theme */
+.event-banner.february-theme {
+  background-color: #EC4899;
+}
+
+.event-banner.february-theme .banner-content {
+  background: linear-gradient(90deg, rgba(236,72,153,0.6) 0%, rgba(219,39,119,0.4) 40%, rgba(244,114,182,0.2) 70%, transparent 100%);
 }
 
 .banner-icon {
@@ -1241,10 +1363,59 @@ function handleGoalClick(goalId) {
 </style>
 
 <style>
+/* Dark mode - Challenge Selector */
+[data-theme="dark"] .challenge-selector {
+  scrollbar-color: #3D3456 transparent;
+}
+
+[data-theme="dark"] .challenge-tab {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+  color: #9D8BC2 !important;
+}
+
+[data-theme="dark"] .challenge-tab:hover {
+  border-color: #8B5CF6 !important;
+  color: #C4B5FD !important;
+}
+
+[data-theme="dark"] .challenge-tab.active {
+  background: #8B5CF6 !important;
+  border-color: #8B5CF6 !important;
+  color: white !important;
+}
+
+[data-theme="dark"] .challenge-tab:not(.active) .current-badge {
+  background: #10B981 !important;
+}
+
+[data-theme="dark"] .archive-notice {
+  background: #2D2640 !important;
+  border-color: #B8860B !important;
+  color: #FCD34D !important;
+}
+
+[data-theme="dark"] .back-link {
+  color: #FCD34D !important;
+}
+
+[data-theme="dark"] .back-link:hover {
+  color: #F59E0B !important;
+}
+
 /* Dark mode */
 [data-theme="dark"] .event-banner {
   background-color: #5B21B6 !important;
   box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3) !important;
+}
+
+[data-theme="dark"] .event-banner.february-theme {
+  background-color: #9D174D !important;
+  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.3) !important;
+}
+
+[data-theme="dark"] .event-banner.february-theme .banner-content {
+  background: linear-gradient(90deg, rgba(157,23,77,0.7) 0%, rgba(190,24,93,0.5) 40%, rgba(236,72,153,0.3) 70%, transparent 100%) !important;
 }
 
 [data-theme="dark"] .banner-title {
