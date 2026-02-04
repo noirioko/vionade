@@ -8,13 +8,14 @@ import WellnessHabits from '../components/wellness/WellnessHabits.vue'
 import WellnessPain from '../components/wellness/WellnessPain.vue'
 import WellnessNut from '../components/wellness/WellnessNut.vue'
 import WellnessCafe from '../components/wellness/WellnessCafe.vue'
+import WellnessStaycation from '../components/wellness/WellnessStaycation.vue'
 
 const route = useRoute()
 const store = useFinanceStore()
 const fabAction = inject('fabAction')
 
 // Tab Management - check for query param
-const validTabs = ['pain', 'nut', 'habits', 'cafe']
+const validTabs = ['pain', 'nut', 'habits', 'cafe', 'staycation']
 const initialTab = validTabs.includes(route.query.tab) ? route.query.tab : 'pain'
 const activeTab = ref(initialTab)
 
@@ -26,17 +27,20 @@ function selectTab(tab) {
 const painRef = ref(null)
 const nutRef = ref(null)
 const cafeRef = ref(null)
+const staycationRef = ref(null)
 
 // Stats for sidebar
 const wellnessStats = computed(() => {
   const painLogs = store.painLogs.value || []
   const nutLogs = store.nutLogs.value || []
   const cafeVisits = store.cafeVisits.value || []
+  const staycations = store.staycations.value || []
 
   return {
     totalPainLogs: painLogs.length,
     totalNutLogs: nutLogs.length,
     totalCafeVisits: cafeVisits.length,
+    totalStaycations: staycations.length,
   }
 })
 
@@ -49,6 +53,8 @@ onMounted(() => {
       nutRef.value.openAddModal()
     } else if (activeTab.value === 'cafe' && cafeRef.value) {
       cafeRef.value.openAddModal()
+    } else if (activeTab.value === 'staycation' && staycationRef.value) {
+      staycationRef.value.openAddModal()
     }
   }
 })
@@ -113,6 +119,15 @@ onUnmounted(() => {
             <span class="sidebar-label">Cafe Check-in</span>
             <span class="sidebar-count">{{ wellnessStats.totalCafeVisits }}</span>
           </button>
+          <button
+            class="sidebar-item"
+            :class="{ active: activeTab === 'staycation' }"
+            @click="selectTab('staycation')"
+          >
+            <span class="sidebar-icon">🏨</span>
+            <span class="sidebar-label">Staycation</span>
+            <span class="sidebar-count">{{ wellnessStats.totalStaycations }}</span>
+          </button>
         </nav>
 
         <div class="sidebar-stats-card">
@@ -149,24 +164,34 @@ onUnmounted(() => {
             :class="{ active: activeTab === 'cafe' }"
             @click="selectTab('cafe')"
           >Cafe</button>
+          <button
+            class="wellness-tab"
+            :class="{ active: activeTab === 'staycation' }"
+            @click="selectTab('staycation')"
+          >Staycation</button>
         </div>
 
         <!-- Tab Content -->
         <WellnessPain
-          v-if="activeTab === 'pain'"
+          v-show="activeTab === 'pain'"
           ref="painRef"
         />
 
         <WellnessNut
-          v-if="activeTab === 'nut'"
+          v-show="activeTab === 'nut'"
           ref="nutRef"
         />
 
-        <WellnessHabits v-if="activeTab === 'habits'" />
+        <WellnessHabits v-show="activeTab === 'habits'" />
 
         <WellnessCafe
-          v-if="activeTab === 'cafe'"
+          v-show="activeTab === 'cafe'"
           ref="cafeRef"
+        />
+
+        <WellnessStaycation
+          v-show="activeTab === 'staycation'"
+          ref="staycationRef"
         />
       </main>
     </div>

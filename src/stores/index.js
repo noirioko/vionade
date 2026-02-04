@@ -239,6 +239,14 @@ import {
   getReviewStats,
 } from './modules/reviews'
 
+// Staycation module
+import {
+  addStaycation,
+  updateStaycation,
+  deleteStaycation,
+  getStaycationStats,
+} from './modules/staycation'
+
 // Important Numbers module
 import {
   addImportantNumber,
@@ -308,6 +316,7 @@ export function useFinanceStore() {
     nutLogs: computed(() => [...state.nutLogs]),
     cafeVisits: computed(() => [...state.cafeVisits]),
     reviews: computed(() => [...state.reviews]),
+    staycations: computed(() => [...state.staycations]),
     importantNumbers: computed(() => state.importantNumbers),
     shoppingList: computed(() => state.shoppingList),
     shoppingPapers: computed(() => state.shoppingPapers),
@@ -515,6 +524,12 @@ export function useFinanceStore() {
     deleteReview,
     getReviewsByCategory,
     getReviewStats,
+
+    // Staycation actions
+    addStaycation,
+    updateStaycation,
+    deleteStaycation,
+    getStaycationStats,
 
     // Important Numbers actions
     addImportantNumber,
