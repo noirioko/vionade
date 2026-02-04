@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, inject, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useFinanceStore } from '../stores'
 
 // Tab Components
@@ -8,11 +9,14 @@ import WellnessPain from '../components/wellness/WellnessPain.vue'
 import WellnessNut from '../components/wellness/WellnessNut.vue'
 import WellnessCafe from '../components/wellness/WellnessCafe.vue'
 
+const route = useRoute()
 const store = useFinanceStore()
 const fabAction = inject('fabAction')
 
-// Tab Management
-const activeTab = ref('pain') // 'pain', 'nut', 'habits', 'cafe'
+// Tab Management - check for query param
+const validTabs = ['pain', 'nut', 'habits', 'cafe']
+const initialTab = validTabs.includes(route.query.tab) ? route.query.tab : 'pain'
+const activeTab = ref(initialTab)
 
 function selectTab(tab) {
   activeTab.value = tab

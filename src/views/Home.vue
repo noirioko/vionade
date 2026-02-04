@@ -45,9 +45,10 @@ const features = [
     </div>
 
     <!-- Habits Banner (links to Wellness hub) -->
-    <RouterLink to="/wellness" class="habits-banner-link">
+    <RouterLink to="/wellness?tab=habits" class="habits-banner-link">
       <div
         class="habits-banner"
+        :class="{ 'february-theme': habitChallenge.id?.includes('february') }"
         :style="habitChallenge.bannerBg ? { backgroundImage: `url(${habitChallenge.bannerBg})` } : {}"
       >
         <div class="habits-banner-content">
@@ -241,6 +242,15 @@ const features = [
   object-position: bottom right;
   flex-shrink: 0;
   margin-right: var(--space-md);
+}
+
+/* February pink theme */
+.habits-banner.february-theme {
+  background-color: #EC4899;
+}
+
+.habits-banner.february-theme .habits-banner-content {
+  background: linear-gradient(90deg, rgba(236,72,153,0.6) 0%, rgba(219,39,119,0.4) 40%, rgba(244,114,182,0.2) 70%, transparent 100%);
 }
 
 /* Media Banner */
@@ -468,6 +478,16 @@ const features = [
 
 [data-theme="dark"] .habits-banner-subtitle {
   color: #DDD6FE !important;
+}
+
+/* February theme dark mode */
+[data-theme="dark"] .habits-banner.february-theme {
+  background-color: #9D174D !important;
+  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.3) !important;
+}
+
+[data-theme="dark"] .habits-banner.february-theme .habits-banner-content {
+  background: linear-gradient(90deg, rgba(157,23,77,0.7) 0%, rgba(190,24,93,0.5) 40%, rgba(236,72,153,0.3) 70%, transparent 100%) !important;
 }
 
 /* Media Banner dark mode */
