@@ -82,7 +82,6 @@ const doneItems = computed(() =>
 
 function addItem() {
   if (!newItem.value.name.trim()) return
-  if (!newItem.value.cost) return
 
   const item = {
     id: Date.now().toString(36) + Math.random().toString(36).substr(2),
