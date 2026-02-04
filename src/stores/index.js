@@ -229,6 +229,16 @@ import {
   getCafeStats,
 } from './modules/cafe'
 
+// Reviews module
+import {
+  REVIEW_CATEGORIES,
+  addReview,
+  updateReview,
+  deleteReview,
+  getReviewsByCategory,
+  getReviewStats,
+} from './modules/reviews'
+
 // Important Numbers module
 import {
   addImportantNumber,
@@ -297,6 +307,7 @@ export function useFinanceStore() {
     painLogs: computed(() => [...state.painLogs]),
     nutLogs: computed(() => [...state.nutLogs]),
     cafeVisits: computed(() => [...state.cafeVisits]),
+    reviews: computed(() => [...state.reviews]),
     importantNumbers: computed(() => state.importantNumbers),
     shoppingList: computed(() => state.shoppingList),
     shoppingPapers: computed(() => state.shoppingPapers),
@@ -496,6 +507,14 @@ export function useFinanceStore() {
     updateCafeVisit,
     deleteCafeVisit,
     getCafeStats,
+
+    // Reviews actions
+    REVIEW_CATEGORIES,
+    addReview,
+    updateReview,
+    deleteReview,
+    getReviewsByCategory,
+    getReviewStats,
 
     // Important Numbers actions
     addImportantNumber,

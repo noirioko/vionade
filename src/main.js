@@ -19,6 +19,7 @@ const Collections = () => import('./views/Collections.vue')
 const Wardrobe = () => import('./views/Wardrobe.vue')
 const Subscriptions = () => import('./views/Subscriptions.vue')
 const ShoppingList = () => import('./views/ShoppingList.vue')
+const Reviews = () => import('./views/Reviews.vue')
 const Settings = () => import('./views/Settings.vue')
 
 const routes = [
@@ -42,6 +43,7 @@ const routes = [
   { path: '/wardrobe', name: 'Wardrobe', component: Wardrobe },
   { path: '/subscriptions', name: 'Subscriptions', component: Subscriptions },
   { path: '/shopping', name: 'Shopping', component: ShoppingList },
+  { path: '/reviews', name: 'Reviews', component: Reviews },
   { path: '/settings', name: 'Settings', component: Settings },
 ]
 

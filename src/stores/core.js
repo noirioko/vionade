@@ -83,6 +83,7 @@ if (!window.__vionadeState) {
     painLogs: loadFromStorage('mochi_painlogs', []),
     nutLogs: loadFromStorage('mochi_nutlogs', []),
     cafeVisits: loadFromStorage('mochi_cafevisits', []),
+    reviews: loadFromStorage('mochi_reviews', []),
     importantNumbers: loadFromStorage('mochi_importantnumbers', []),
     shoppingList: loadFromStorage('mochi_shoppinglist', []),
     shoppingPapers: loadFromStorage('mochi_shoppingpapers', []),
@@ -200,6 +201,7 @@ export async function saveToFirebase() {
       painLogs: state.painLogs,
       nutLogs: state.nutLogs,
       cafeVisits: state.cafeVisits,
+      reviews: state.reviews,
       settings: state.settings,
       updatedAt: new Date().toISOString(),
     })
@@ -263,6 +265,7 @@ async function loadFromFirebase() {
       if (data.painLogs) state.painLogs = data.painLogs
       if (data.nutLogs) state.nutLogs = data.nutLogs
       if (data.cafeVisits) state.cafeVisits = data.cafeVisits
+      if (data.reviews) state.reviews = data.reviews
 
       // Save to localStorage as backup
       localStorage.setItem('mochi_wallets', JSON.stringify(state.wallets))
@@ -293,6 +296,7 @@ async function loadFromFirebase() {
       localStorage.setItem('mochi_painlogs', JSON.stringify(state.painLogs))
       localStorage.setItem('mochi_nutlogs', JSON.stringify(state.nutLogs))
       localStorage.setItem('mochi_cafevisits', JSON.stringify(state.cafeVisits))
+      localStorage.setItem('mochi_reviews', JSON.stringify(state.reviews))
     } else {
       // First time user - start fresh
       state.wallets = [...DEFAULT_WALLETS]
@@ -402,6 +406,7 @@ function setupRealtimeSync() {
       if (data.painLogs) state.painLogs = data.painLogs
       if (data.nutLogs) state.nutLogs = data.nutLogs
       if (data.cafeVisits) state.cafeVisits = data.cafeVisits
+      if (data.reviews) state.reviews = data.reviews
     }
   })
 }
@@ -468,6 +473,7 @@ const stateKeys = [
   { key: 'painLogs', storage: 'mochi_painlogs' },
   { key: 'nutLogs', storage: 'mochi_nutlogs' },
   { key: 'cafeVisits', storage: 'mochi_cafevisits' },
+  { key: 'reviews', storage: 'mochi_reviews' },
   { key: 'importantNumbers', storage: 'mochi_importantnumbers' },
   { key: 'shoppingList', storage: 'mochi_shoppinglist' },
   { key: 'shoppingPapers', storage: 'mochi_shoppingpapers' },

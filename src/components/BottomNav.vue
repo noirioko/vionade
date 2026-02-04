@@ -7,7 +7,7 @@ const showMore = ref(false)
 
 // Check if current route is in the "more" menu
 const isMoreActive = () => {
-  const moreRoutes = ['/passwords', '/viopass', '/laundry', '/pets', '/collections', '/wardrobe', '/subscriptions', '/shopping', '/settings']
+  const moreRoutes = ['/passwords', '/viopass', '/laundry', '/pets', '/collections', '/wardrobe', '/subscriptions', '/shopping', '/reviews', '/settings']
   return moreRoutes.includes(route.path)
 }
 
@@ -61,6 +61,10 @@ function closeMore() {
           <RouterLink to="/shopping" class="more-item" @click="closeMore">
             <span class="more-item-icon">🛒</span>
             <span class="more-item-label">Shopping</span>
+          </RouterLink>
+          <RouterLink to="/reviews" class="more-item" @click="closeMore">
+            <span class="more-item-icon">⭐</span>
+            <span class="more-item-label">Reviews</span>
           </RouterLink>
           <RouterLink to="/settings" class="more-item" @click="closeMore">
             <span class="more-item-icon">⚙️</span>
