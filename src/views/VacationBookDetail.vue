@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useFinanceStore } from '../stores'
 import { useToast } from '../composables/useToast'
@@ -8,12 +8,17 @@ const route = useRoute()
 const router = useRouter()
 const store = useFinanceStore()
 const toast = useToast()
+const fabAction = inject('fabAction')
 
 const bookId = computed(() => parseInt(route.params.id))
 const book = computed(() => store.getVacationBookById(bookId.value))
 
 // Active section
 const activeSection = ref('diary') // 'diary', 'cafes', 'restaurants'
+
+function selectSection(section) {
+  activeSection.value = section
+}
 
 // Modals
 const showDiaryModal = ref(false)
@@ -39,6 +44,13 @@ const mealTypes = [
   { id: 'dinner', label: 'Dinner', icon: '🌙' },
   { id: 'snack', label: 'Snack', icon: '🍪' },
 ]
+
+// Stats for sidebar
+const bookStats = computed(() => ({
+  diary: book.value?.diaryEntries?.length || 0,
+  cafes: book.value?.cafeVisits?.length || 0,
+  restaurants: book.value?.restaurantVisits?.length || 0
+}))
 
 // Sorted entries
 const sortedDiary = computed(() => {
@@ -256,15 +268,35 @@ function getMealInfo(mealId) {
   return mealTypes.find(m => m.id === mealId) || mealTypes[1]
 }
 
+// FAB behavior based on active section
+function updateFabAction() {
+  if (activeSection.value === 'diary') {
+    fabAction.value = openAddDiary
+  } else if (activeSection.value === 'cafes') {
+    fabAction.value = openAddCafe
+  } else if (activeSection.value === 'restaurants') {
+    fabAction.value = openAddRestaurant
+  }
+}
+
 onMounted(() => {
   if (!book.value) {
     router.push('/vacation')
   }
+  updateFabAction()
+})
+
+onUnmounted(() => {
+  fabAction.value = null
+})
+
+watch(activeSection, () => {
+  updateFabAction()
 })
 </script>
 
 <template>
-  <div class="page vacation-detail-page" v-if="book">
+  <div class="page vacation-detail-page media-page" v-if="book">
     <!-- Standard Header -->
     <div class="page-header">
       <img src="/images/vio-logo.png" alt="Vionade" class="page-header-logo" />
@@ -292,98 +324,139 @@ onMounted(() => {
       <img src="/images/vio_sit.png" alt="" class="book-banner-vio" />
     </div>
 
-    <!-- Section Tabs -->
-    <div class="section-tabs">
-      <button
-        class="section-tab"
-        :class="{ active: activeSection === 'diary' }"
-        @click="activeSection = 'diary'"
-      >
-        📝 Diary <span class="tab-count">{{ book.diaryEntries?.length || 0 }}</span>
-      </button>
-      <button
-        class="section-tab"
-        :class="{ active: activeSection === 'cafes' }"
-        @click="activeSection = 'cafes'"
-      >
-        ☕ Cafes <span class="tab-count">{{ book.cafeVisits?.length || 0 }}</span>
-      </button>
-      <button
-        class="section-tab"
-        :class="{ active: activeSection === 'restaurants' }"
-        @click="activeSection = 'restaurants'"
-      >
-        🍽️ Restaurants <span class="tab-count">{{ book.restaurantVisits?.length || 0 }}</span>
-      </button>
-    </div>
-
-    <!-- Diary Section -->
-    <div v-if="activeSection === 'diary'" class="section-content">
-      <button class="add-btn" @click="openAddDiary">+ Add Diary Entry</button>
-
-      <div v-if="sortedDiary.length === 0" class="empty-section">
-        <p>No diary entries yet</p>
-      </div>
-
-      <div v-for="entry in sortedDiary" :key="entry.id" class="diary-card" @click="openEditDiary(entry)">
-        <div class="diary-date">{{ formatDate(entry.date) }}</div>
-        <div class="diary-title" v-if="entry.title">{{ entry.title }}</div>
-        <div class="diary-content" v-if="entry.content">{{ entry.content }}</div>
-        <div class="diary-photos" v-if="entry.photos?.length">
-          <div
-            v-for="(photo, idx) in entry.photos.slice(0, 4)"
-            :key="idx"
-            class="diary-photo"
-            :style="{ backgroundImage: `url(${photo})` }"
-            @click.stop="viewPhotos(entry.photos, idx)"
+    <!-- Desktop Layout Container -->
+    <div class="book-layout">
+      <!-- Desktop Sidebar -->
+      <aside class="book-sidebar">
+        <nav class="sidebar-nav">
+          <button
+            class="sidebar-item"
+            :class="{ active: activeSection === 'diary' }"
+            @click="selectSection('diary')"
           >
-            <span v-if="idx === 3 && entry.photos.length > 4" class="more-photos">
-              +{{ entry.photos.length - 4 }}
-            </span>
+            <span class="sidebar-icon">📝</span>
+            <span class="sidebar-label">Diary</span>
+            <span class="sidebar-count">{{ bookStats.diary }}</span>
+          </button>
+          <button
+            class="sidebar-item"
+            :class="{ active: activeSection === 'cafes' }"
+            @click="selectSection('cafes')"
+          >
+            <span class="sidebar-icon">☕</span>
+            <span class="sidebar-label">Cafes</span>
+            <span class="sidebar-count">{{ bookStats.cafes }}</span>
+          </button>
+          <button
+            class="sidebar-item"
+            :class="{ active: activeSection === 'restaurants' }"
+            @click="selectSection('restaurants')"
+          >
+            <span class="sidebar-icon">🍽️</span>
+            <span class="sidebar-label">Restaurants</span>
+            <span class="sidebar-count">{{ bookStats.restaurants }}</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-info-card">
+          <img src="/images/vio_happy.png" alt="Vio" class="sidebar-vio" />
+          <div class="sidebar-info">
+            <div class="sidebar-info-label">Total Entries</div>
+            <div class="sidebar-info-value">{{ bookStats.diary + bookStats.cafes + bookStats.restaurants }}</div>
           </div>
         </div>
-      </div>
-    </div>
+      </aside>
 
-    <!-- Cafes Section -->
-    <div v-if="activeSection === 'cafes'" class="section-content">
-      <button class="add-btn" @click="openAddCafe">+ Add Cafe</button>
-
-      <div v-if="sortedCafes.length === 0" class="empty-section">
-        <p>No cafe visits yet</p>
-      </div>
-
-      <div v-for="visit in sortedCafes" :key="visit.id" class="visit-card" @click="openEditCafe(visit)">
-        <span class="visit-icon">☕</span>
-        <div class="visit-info">
-          <div class="visit-name">{{ visit.name }}</div>
-          <div class="visit-meta">
-            {{ formatShortDate(visit.date) }}
-            <span v-if="visit.time"> • {{ visit.time }}</span>
-          </div>
-          <div class="visit-notes" v-if="visit.notes">{{ visit.notes }}</div>
+      <!-- Main Content Area -->
+      <main class="book-content">
+        <!-- Mobile Tabs -->
+        <div class="book-tabs mobile-only">
+          <button
+            class="book-tab"
+            :class="{ active: activeSection === 'diary' }"
+            @click="selectSection('diary')"
+          >📝 Diary</button>
+          <button
+            class="book-tab"
+            :class="{ active: activeSection === 'cafes' }"
+            @click="selectSection('cafes')"
+          >☕ Cafes</button>
+          <button
+            class="book-tab"
+            :class="{ active: activeSection === 'restaurants' }"
+            @click="selectSection('restaurants')"
+          >🍽️ Food</button>
         </div>
-      </div>
-    </div>
 
-    <!-- Restaurants Section -->
-    <div v-if="activeSection === 'restaurants'" class="section-content">
-      <button class="add-btn" @click="openAddRestaurant">+ Add Restaurant</button>
-
-      <div v-if="sortedRestaurants.length === 0" class="empty-section">
-        <p>No restaurant visits yet</p>
-      </div>
-
-      <div v-for="visit in sortedRestaurants" :key="visit.id" class="visit-card" @click="openEditRestaurant(visit)">
-        <span class="visit-icon">{{ getMealInfo(visit.meal).icon }}</span>
-        <div class="visit-info">
-          <div class="visit-name">{{ visit.name }}</div>
-          <div class="visit-meta">
-            {{ formatShortDate(visit.date) }} • {{ getMealInfo(visit.meal).label }}
+        <!-- Diary Section -->
+        <div v-show="activeSection === 'diary'" class="section-content">
+          <div v-if="sortedDiary.length === 0" class="empty-section">
+            <span class="empty-emoji">📝</span>
+            <p>No diary entries yet</p>
+            <p class="empty-hint">Tap + to add your first entry</p>
           </div>
-          <div class="visit-notes" v-if="visit.notes">{{ visit.notes }}</div>
+
+          <div v-for="entry in sortedDiary" :key="entry.id" class="diary-card" @click="openEditDiary(entry)">
+            <div class="diary-date">{{ formatDate(entry.date) }}</div>
+            <div class="diary-title" v-if="entry.title">{{ entry.title }}</div>
+            <div class="diary-content" v-if="entry.content">{{ entry.content }}</div>
+            <div class="diary-photos" v-if="entry.photos?.length">
+              <div
+                v-for="(photo, idx) in entry.photos.slice(0, 4)"
+                :key="idx"
+                class="diary-photo"
+                :style="{ backgroundImage: `url(${photo})` }"
+                @click.stop="viewPhotos(entry.photos, idx)"
+              >
+                <span v-if="idx === 3 && entry.photos.length > 4" class="more-photos">
+                  +{{ entry.photos.length - 4 }}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+
+        <!-- Cafes Section -->
+        <div v-show="activeSection === 'cafes'" class="section-content">
+          <div v-if="sortedCafes.length === 0" class="empty-section">
+            <span class="empty-emoji">☕</span>
+            <p>No cafe visits yet</p>
+            <p class="empty-hint">Tap + to log a cafe visit</p>
+          </div>
+
+          <div v-for="visit in sortedCafes" :key="visit.id" class="visit-card" @click="openEditCafe(visit)">
+            <span class="visit-icon">☕</span>
+            <div class="visit-info">
+              <div class="visit-name">{{ visit.name }}</div>
+              <div class="visit-meta">
+                {{ formatShortDate(visit.date) }}
+                <span v-if="visit.time"> • {{ visit.time }}</span>
+              </div>
+              <div class="visit-notes" v-if="visit.notes">{{ visit.notes }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Restaurants Section -->
+        <div v-show="activeSection === 'restaurants'" class="section-content">
+          <div v-if="sortedRestaurants.length === 0" class="empty-section">
+            <span class="empty-emoji">🍽️</span>
+            <p>No restaurant visits yet</p>
+            <p class="empty-hint">Tap + to log a meal</p>
+          </div>
+
+          <div v-for="visit in sortedRestaurants" :key="visit.id" class="visit-card" @click="openEditRestaurant(visit)">
+            <span class="visit-icon">{{ getMealInfo(visit.meal).icon }}</span>
+            <div class="visit-info">
+              <div class="visit-name">{{ visit.name }}</div>
+              <div class="visit-meta">
+                {{ formatShortDate(visit.date) }} • {{ getMealInfo(visit.meal).label }}
+              </div>
+              <div class="visit-notes" v-if="visit.notes">{{ visit.notes }}</div>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
 
     <!-- Photo Viewer -->
@@ -527,7 +600,7 @@ onMounted(() => {
 /* Book Banner */
 .book-banner {
   position: relative;
-  min-height: 200px;
+  min-height: 180px;
   border-radius: var(--radius-xl);
   overflow: hidden;
   background: linear-gradient(135deg, #0EA5E9 0%, #7DD3FC 100%);
@@ -571,8 +644,8 @@ onMounted(() => {
   flex: 1;
   background: linear-gradient(90deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.4) 50%, transparent 100%);
   padding: var(--space-lg);
-  padding-top: 60px;
-  min-height: 200px;
+  padding-top: 50px;
+  min-height: 180px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -582,7 +655,7 @@ onMounted(() => {
   position: absolute;
   right: 0;
   bottom: 0;
-  height: 160px;
+  height: 140px;
   width: auto;
   opacity: 0.9;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
@@ -603,7 +676,7 @@ onMounted(() => {
 
 .book-title {
   font-family: var(--font-display);
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   color: white;
   margin: 0;
   text-shadow: 0 2px 4px rgba(0,0,0,0.3);
@@ -611,50 +684,165 @@ onMounted(() => {
 
 .book-destination {
   color: rgba(255,255,255,0.9);
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   margin-top: 4px;
 }
 
 .book-dates {
   color: rgba(255,255,255,0.8);
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   margin-top: 4px;
 }
 
-/* Section Tabs */
-.section-tabs {
+/* Desktop Layout */
+.book-layout {
   display: flex;
-  gap: var(--space-xs);
-  margin-bottom: var(--space-md);
-  overflow-x: auto;
+  gap: var(--space-lg);
 }
 
-.section-tab {
-  flex: 1;
+/* Sidebar */
+.book-sidebar {
+  display: none;
+  width: 220px;
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .book-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
-  border: 2px solid var(--gray-200);
+  background: var(--bg-card);
+  border: 2px solid var(--lavender-100);
   border-radius: var(--radius-md);
-  background: white;
-  font-size: 0.8125rem;
-  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
-  white-space: nowrap;
 }
 
-.section-tab:hover {
+.sidebar-item:hover {
   border-color: var(--lavender-300);
 }
 
-.section-tab.active {
+.sidebar-item.active {
   background: var(--lavender-500);
   border-color: var(--lavender-500);
   color: white;
 }
 
-.tab-count {
-  opacity: 0.7;
+.sidebar-icon {
+  font-size: 1.25rem;
+}
+
+.sidebar-label {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.sidebar-count {
   font-size: 0.75rem;
+  padding: 2px 8px;
+  background: rgba(0,0,0,0.1);
+  border-radius: var(--radius-full);
+}
+
+.sidebar-item.active .sidebar-count {
+  background: rgba(255,255,255,0.2);
+}
+
+.sidebar-info-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 100%);
+  border-radius: var(--radius-lg);
+  border: 2px solid #7DD3FC;
+}
+
+.sidebar-vio {
+  height: 50px;
+  width: auto;
+}
+
+.sidebar-info {
+  flex: 1;
+}
+
+.sidebar-info-label {
+  font-size: 0.6875rem;
+  color: #0369A1;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sidebar-info-value {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0284C7;
+}
+
+/* Main Content */
+.book-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Mobile Tabs */
+.book-tabs {
+  display: flex;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.book-tab {
+  flex: 1;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-card);
+  border: 2px solid var(--lavender-100);
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.book-tab:hover {
+  border-color: var(--lavender-300);
+}
+
+.book-tab.active {
+  background: var(--lavender-500);
+  border-color: var(--lavender-500);
+  color: white;
+}
+
+.mobile-only {
+  display: flex;
+}
+
+@media (min-width: 768px) {
+  .mobile-only {
+    display: none;
+  }
 }
 
 /* Section Content */
@@ -664,26 +852,23 @@ onMounted(() => {
   gap: var(--space-sm);
 }
 
-.add-btn {
-  padding: var(--space-sm) var(--space-md);
-  border: 2px dashed var(--lavender-300);
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--lavender-600);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.add-btn:hover {
-  background: var(--lavender-50);
-  border-color: var(--lavender-500);
-}
-
 .empty-section {
   text-align: center;
   padding: var(--space-xl);
   color: var(--text-tertiary);
+}
+
+.empty-emoji {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: var(--space-sm);
+  opacity: 0.5;
+}
+
+.empty-hint {
+  font-size: 0.8125rem;
+  color: var(--text-tertiary);
+  margin-top: var(--space-xs);
 }
 
 /* Diary Card */
@@ -698,11 +883,12 @@ onMounted(() => {
 
 .diary-card:hover {
   border-color: var(--lavender-300);
+  transform: translateY(-1px);
 }
 
 .diary-date {
   font-size: 0.75rem;
-  color: var(--lavender-500);
+  color: #0EA5E9;
   font-weight: 600;
   margin-bottom: var(--space-xs);
 }
@@ -765,6 +951,7 @@ onMounted(() => {
 
 .visit-card:hover {
   border-color: var(--lavender-300);
+  transform: translateY(-1px);
 }
 
 .visit-icon {
@@ -990,17 +1177,13 @@ onMounted(() => {
 }
 
 @media (max-width: 480px) {
-  .book-banner {
-    min-height: 180px;
-  }
-
   .book-banner-vio {
-    height: 120px;
+    height: 100px;
     opacity: 0.7;
   }
 
   .book-title {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
   }
 
   .back-text {
@@ -1035,25 +1218,43 @@ onMounted(() => {
   background: #2D2640 !important;
 }
 
-[data-theme="dark"] .section-tab {
-  background: #2D2640 !important;
+[data-theme="dark"] .sidebar-item {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .sidebar-item:hover {
+  border-color: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .sidebar-item.active {
+  background: #8B5CF6 !important;
+  border-color: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .sidebar-info-card {
+  background: linear-gradient(135deg, #1E3A5F 0%, #0C4A6E 100%) !important;
+  border-color: #0369A1 !important;
+}
+
+[data-theme="dark"] .sidebar-info-label {
+  color: #7DD3FC !important;
+}
+
+[data-theme="dark"] .sidebar-info-value {
+  color: #38BDF8 !important;
+}
+
+[data-theme="dark"] .book-tab {
+  background: #1A1625 !important;
   border-color: #3D3456 !important;
   color: #9D8BC2 !important;
 }
 
-[data-theme="dark"] .section-tab.active {
+[data-theme="dark"] .book-tab.active {
   background: #8B5CF6 !important;
   border-color: #8B5CF6 !important;
   color: white !important;
-}
-
-[data-theme="dark"] .add-btn {
-  border-color: #3D3456 !important;
-  color: #C4B5FD !important;
-}
-
-[data-theme="dark"] .add-btn:hover {
-  background: #2D2640 !important;
 }
 
 [data-theme="dark"] .diary-card,
@@ -1065,6 +1266,10 @@ onMounted(() => {
 [data-theme="dark"] .diary-card:hover,
 [data-theme="dark"] .visit-card:hover {
   border-color: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .diary-date {
+  color: #38BDF8 !important;
 }
 
 [data-theme="dark"] .form-input,
