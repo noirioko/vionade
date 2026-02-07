@@ -386,6 +386,58 @@ export function getActiveChallenge() {
   return state.challenges.find(c => c.status === 'active')
 }
 
+// Archive a month - save transactions as read-only history
+export function archiveMonth(monthLabel, transactions, walletBalances = {}) {
+  const id = generateId()
+
+  // Calculate summary
+  let totalIncome = 0
+  let totalExpense = 0
+  const walletSummaries = {}
+
+  transactions.forEach(t => {
+    if (t.type === 'income') totalIncome += t.amount
+    else if (t.type === 'expense') totalExpense += t.amount
+
+    // Track per wallet
+    if (!walletSummaries[t.walletId]) {
+      walletSummaries[t.walletId] = { income: 0, expense: 0 }
+    }
+    if (t.type === 'income') walletSummaries[t.walletId].income += t.amount
+    else if (t.type === 'expense') walletSummaries[t.walletId].expense += t.amount
+  })
+
+  const archivedMonth = {
+    id,
+    label: monthLabel,
+    transactions: [...transactions],
+    transactionCount: transactions.length,
+    totalIncome,
+    totalExpense,
+    walletBalances, // opening/closing balances
+    walletSummaries,
+    archivedAt: new Date().toISOString(),
+  }
+
+  state.closedMonths.push(archivedMonth)
+  return archivedMonth
+}
+
+// Delete an archived month
+export function deleteArchivedMonth(monthId) {
+  const index = state.closedMonths.findIndex(m => m.id === monthId)
+  if (index !== -1) {
+    state.closedMonths.splice(index, 1)
+    return true
+  }
+  return false
+}
+
+// Get all closed months
+export function getClosedMonths() {
+  return state.closedMonths || []
+}
+
 // Start fresh - clear all transactions and set opening balances
 export function startFreshMonth(openingBalances = {}) {
   // Clear all transactions
