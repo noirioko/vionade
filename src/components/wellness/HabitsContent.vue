@@ -956,13 +956,9 @@ function handleGoalClick(goalId) {
 .habit-info {
   position: sticky;
   left: 0;
-  z-index: 3;
+  z-index: 2;
   background: var(--bg-card);
   pointer-events: none;
-}
-
-.habit-info .habit-name {
-  pointer-events: auto;
 }
 
 /* Collapse animation */
@@ -993,6 +989,7 @@ function handleGoalClick(goalId) {
   background: var(--bg-card);
   position: relative;
   min-width: max-content;
+  pointer-events: none;
 }
 
 .habit-name-space {
@@ -1001,7 +998,7 @@ function handleGoalClick(goalId) {
   flex-shrink: 0;
   position: sticky;
   left: 0;
-  z-index: 3;
+  z-index: 2;
   background: var(--bg-card);
 }
 
@@ -1062,7 +1059,8 @@ function handleGoalClick(goalId) {
   display: flex;
   gap: 2px;
   position: relative;
-  z-index: 5;
+  z-index: 10;
+  pointer-events: auto;
 }
 
 .habit-checkbox {
@@ -1084,11 +1082,12 @@ function handleGoalClick(goalId) {
   -webkit-appearance: none;
   appearance: none;
   position: relative;
-  z-index: 1;
+  z-index: 15;
   line-height: 1;
   font-family: inherit;
   outline: none;
   box-sizing: border-box;
+  pointer-events: auto;
 }
 
 .habit-checkbox:hover:not(:disabled) {
@@ -1126,10 +1125,16 @@ function handleGoalClick(goalId) {
     min-height: 36px;
     touch-action: manipulation;
     isolation: isolate;
+    z-index: 20;
   }
 
   .day-number {
     width: 36px;
+    pointer-events: none;
+  }
+
+  .days-header {
+    pointer-events: none;
   }
 
   .habit-row {
@@ -1137,10 +1142,14 @@ function handleGoalClick(goalId) {
     user-select: none;
   }
 
+  .habit-info {
+    z-index: 1;
+  }
+
   .habit-checkboxes {
     gap: 4px;
     position: relative;
-    z-index: 10;
+    z-index: 20;
   }
 
   .category-content {
