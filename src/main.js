@@ -20,6 +20,8 @@ const Wardrobe = () => import('./views/Wardrobe.vue')
 const Subscriptions = () => import('./views/Subscriptions.vue')
 const ShoppingList = () => import('./views/ShoppingList.vue')
 const Reviews = () => import('./views/Reviews.vue')
+const VacationBooks = () => import('./views/VacationBooks.vue')
+const VacationBookDetail = () => import('./views/VacationBookDetail.vue')
 const Settings = () => import('./views/Settings.vue')
 
 const routes = [
@@ -44,6 +46,8 @@ const routes = [
   { path: '/subscriptions', name: 'Subscriptions', component: Subscriptions },
   { path: '/shopping', name: 'Shopping', component: ShoppingList },
   { path: '/reviews', name: 'Reviews', component: Reviews },
+  { path: '/vacation', name: 'VacationBooks', component: VacationBooks },
+  { path: '/vacation/:id', name: 'VacationBookDetail', component: VacationBookDetail },
   { path: '/settings', name: 'Settings', component: Settings },
 ]
 

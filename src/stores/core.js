@@ -85,6 +85,7 @@ if (!window.__vionadeState) {
     cafeVisits: loadFromStorage('mochi_cafevisits', []),
     reviews: loadFromStorage('mochi_reviews', []),
     staycations: loadFromStorage('mochi_staycations', []),
+    vacationBooks: loadFromStorage('mochi_vacationbooks', []),
     importantNumbers: loadFromStorage('mochi_importantnumbers', []),
     shoppingList: loadFromStorage('mochi_shoppinglist', []),
     shoppingPapers: loadFromStorage('mochi_shoppingpapers', []),
@@ -204,6 +205,7 @@ export async function saveToFirebase() {
       cafeVisits: state.cafeVisits,
       reviews: state.reviews,
       staycations: state.staycations,
+      vacationBooks: state.vacationBooks,
       settings: state.settings,
       updatedAt: new Date().toISOString(),
     })
@@ -269,6 +271,7 @@ async function loadFromFirebase() {
       if (data.cafeVisits) state.cafeVisits = data.cafeVisits
       if (data.reviews) state.reviews = data.reviews
       if (data.staycations) state.staycations = data.staycations
+      if (data.vacationBooks) state.vacationBooks = data.vacationBooks
 
       // Save to localStorage as backup
       localStorage.setItem('mochi_wallets', JSON.stringify(state.wallets))
@@ -301,6 +304,7 @@ async function loadFromFirebase() {
       localStorage.setItem('mochi_cafevisits', JSON.stringify(state.cafeVisits))
       localStorage.setItem('mochi_reviews', JSON.stringify(state.reviews))
       localStorage.setItem('mochi_staycations', JSON.stringify(state.staycations))
+      localStorage.setItem('mochi_vacationbooks', JSON.stringify(state.vacationBooks))
     } else {
       // First time user - start fresh
       state.wallets = [...DEFAULT_WALLETS]
@@ -412,6 +416,7 @@ function setupRealtimeSync() {
       if (data.cafeVisits) state.cafeVisits = data.cafeVisits
       if (data.reviews) state.reviews = data.reviews
       if (data.staycations) state.staycations = data.staycations
+      if (data.vacationBooks) state.vacationBooks = data.vacationBooks
     }
   })
 }
@@ -480,6 +485,7 @@ const stateKeys = [
   { key: 'cafeVisits', storage: 'mochi_cafevisits' },
   { key: 'reviews', storage: 'mochi_reviews' },
   { key: 'staycations', storage: 'mochi_staycations' },
+  { key: 'vacationBooks', storage: 'mochi_vacationbooks' },
   { key: 'importantNumbers', storage: 'mochi_importantnumbers' },
   { key: 'shoppingList', storage: 'mochi_shoppinglist' },
   { key: 'shoppingPapers', storage: 'mochi_shoppingpapers' },

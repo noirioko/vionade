@@ -17,6 +17,8 @@ const features = [
   { icon: '👗', label: 'Wardrobe', route: '/wardrobe', color: '#EC4899' },
   { icon: '🔄', label: 'Subscriptions', route: '/subscriptions', color: '#8B5CF6' },
   { icon: '🛒', label: 'Shopping', route: '/shopping', color: '#22C55E' },
+  { icon: '⭐', label: 'Reviews', route: '/reviews', color: '#FBBF24' },
+  { icon: '✈️', label: 'Vacation', route: '/vacation', color: '#0EA5E9' },
   { icon: '⚙️', label: 'Settings', route: '/settings', color: '#94A3B8' },
 ]
 </script>

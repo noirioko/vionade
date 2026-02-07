@@ -247,6 +247,25 @@ import {
   getStaycationStats,
 } from './modules/staycation'
 
+// Vacation Books module
+import {
+  TRIP_STATUSES,
+  createVacationBook,
+  updateVacationBook,
+  deleteVacationBook,
+  getVacationBookById,
+  addDiaryEntry,
+  updateDiaryEntry,
+  deleteDiaryEntry,
+  addCafeVisit as addVacationCafeVisit,
+  updateCafeVisit as updateVacationCafeVisit,
+  deleteCafeVisit as deleteVacationCafeVisit,
+  addRestaurantVisit,
+  updateRestaurantVisit,
+  deleteRestaurantVisit,
+  getVacationStats,
+} from './modules/vacationBooks'
+
 // Important Numbers module
 import {
   addImportantNumber,
@@ -317,6 +336,7 @@ export function useFinanceStore() {
     cafeVisits: computed(() => [...state.cafeVisits]),
     reviews: computed(() => [...state.reviews]),
     staycations: computed(() => [...state.staycations]),
+    vacationBooks: computed(() => [...state.vacationBooks]),
     importantNumbers: computed(() => state.importantNumbers),
     shoppingList: computed(() => state.shoppingList),
     shoppingPapers: computed(() => state.shoppingPapers),
@@ -530,6 +550,23 @@ export function useFinanceStore() {
     updateStaycation,
     deleteStaycation,
     getStaycationStats,
+
+    // Vacation Books actions
+    TRIP_STATUSES,
+    createVacationBook,
+    updateVacationBook,
+    deleteVacationBook,
+    getVacationBookById,
+    addDiaryEntry,
+    updateDiaryEntry,
+    deleteDiaryEntry,
+    addVacationCafeVisit,
+    updateVacationCafeVisit,
+    deleteVacationCafeVisit,
+    addRestaurantVisit,
+    updateRestaurantVisit,
+    deleteRestaurantVisit,
+    getVacationStats,
 
     // Important Numbers actions
     addImportantNumber,
