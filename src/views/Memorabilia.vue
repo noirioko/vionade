@@ -639,8 +639,10 @@ function openLink(url) {
   color: var(--text-secondary);
   margin-top: 4px;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
 }
 
 .memo-card-tags {
