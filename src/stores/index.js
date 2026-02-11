@@ -291,6 +291,16 @@ import {
   clearCheckedFromPaper,
 } from './modules/shoppingList'
 
+// Memorabilia module
+import {
+  MEMORABILIA_CATEGORIES,
+  getCategoryById as getMemoCategoryById,
+  addMemorabilia,
+  updateMemorabilia,
+  deleteMemorabilia,
+  getAllTags,
+} from './modules/memorabilia'
+
 // Debts module
 import {
   addDebt,
@@ -600,6 +610,15 @@ export function useFinanceStore() {
     getPaidDebts,
     getTotalOwedToMe,
     getTotalIOwe,
+
+    // Memorabilia actions
+    MEMORABILIA_CATEGORIES,
+    memorabilia: computed(() => state.memorabilia),
+    getMemoCategoryById,
+    addMemorabilia,
+    updateMemorabilia,
+    deleteMemorabilia,
+    getAllTags,
 
     // Helpers
     formatCurrency,

@@ -91,6 +91,7 @@ if (!window.__vionadeState) {
     shoppingPapers: loadFromStorage('mochi_shoppingpapers', []),
     closedMonths: loadFromStorage('mochi_closedmonths', []),
     debts: loadFromStorage('mochi_debts', []),
+    memorabilia: loadFromStorage('mochi_memorabilia', []),
     habits: loadFromStorage('mochi_habits', {
       currentChallenge: 'january-2026',
       completions: {},
@@ -206,6 +207,7 @@ export async function saveToFirebase() {
       reviews: state.reviews,
       staycations: state.staycations,
       vacationBooks: state.vacationBooks,
+      memorabilia: state.memorabilia,
       settings: state.settings,
       updatedAt: new Date().toISOString(),
     })
@@ -272,6 +274,7 @@ async function loadFromFirebase() {
       if (data.reviews) state.reviews = data.reviews
       if (data.staycations) state.staycations = data.staycations
       if (data.vacationBooks) state.vacationBooks = data.vacationBooks
+      if (data.memorabilia) state.memorabilia = data.memorabilia
 
       // Save to localStorage as backup
       localStorage.setItem('mochi_wallets', JSON.stringify(state.wallets))
@@ -305,6 +308,7 @@ async function loadFromFirebase() {
       localStorage.setItem('mochi_reviews', JSON.stringify(state.reviews))
       localStorage.setItem('mochi_staycations', JSON.stringify(state.staycations))
       localStorage.setItem('mochi_vacationbooks', JSON.stringify(state.vacationBooks))
+      localStorage.setItem('mochi_memorabilia', JSON.stringify(state.memorabilia))
     } else {
       // First time user - start fresh
       state.wallets = [...DEFAULT_WALLETS]
@@ -417,6 +421,7 @@ function setupRealtimeSync() {
       if (data.reviews) state.reviews = data.reviews
       if (data.staycations) state.staycations = data.staycations
       if (data.vacationBooks) state.vacationBooks = data.vacationBooks
+      if (data.memorabilia) state.memorabilia = data.memorabilia
     }
   })
 }
@@ -491,6 +496,7 @@ const stateKeys = [
   { key: 'shoppingPapers', storage: 'mochi_shoppingpapers' },
   { key: 'closedMonths', storage: 'mochi_closedmonths' },
   { key: 'debts', storage: 'mochi_debts' },
+  { key: 'memorabilia', storage: 'mochi_memorabilia' },
 ]
 
 stateKeys.forEach(({ key, storage }) => {
@@ -530,6 +536,7 @@ export async function resetAllData() {
   state.painLogs = []
   state.nutLogs = []
   state.debts = []
+  state.memorabilia = []
   state.importantNumbers = []
   state.shoppingList = []
   state.habits = {

@@ -22,6 +22,7 @@ const ShoppingList = () => import('./views/ShoppingList.vue')
 const Reviews = () => import('./views/Reviews.vue')
 const VacationBooks = () => import('./views/VacationBooks.vue')
 const VacationBookDetail = () => import('./views/VacationBookDetail.vue')
+const Memorabilia = () => import('./views/Memorabilia.vue')
 const Settings = () => import('./views/Settings.vue')
 
 const routes = [
@@ -48,6 +49,7 @@ const routes = [
   { path: '/reviews', name: 'Reviews', component: Reviews },
   { path: '/vacation', name: 'VacationBooks', component: VacationBooks },
   { path: '/vacation/:id', name: 'VacationBookDetail', component: VacationBookDetail },
+  { path: '/memorabilia', name: 'Memorabilia', component: Memorabilia },
   { path: '/settings', name: 'Settings', component: Settings },
 ]
 
