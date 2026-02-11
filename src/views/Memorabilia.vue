@@ -10,6 +10,7 @@ const fabAction = inject('fabAction')
 // Modal state
 const showModal = ref(false)
 const editingItem = ref(null)
+const viewingItem = ref(null)
 
 // Filter state
 const selectedCategory = ref('all')
@@ -83,7 +84,17 @@ function openAddModal() {
   showModal.value = true
 }
 
-function openEditModal(item) {
+function openDetail(item) {
+  viewingItem.value = item
+}
+
+function closeDetail() {
+  viewingItem.value = null
+}
+
+function editFromDetail() {
+  const item = viewingItem.value
+  viewingItem.value = null
   editingItem.value = item
   form.value = {
     name: item.name,
@@ -94,6 +105,14 @@ function openEditModal(item) {
     image: item.image || null,
   }
   showModal.value = true
+}
+
+function deleteFromDetail() {
+  if (confirm('Delete this item?')) {
+    store.deleteMemorabilia(viewingItem.value.id)
+    toast.success('Deleted')
+    viewingItem.value = null
+  }
 }
 
 function handleImageUpload(e) {
@@ -271,7 +290,7 @@ function openLink(url) {
         v-for="item in filteredItems"
         :key="item.id"
         class="memo-card"
-        @click="openEditModal(item)"
+        @click="openDetail(item)"
       >
         <div class="memo-card-image" v-if="item.image">
           <img :src="item.image" :alt="item.name" />
@@ -311,6 +330,62 @@ function openLink(url) {
       <p class="memo-empty-title">No matches found</p>
       <p class="memo-empty-text">Try a different filter or search term.</p>
     </div>
+
+    <!-- Detail View -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="viewingItem" class="modal-overlay" @click.self="closeDetail">
+          <div class="modal-sheet detail-sheet">
+            <div class="modal-handle" @click="closeDetail"></div>
+
+            <!-- Image or emoji hero -->
+            <div class="detail-hero" v-if="viewingItem.image">
+              <img :src="viewingItem.image" :alt="viewingItem.name" />
+            </div>
+            <div class="detail-emoji-hero" v-else>
+              {{ getCatEmoji(viewingItem.category) }}
+            </div>
+
+            <!-- Name & category -->
+            <h3 class="detail-name">{{ viewingItem.name }}</h3>
+            <div class="detail-category">{{ getCatEmoji(viewingItem.category) }} {{ getCatName(viewingItem.category) }}</div>
+
+            <!-- Tags -->
+            <div class="detail-tags" v-if="viewingItem.tags && viewingItem.tags.length">
+              <span v-for="tag in viewingItem.tags" :key="tag" class="memo-tag">#{{ tag }}</span>
+            </div>
+
+            <!-- Note -->
+            <div class="detail-note" v-if="viewingItem.note">
+              <div class="detail-label">Note</div>
+              <p class="detail-note-text">{{ viewingItem.note }}</p>
+            </div>
+
+            <!-- Link -->
+            <a
+              v-if="viewingItem.link"
+              :href="viewingItem.link"
+              target="_blank"
+              rel="noopener"
+              class="detail-link"
+            >
+              🔗 {{ viewingItem.link }}
+            </a>
+
+            <!-- Date -->
+            <div class="detail-date">
+              Added {{ new Date(viewingItem.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) }}
+            </div>
+
+            <!-- Actions -->
+            <div class="detail-actions">
+              <button class="btn-delete" @click="deleteFromDetail">Delete</button>
+              <button class="btn-save" @click="editFromDetail">Edit</button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- Add/Edit Modal -->
     <Teleport to="body">
@@ -940,6 +1015,114 @@ function openLink(url) {
   background: #FEE2E2;
 }
 
+/* Detail view */
+.detail-sheet {
+  text-align: center;
+}
+
+.detail-hero {
+  width: 100%;
+  max-height: 200px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: var(--space-md);
+}
+
+.detail-hero img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.detail-emoji-hero {
+  font-size: 3.5rem;
+  margin-bottom: var(--space-sm);
+}
+
+.detail-name {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px;
+}
+
+.detail-category {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
+}
+
+.detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: var(--space-md);
+}
+
+.detail-note {
+  text-align: left;
+  margin-bottom: var(--space-md);
+}
+
+.detail-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--space-xs);
+}
+
+.detail-note-text {
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--bg-primary);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--lavender-100);
+}
+
+.detail-link {
+  display: block;
+  font-size: 0.8125rem;
+  color: #F43F5E;
+  text-decoration: none;
+  margin-bottom: var(--space-md);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: var(--space-sm) var(--space-md);
+  background: #FFF1F2;
+  border-radius: var(--radius-lg);
+  transition: background 0.15s;
+}
+
+.detail-link:hover {
+  background: #FFE4E6;
+}
+
+.detail-date {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
+}
+
+.detail-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.detail-actions .btn-save {
+  flex: 1;
+}
+
 /* Fade transition */
 .fade-enter-active,
 .fade-leave-active {
@@ -1081,5 +1264,20 @@ function openLink(url) {
 [data-theme="dark"] .memorabilia-page .btn-delete {
   border-color: #7F1D1D !important;
   color: #FCA5A5 !important;
+}
+
+/* Detail dark mode */
+[data-theme="dark"] .detail-note-text {
+  background: #2D2640 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .detail-link {
+  background: rgba(244, 63, 94, 0.15) !important;
+  color: #FDA4AF !important;
+}
+
+[data-theme="dark"] .detail-link:hover {
+  background: rgba(244, 63, 94, 0.25) !important;
 }
 </style>
