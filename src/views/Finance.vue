@@ -7,7 +7,9 @@ import EditTransactionModal from '../components/EditTransactionModal.vue'
 import FinanceOverview from '../components/finance/FinanceOverview.vue'
 import FinanceWallets from '../components/finance/FinanceWallets.vue'
 import FinanceHistory from '../components/finance/FinanceHistory.vue'
+import FinanceArchive from '../components/finance/FinanceArchive.vue'
 import FinanceWishlist from '../components/finance/FinanceWishlist.vue'
+import FinanceDebts from '../components/finance/FinanceDebts.vue'
 
 const store = useFinanceStore()
 const fabAction = inject('fabAction')
@@ -33,7 +35,9 @@ const wishlistRef = ref(null)
 const financeStats = computed(() => ({
   wallets: store.wallets.value.length,
   transactions: store.transactions.value.length,
-  wishlistItems: store.wishlist.value.filter(w => !w.claimed).length
+  archivedMonths: store.getClosedMonths()?.length || 0,
+  wishlistItems: store.wishlist.value.filter(w => !w.claimed).length,
+  activeDebts: store.getActiveDebts()?.length || 0
 }))
 
 // FAB behavior based on active tab
@@ -112,6 +116,24 @@ watch(activeTab, () => {
             <span class="sidebar-label">History</span>
             <span class="sidebar-count">{{ financeStats.transactions }}</span>
           </button>
+          <button
+            class="sidebar-item"
+            :class="{ active: activeTab === 'archive' }"
+            @click="selectTab('archive')"
+          >
+            <span class="sidebar-icon">📚</span>
+            <span class="sidebar-label">Archive</span>
+            <span class="sidebar-count">{{ financeStats.archivedMonths }}</span>
+          </button>
+          <button
+            class="sidebar-item"
+            :class="{ active: activeTab === 'debts' }"
+            @click="selectTab('debts')"
+          >
+            <span class="sidebar-icon">🤝</span>
+            <span class="sidebar-label">Debts</span>
+            <span v-if="financeStats.activeDebts > 0" class="sidebar-count">{{ financeStats.activeDebts }}</span>
+          </button>
 
           <div class="sidebar-divider"></div>
 
@@ -158,6 +180,16 @@ watch(activeTab, () => {
           >History</button>
           <button
             class="finance-tab"
+            :class="{ active: activeTab === 'archive' }"
+            @click="selectTab('archive')"
+          >Archive</button>
+          <button
+            class="finance-tab"
+            :class="{ active: activeTab === 'debts' }"
+            @click="selectTab('debts')"
+          >Debts</button>
+          <button
+            class="finance-tab"
             :class="{ active: activeTab === 'wishlist' }"
             @click="selectTab('wishlist')"
           >Wishlist</button>
@@ -176,6 +208,10 @@ watch(activeTab, () => {
           v-if="activeTab === 'history'"
           @edit-transaction="openEditTransaction"
         />
+
+        <FinanceArchive v-if="activeTab === 'archive'" />
+
+        <FinanceDebts v-if="activeTab === 'debts'" />
 
         <FinanceWishlist
           v-if="activeTab === 'wishlist'"
