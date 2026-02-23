@@ -202,6 +202,39 @@ const expensesByCategory = computed(() => {
     .sort((a, b) => b.value - a.value)
 })
 
+// Expenses by wallet for the month
+const expensesByWallet = computed(() => {
+  const walletTotals = {}
+
+  // Initialize all wallets with 0
+  store.wallets.value.forEach(w => {
+    walletTotals[w.id] = {
+      wallet: w,
+      expense: 0,
+      income: 0,
+      transactions: 0
+    }
+  })
+
+  // Sum up transactions for this month
+  monthTransactions.value.forEach(t => {
+    if (walletTotals[t.walletId]) {
+      if (t.type === 'expense') {
+        walletTotals[t.walletId].expense += t.amount
+        walletTotals[t.walletId].transactions++
+      } else if (t.type === 'income') {
+        walletTotals[t.walletId].income += t.amount
+        walletTotals[t.walletId].transactions++
+      }
+    }
+  })
+
+  // Convert to array and filter out wallets with no transactions
+  return Object.values(walletTotals)
+    .filter(w => w.transactions > 0)
+    .sort((a, b) => b.expense - a.expense)
+})
+
 function handleCategoryClick(segment) {
   // Find the category ID from the name
   const cat = store.EXPENSE_CATEGORIES.find(c => c.name === segment.name)
@@ -571,6 +604,36 @@ function getTransactionTitle(transaction) {
           <h3 class="section-title">Spending Breakdown</h3>
           <p class="spending-hint">Tap a category to filter transactions</p>
           <PieChart :data="expensesByCategory" :size="160" :clickable="true" @category-click="handleCategoryClick" />
+        </div>
+      </div>
+
+      <!-- Wallet Breakdown for the month -->
+      <div v-if="expensesByWallet.length > 0" class="wallet-breakdown-section">
+        <h3 class="section-title">{{ monthYearLabel }} by Wallet</h3>
+        <div class="wallet-breakdown">
+          <div
+            v-for="item in expensesByWallet"
+            :key="item.wallet.id"
+            class="wallet-breakdown-item"
+            :class="{ active: walletFilter === item.wallet.id }"
+            @click="walletFilter = walletFilter === item.wallet.id ? 'all' : item.wallet.id"
+          >
+            <div class="wallet-breakdown-icon" :style="{ background: item.wallet.color + '20' }">
+              {{ item.wallet.icon }}
+            </div>
+            <div class="wallet-breakdown-info">
+              <div class="wallet-breakdown-name">{{ item.wallet.name }}</div>
+              <div class="wallet-breakdown-count">{{ item.transactions }} transactions</div>
+            </div>
+            <div class="wallet-breakdown-amounts">
+              <div v-if="item.income > 0" class="wallet-amount income">
+                +{{ store.formatCurrency(item.income) }}
+              </div>
+              <div v-if="item.expense > 0" class="wallet-amount expense">
+                -{{ store.formatCurrency(item.expense) }}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1262,6 +1325,84 @@ function getTransactionTitle(transaction) {
   opacity: 0.9;
 }
 
+/* Wallet Breakdown */
+.wallet-breakdown-section {
+  margin-top: var(--space-md);
+}
+
+.wallet-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.wallet-breakdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--white);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--border-color);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.wallet-breakdown-item:hover {
+  border-color: var(--lavender-300);
+}
+
+.wallet-breakdown-item.active {
+  border-color: var(--lavender-500);
+  background: var(--lavender-50);
+}
+
+.wallet-breakdown-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.wallet-breakdown-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.wallet-breakdown-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.wallet-breakdown-count {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.wallet-breakdown-amounts {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.wallet-amount {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.wallet-amount.income {
+  color: var(--income-color);
+}
+
+.wallet-amount.expense {
+  color: var(--expense-color);
+}
+
 /* Desktop Layout for History tab */
 @media (min-width: 768px) {
   .top-section {
@@ -1423,5 +1564,35 @@ function getTransactionTitle(transaction) {
 
 [data-theme="dark"] .search-clear:hover {
   background: #4D4466 !important;
+}
+
+[data-theme="dark"] .wallet-breakdown-item {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .wallet-breakdown-item:hover {
+  border-color: #6D28D9 !important;
+}
+
+[data-theme="dark"] .wallet-breakdown-item.active {
+  background: #2D2640 !important;
+  border-color: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .wallet-breakdown-name {
+  color: #E9D5FF !important;
+}
+
+[data-theme="dark"] .wallet-breakdown-count {
+  color: #9D8BC2 !important;
+}
+
+[data-theme="dark"] .section-title {
+  color: #E9D5FF !important;
+}
+
+[data-theme="dark"] .transaction-count {
+  color: #9D8BC2 !important;
 }
 </style>

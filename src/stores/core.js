@@ -33,12 +33,15 @@ export const EXPENSE_CATEGORIES = [
   { id: 'gaming', name: 'Gaming', icon: '🎮', color: '#6366f1' },
   { id: 'medical', name: 'Medical', icon: '🏥', color: '#ef4444' },
   { id: 'business', name: 'Business', icon: '💼', color: '#0ea5e9' },
+  { id: 'home', name: 'Home Improvements', icon: '🏠', color: '#f59e0b' },
   { id: 'other', name: 'Other', icon: '📦', color: '#a1a1aa' },
 ]
 
 // Income categories
 export const INCOME_CATEGORIES = [
   { id: 'freelance', name: 'Freelance', icon: '💼' },
+  { id: 'dari-papi', name: 'Dari Papi', icon: '👨' },
+  { id: 'dari-mami', name: 'Dari Mami', icon: '👩' },
   { id: 'other', name: 'Other', icon: '✨' },
 ]
 
@@ -123,6 +126,7 @@ if (!window.__vionadeState) {
     userEmail: null,
     isLoading: true,
     isSyncing: false,
+    lastSyncError: null,
   })
 }
 
@@ -219,6 +223,7 @@ export async function saveToFirebase() {
     }, 3000)
   } catch (error) {
     console.error('Save to Firebase error:', error)
+    state.lastSyncError = error.message || 'Unknown error'
     setHasPendingChanges(false)
   } finally {
     state.isSyncing = false
@@ -254,7 +259,11 @@ async function loadFromFirebase() {
       if (data.youtubeVideos) state.youtubeVideos = data.youtubeVideos
       if (data.youtubeChannels) state.youtubeChannels = data.youtubeChannels
       if (data.passwords) state.passwords = data.passwords
-      if (data.pets) state.pets = data.pets
+      if (data.pets) {
+        const localPhotos = {}
+        state.pets.forEach(p => { if (p.photo) localPhotos[p.id] = p.photo })
+        state.pets = data.pets.map(p => ({ ...p, photo: p.photo || localPhotos[p.id] || null }))
+      }
       if (data.petLogs) state.petLogs = data.petLogs
       if (data.petSessions) state.petSessions = data.petSessions
       if (data.tankLogs) state.tankLogs = data.tankLogs
@@ -401,7 +410,11 @@ function setupRealtimeSync() {
       if (data.youtubeVideos) state.youtubeVideos = data.youtubeVideos
       if (data.youtubeChannels) state.youtubeChannels = data.youtubeChannels
       if (data.passwords) state.passwords = data.passwords
-      if (data.pets) state.pets = data.pets
+      if (data.pets) {
+        const localPhotos = {}
+        state.pets.forEach(p => { if (p.photo) localPhotos[p.id] = p.photo })
+        state.pets = data.pets.map(p => ({ ...p, photo: p.photo || localPhotos[p.id] || null }))
+      }
       if (data.petLogs) state.petLogs = data.petLogs
       if (data.petSessions) state.petSessions = data.petSessions
       if (data.tankLogs) state.tankLogs = data.tankLogs

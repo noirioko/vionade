@@ -145,7 +145,7 @@ function updateTooltipPosition(event) {
 
   const rect = wrapper.getBoundingClientRect()
   let x = event.clientX - rect.left
-  let y = event.clientY - rect.top - 50
+  let y = event.clientY - rect.top - 80
 
   // Keep tooltip within bounds
   const tooltipWidth = 140
@@ -156,7 +156,7 @@ function updateTooltipPosition(event) {
     x = tooltipWidth / 2 + 10
   }
   if (y < 10) {
-    y = event.clientY - rect.top + 20
+    y = event.clientY - rect.top + 30
   }
 
   tooltipPos.value = { x, y }

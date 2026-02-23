@@ -132,6 +132,7 @@ const filteredItems = computed(() => {
   if (activeTab.value === 'books' && statusFilter.value !== 'all') {
     items = items.filter(item => {
       if (statusFilter.value === 'reading') return item.didFinish === 'reading'
+      if (statusFilter.value === 'owned') return item.didFinish === 'owned'
       if (statusFilter.value === 'finished') return item.didFinish === 'yes' || item.didFinish === true
       if (statusFilter.value === 'dropped') return item.didFinish === 'dropped'
       return true
@@ -236,6 +237,7 @@ function getWatchAgainClass(value) {
 
 function getFinishText(value) {
   if (value === 'reading') return 'Still reading'
+  if (value === 'owned') return 'Owned (unread)'
   if (value === 'watching') return 'Still watching'
   if (value === 'hiatus') return 'On Hiatus'
   if (value === 'dropped') return 'Dropped'
@@ -245,11 +247,41 @@ function getFinishText(value) {
 
 function getFinishClass(value) {
   if (value === 'reading') return 'badge-maybe'
+  if (value === 'owned') return 'badge-owned'
   if (value === 'watching') return 'badge-watching'
   if (value === 'hiatus') return 'badge-hiatus'
   if (value === 'dropped') return 'badge-no'
   if (value === false || value === 'no') return 'badge-no'
   return 'badge-yes'
+}
+
+function getRibbonText(value, tab) {
+  if (tab === 'books') {
+    if (value === 'reading') return '📖 Reading'
+    if (value === 'owned') return '📚 Owned'
+    if (value === 'dropped') return '✖ Dropped'
+    return '✔ Finished'
+  }
+  // movies & series
+  if (value === 'watching') return '▶ Watching'
+  if (value === 'hiatus') return '⏸ On Hiatus'
+  if (value === 'dropped') return '✖ Dropped'
+  if (value === false || value === 'no') return '😴 Nope'
+  return '✔ Watched'
+}
+
+function getRibbonClass(value, tab) {
+  if (tab === 'books') {
+    if (value === 'reading') return 'ribbon-reading'
+    if (value === 'owned') return 'ribbon-owned'
+    if (value === 'dropped') return 'ribbon-dropped'
+    return 'ribbon-finished'
+  }
+  if (value === 'watching') return 'ribbon-watching'
+  if (value === 'hiatus') return 'ribbon-hiatus'
+  if (value === 'dropped') return 'ribbon-dropped'
+  if (value === false || value === 'no') return 'ribbon-dropped'
+  return 'ribbon-finished'
 }
 
 function getCategoryInfo(categoryId) {
@@ -446,6 +478,11 @@ function selectTab(tab, subTab = null) {
             @click="statusFilter = 'reading'"
           >Reading</button>
           <button
+            class="status-pill owned"
+            :class="{ active: statusFilter === 'owned' }"
+            @click="statusFilter = 'owned'"
+          >Owned</button>
+          <button
             class="status-pill finished"
             :class="{ active: statusFilter === 'finished' }"
             @click="statusFilter = 'finished'"
@@ -583,10 +620,18 @@ function selectTab(tab, subTab = null) {
                 <span class="placeholder-emoji">{{ tabLabels.emoji }}</span>
                 <span class="placeholder-title">{{ item.title }}</span>
               </div>
-              <div class="poster-rating">{{ item.rating }}/10</div>
               <div v-if="(item.didFinish === 'watching' || item.didFinish === 'hiatus') && item.currentEpisode" class="poster-episode" :class="{ hiatus: item.didFinish === 'hiatus' }">
                 Ep {{ item.currentEpisode }}
               </div>
+              <div v-if="activeTab === 'books' && item.didFinish === 'reading' && item.currentPage" class="poster-episode">
+                p. {{ item.currentPage }}
+              </div>
+              <div v-if="activeTab !== 'youtube'" class="book-ribbon" :class="getRibbonClass(item.didFinish, activeTab)">
+                {{ getRibbonText(item.didFinish, activeTab) }}
+              </div>
+            </div>
+            <div class="poster-card-info">
+              <div class="poster-stars">{{ renderStars(item.rating) }}</div>
             </div>
           </div>
         </div>
@@ -623,6 +668,12 @@ function selectTab(tab, subTab = null) {
                 <span class="view-label">Progress</span>
                 <span class="view-value episode-badge">
                   Episode {{ viewingMovie.currentEpisode }}
+                </span>
+              </div>
+              <div class="view-row" v-if="isBookTab && viewingMovie.didFinish === 'reading' && viewingMovie.currentPage">
+                <span class="view-label">Progress</span>
+                <span class="view-value episode-badge">
+                  Page {{ viewingMovie.currentPage }}
                 </span>
               </div>
               <div class="view-row">
@@ -961,6 +1012,10 @@ function selectTab(tab, subTab = null) {
   background: #F59E0B;
 }
 
+.status-pill.owned.active {
+  background: #0EA5E9;
+}
+
 .status-pill.finished.active {
   background: var(--lavender-500);
 }
@@ -1133,16 +1188,19 @@ function selectTab(tab, subTab = null) {
   -webkit-box-orient: vertical;
 }
 
-.poster-rating {
-  position: absolute;
-  bottom: 4px;
-  right: 4px;
-  background: rgba(0,0,0,0.7);
+/* Star rating below poster */
+.poster-card-info {
+  padding-top: 4px;
+  text-align: center;
+}
+
+.poster-stars {
+  font-size: 0.85rem;
   color: #F59E0B;
-  font-size: 0.625rem;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+  word-break: break-all;
+  overflow-wrap: break-word;
 }
 
 .poster-episode {
@@ -1159,6 +1217,49 @@ function selectTab(tab, subTab = null) {
 
 .poster-episode.hiatus {
   background: #F59E0B;
+}
+
+/* Book Ribbon */
+.book-ribbon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 3px 0;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.3px;
+}
+
+.ribbon-reading {
+  background: linear-gradient(135deg, #8B5CF6, #A78BFA);
+  color: white;
+}
+
+.ribbon-finished {
+  background: linear-gradient(135deg, #059669, #10B981);
+  color: white;
+}
+
+.ribbon-dropped {
+  background: linear-gradient(135deg, #DC2626, #EF4444);
+  color: white;
+}
+
+.ribbon-watching {
+  background: linear-gradient(135deg, #2563EB, #3B82F6);
+  color: white;
+}
+
+.ribbon-hiatus {
+  background: linear-gradient(135deg, #D97706, #F59E0B);
+  color: white;
+}
+
+.ribbon-owned {
+  background: linear-gradient(135deg, #0369A1, #0EA5E9);
+  color: white;
 }
 
 /* YouTube Video Grid */
@@ -1606,6 +1707,7 @@ function selectTab(tab, subTab = null) {
 .view-value.badge-watching { color: #10B981; }
 .view-value.badge-hiatus { color: #F59E0B; }
 .view-value.badge-maybe { color: #F59E0B; }
+.view-value.badge-owned { color: #0EA5E9; }
 .view-value.badge-no { color: var(--text-secondary); }
 .view-value.episode-badge {
   color: var(--lavender-600);

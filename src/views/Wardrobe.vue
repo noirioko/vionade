@@ -215,7 +215,7 @@ onUnmounted(() => {
         <div class="wardrobe-banner-title">Wardrobe</div>
         <div class="wardrobe-banner-subtitle">{{ stats.total }} items in your closet</div>
       </div>
-      <img src="/images/vio_banner_full.png" alt="Vio" class="wardrobe-banner-vio" />
+      <img src="/images/vio_wardrobe_banner.png" alt="Vio" class="wardrobe-banner-vio" />
     </div>
 
     <!-- Desktop Layout Container -->
@@ -554,10 +554,10 @@ onUnmounted(() => {
 }
 
 .wardrobe-banner-vio {
-  height: 300px;
+  max-height: 120px;
   width: auto;
   flex-shrink: 0;
-  margin-bottom: -180px;
+  margin-bottom: -40px;
   animation: gentle-bounce 2s ease-in-out infinite;
 }
 
@@ -571,7 +571,7 @@ onUnmounted(() => {
 
 @media (max-width: 480px) {
   .wardrobe-banner-title { font-size: 1.5rem; }
-  .wardrobe-banner-vio { height: 220px; margin-bottom: -120px; }
+  .wardrobe-banner-vio { max-height: 100px; margin-bottom: -30px; }
 }
 
 /* Desktop Layout */

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, inject, onMounted, onUnmounted, watch } from 'vue'
 import { useFinanceStore } from '../stores'
+import { useToast } from '../composables/useToast'
 import EditTransactionModal from '../components/EditTransactionModal.vue'
 
 // Tab Components
@@ -13,9 +14,76 @@ import FinanceDebts from '../components/finance/FinanceDebts.vue'
 
 const store = useFinanceStore()
 const fabAction = inject('fabAction')
+const toast = useToast()
 
 // Tab Management
 const activeTab = ref('overview') // 'overview', 'wallets', 'history', 'wishlist'
+
+// Export Data
+const showExportModal = ref(false)
+const exportFromDate = ref('')
+
+function openExportModal() {
+  // Default to start of current month
+  const now = new Date()
+  exportFromDate.value = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+  showExportModal.value = true
+}
+
+function exportData() {
+  const fromDate = new Date(exportFromDate.value)
+  fromDate.setHours(0, 0, 0, 0)
+
+  const filtered = store.transactions.value
+    .filter(t => new Date(t.date) >= fromDate)
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+
+  if (filtered.length === 0) {
+    toast.error('No transactions found from that date!')
+    return
+  }
+
+  const headers = ['Date', 'Type', 'Category', 'Amount', 'Wallet', 'To Wallet', 'Note']
+  const rows = filtered.map(t => {
+    const wallet = store.getWalletById(t.walletId)
+    const toWallet = t.toWalletId ? store.getWalletById(t.toWalletId) : null
+    const cat = store.getCategoryById(t.category, t.type === 'income' ? 'income' : 'expense')
+
+    return [
+      new Date(t.date).toLocaleDateString('en-CA'),
+      t.type,
+      cat?.name || t.category || '',
+      t.amount,
+      wallet?.name || '',
+      toWallet?.name || '',
+      `"${(t.note || '').replace(/"/g, '""')}"`
+    ]
+  })
+
+  // Summary
+  const totalIncome = filtered.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+  const totalExpense = filtered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  rows.push([])
+  rows.push(['=== SUMMARY ==='])
+  rows.push(['Total Income', '', '', totalIncome])
+  rows.push(['Total Expense', '', '', totalExpense])
+  rows.push(['Net', '', '', totalIncome - totalExpense])
+  rows.push(['Transactions', '', '', filtered.length])
+
+  const csvContent = [headers, ...rows]
+    .map(row => Array.isArray(row) ? row.join(',') : row)
+    .join('\n')
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = `vionade-finance-${exportFromDate.value}-to-${new Date().toISOString().split('T')[0]}.csv`
+  link.click()
+  URL.revokeObjectURL(link.href)
+
+  toast.success(`Exported ${filtered.length} transactions!`)
+  showExportModal.value = false
+}
 
 function selectTab(tab) {
   activeTab.value = tab
@@ -146,6 +214,13 @@ watch(activeTab, () => {
             <span class="sidebar-label">Wishlist</span>
             <span class="sidebar-count">{{ financeStats.wishlistItems }}</span>
           </button>
+
+          <div class="sidebar-divider"></div>
+
+          <button class="sidebar-item sidebar-export" @click="openExportModal">
+            <span class="sidebar-icon">📤</span>
+            <span class="sidebar-label">Export Data</span>
+          </button>
         </nav>
 
         <div class="sidebar-balance-card">
@@ -195,6 +270,11 @@ watch(activeTab, () => {
           >Wishlist</button>
         </div>
 
+        <!-- Mobile Export Button -->
+        <button class="mobile-export-btn mobile-only" @click="openExportModal">
+          📤 Export Data
+        </button>
+
         <!-- Tab Content -->
         <FinanceOverview
           v-if="activeTab === 'overview'"
@@ -226,6 +306,32 @@ watch(activeTab, () => {
       :transaction="editingTransaction"
       @close="editingTransaction = null"
     />
+
+    <!-- Export Data Modal -->
+    <div v-if="showExportModal" class="export-modal-overlay" @click.self="showExportModal = false">
+      <div class="export-modal">
+        <div class="export-modal-header">
+          <h3>📤 Export Data</h3>
+          <button class="export-modal-close" @click="showExportModal = false">&times;</button>
+        </div>
+        <div class="export-modal-body">
+          <p class="export-modal-desc">Export transactions as CSV from a specific date to today.</p>
+          <label class="export-date-label">
+            From Date
+            <input type="date" v-model="exportFromDate" class="export-date-input" />
+          </label>
+          <div class="export-modal-preview">
+            {{ store.transactions.value.filter(t => new Date(t.date) >= new Date(exportFromDate + 'T00:00:00')).length }} transactions found
+          </div>
+        </div>
+        <div class="export-modal-footer">
+          <button class="btn btn-ghost" @click="showExportModal = false">Cancel</button>
+          <button class="btn btn-primary export-confirm-btn" @click="exportData">
+            📥 Download CSV
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -342,71 +448,7 @@ watch(activeTab, () => {
   display: flex;
 }
 
-/* Sidebar styles (shared with Media) */
-.sidebar-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  background: var(--white);
-  border: 2px solid var(--lavender-100);
-  border-radius: var(--radius-lg);
-  padding: var(--space-sm);
-}
-
-.sidebar-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
-  border: none;
-  border-radius: var(--radius-md);
-  background: transparent;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
-  text-align: left;
-}
-
-.sidebar-item:hover {
-  background: var(--lavender-50);
-  color: var(--text-primary);
-}
-
-.sidebar-item.active {
-  background: var(--lavender-100);
-  color: var(--lavender-700);
-  font-weight: 600;
-}
-
-.sidebar-icon {
-  font-size: 1.125rem;
-}
-
-.sidebar-label {
-  flex: 1;
-}
-
-.sidebar-count {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-tertiary);
-  background: var(--lavender-50);
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-}
-
-.sidebar-item.active .sidebar-count {
-  background: var(--lavender-200);
-  color: var(--lavender-700);
-}
-
-.sidebar-divider {
-  height: 1px;
-  background: var(--lavender-100);
-  margin: var(--space-sm) 0;
-}
+/* Sidebar styles: base in style.css */
 
 /* Sidebar Balance Card with Vio */
 .sidebar-balance-card {
@@ -466,6 +508,149 @@ watch(activeTab, () => {
   color: #DC2626;
 }
 
+/* Sidebar Export Button */
+.sidebar-export {
+  color: var(--text-tertiary) !important;
+  font-size: 0.8125rem !important;
+}
+
+.sidebar-export:hover {
+  color: var(--lavender-700) !important;
+}
+
+/* Mobile Export Button */
+.mobile-export-btn {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 2px dashed var(--lavender-200);
+  border-radius: var(--radius-lg);
+  background: transparent;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  margin-bottom: var(--space-md);
+  transition: all 0.2s;
+}
+
+.mobile-export-btn:hover {
+  border-color: var(--lavender-400);
+  background: var(--lavender-50);
+  color: var(--lavender-700);
+}
+
+/* Export Modal */
+.export-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--space-md);
+}
+
+.export-modal {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 400px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.export-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--lavender-100);
+}
+
+.export-modal-header h3 {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  margin: 0;
+}
+
+.export-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.export-modal-body {
+  padding: var(--space-lg);
+}
+
+.export-modal-desc {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-md);
+}
+
+.export-date-label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.export-date-input {
+  padding: var(--space-sm) var(--space-md);
+  border: 2px solid var(--lavender-200);
+  border-radius: var(--radius-md);
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+  background: var(--white);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.export-date-input:focus {
+  border-color: var(--lavender-500);
+}
+
+.export-modal-preview {
+  margin-top: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--lavender-50);
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  color: var(--lavender-700);
+  font-weight: 600;
+  text-align: center;
+}
+
+.export-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  border-top: 1px solid var(--lavender-100);
+}
+
+.export-confirm-btn {
+  background: linear-gradient(135deg, #F59E0B, #F97316) !important;
+  border: none !important;
+  color: white !important;
+  font-weight: 600;
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.export-confirm-btn:hover {
+  filter: brightness(1.05);
+}
+
 /* Desktop Styles (768px+) */
 @media (min-width: 768px) {
   .mobile-only {
@@ -519,24 +704,6 @@ watch(activeTab, () => {
   color: #C4B5FD !important;
 }
 
-[data-theme="dark"] .sidebar-nav {
-  background: #1A1625 !important;
-  border-color: #3D3456 !important;
-}
-
-[data-theme="dark"] .sidebar-item:hover {
-  background: #2D2640 !important;
-}
-
-[data-theme="dark"] .sidebar-item.active {
-  background: #2D2640 !important;
-  color: #C4B5FD !important;
-}
-
-[data-theme="dark"] .sidebar-divider {
-  background: #3D3456 !important;
-}
-
 [data-theme="dark"] .sidebar-balance-card {
   background: linear-gradient(135deg, #5B21B6 0%, #7C3AED 100%) !important;
   border-color: #8B5CF6 !important;
@@ -555,13 +722,61 @@ watch(activeTab, () => {
   color: #FCA5A5 !important;
 }
 
-[data-theme="dark"] .sidebar-count {
-  background: #2D2640 !important;
+[data-theme="dark"] .mobile-export-btn {
+  border-color: #3D3456 !important;
   color: #9D8BC2 !important;
 }
 
-[data-theme="dark"] .sidebar-item.active .sidebar-count {
-  background: #3D3456 !important;
+[data-theme="dark"] .mobile-export-btn:hover {
+  border-color: #8B5CF6 !important;
+  background: #2D2640 !important;
   color: #C4B5FD !important;
+}
+
+[data-theme="dark"] .export-modal {
+  background: #1A1625 !important;
+}
+
+[data-theme="dark"] .export-modal-header {
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .export-modal-header h3 {
+  color: #E9D5FF !important;
+}
+
+[data-theme="dark"] .export-modal-close {
+  color: #9D8BC2 !important;
+}
+
+[data-theme="dark"] .export-modal-desc {
+  color: #9D8BC2 !important;
+}
+
+[data-theme="dark"] .export-date-label {
+  color: #C4B5FD !important;
+}
+
+[data-theme="dark"] .export-date-input {
+  background: #2D2640 !important;
+  border-color: #3D3456 !important;
+  color: #E9D5FF !important;
+}
+
+[data-theme="dark"] .export-date-input:focus {
+  border-color: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .export-modal-preview {
+  background: #2D2640 !important;
+  color: #C4B5FD !important;
+}
+
+[data-theme="dark"] .export-modal-footer {
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .export-confirm-btn {
+  background: linear-gradient(135deg, #7C3AED, #8B5CF6) !important;
 }
 </style>

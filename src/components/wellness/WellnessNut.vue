@@ -6,33 +6,76 @@ const store = useFinanceStore()
 
 // Modal state
 const showModal = ref(false)
+const editingLog = ref(null)
 const form = ref({
   trigger: '',
   hornyLevel: 5,
   rating: 5,
   rant: '',
   regret: false,
+  date: '',
 })
 
+function getLocalDatetime() {
+  const now = new Date()
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
+  return now.toISOString().slice(0, 16)
+}
+
+function toLocalDatetime(isoString) {
+  const d = new Date(isoString)
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
+  return d.toISOString().slice(0, 16)
+}
+
 function openAddModal() {
+  editingLog.value = null
   form.value = {
     trigger: '',
     hornyLevel: 5,
     rating: 5,
     rant: '',
     regret: false,
+    date: getLocalDatetime(),
+  }
+  showModal.value = true
+}
+
+function openEditModal(log) {
+  editingLog.value = log
+  form.value = {
+    trigger: log.trigger || '',
+    hornyLevel: log.hornyLevel || 5,
+    rating: log.rating || 5,
+    rant: log.rant || '',
+    regret: log.regret || false,
+    date: toLocalDatetime(log.date),
   }
   showModal.value = true
 }
 
 function saveLog() {
-  store.addNutLog({
-    trigger: form.value.trigger,
-    hornyLevel: form.value.hornyLevel,
-    rating: form.value.rating,
-    rant: form.value.rant,
-    regret: form.value.regret,
-  })
+  const dateValue = new Date(form.value.date).toISOString()
+
+  if (editingLog.value) {
+    store.updateNutLog(editingLog.value.id, {
+      trigger: form.value.trigger,
+      hornyLevel: form.value.hornyLevel,
+      rating: form.value.rating,
+      rant: form.value.rant,
+      regret: form.value.regret,
+      date: dateValue,
+    })
+  } else {
+    store.addNutLog({
+      trigger: form.value.trigger,
+      hornyLevel: form.value.hornyLevel,
+      rating: form.value.rating,
+      rant: form.value.rant,
+      regret: form.value.regret,
+      date: dateValue,
+    })
+  }
   showModal.value = false
 }
 
@@ -159,6 +202,12 @@ function formatTime(dateString) {
   })
 }
 
+function getRatingClass(rating) {
+  if (rating >= 8) return 'rating-fire'
+  if (rating >= 5) return 'rating-ok'
+  return 'rating-meh'
+}
+
 // Expose for FAB
 defineExpose({ openAddModal })
 </script>
@@ -238,23 +287,29 @@ defineExpose({ openAddModal })
         <div
           v-for="log in recentLogs"
           :key="log.id"
-          class="log-item"
-          @click="deleteLog(log)"
+          class="log-card"
         >
-          <div class="log-icon">{{ getTriggerIcon(log.trigger) }}</div>
-          <div class="log-content">
-            <div class="log-title">
-              {{ formatDate(log.date) }}
-              <span v-if="log.regret" class="regret-badge">😬</span>
+          <div class="log-card-top">
+            <div class="log-rating-badge" :class="getRatingClass(log.rating)">
+              <span class="log-rating-num">{{ log.rating }}</span>
+              <span class="log-rating-max">/10</span>
             </div>
-            <div class="log-meta">
-              {{ formatTime(log.date) }}
-              <span v-if="log.rating">· {{ log.rating }}/10</span>
-              <span v-if="log.trigger">· {{ getTriggerLabel(log.trigger) }}</span>
+            <div class="log-card-info">
+              <div class="log-card-date">
+                {{ formatDate(log.date) }} <span class="log-card-time">{{ formatTime(log.date) }}</span>
+              </div>
+              <div class="log-card-tags">
+                <span class="log-tag trigger-tag" v-if="log.trigger">{{ getTriggerIcon(log.trigger) }} {{ getTriggerLabel(log.trigger) }}</span>
+                <span class="log-tag horny-tag">🔥 {{ log.hornyLevel }}/10</span>
+                <span class="log-tag regret-tag" v-if="log.regret">😬 Regret</span>
+              </div>
             </div>
-            <div v-if="log.rant" class="log-rant">{{ log.rant }}</div>
+            <div class="log-actions">
+              <button class="log-action-btn edit-btn" @click="openEditModal(log)" title="Edit">✏️</button>
+              <button class="log-action-btn delete-btn" @click="deleteLog(log)" title="Delete">🗑️</button>
+            </div>
           </div>
-          <div class="log-delete">×</div>
+          <div v-if="log.rant" class="log-card-rant">{{ log.rant }}</div>
         </div>
       </div>
     </div>
@@ -263,11 +318,21 @@ defineExpose({ openAddModal })
     <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
       <div class="modal">
         <div class="modal-header">
-          <h2>🥜 Log the Deed</h2>
+          <h2>{{ editingLog ? '✏️ Edit Log' : '🥜 Log the Deed' }}</h2>
           <button class="close-btn" @click="showModal = false">×</button>
         </div>
 
         <div class="modal-body">
+          <!-- Date & Time -->
+          <div class="form-group">
+            <label>When?</label>
+            <input
+              type="datetime-local"
+              v-model="form.date"
+              class="date-input"
+            />
+          </div>
+
           <!-- Trigger -->
           <div class="form-group">
             <label>What triggered it?</label>
@@ -345,7 +410,7 @@ defineExpose({ openAddModal })
 
         <div class="modal-footer">
           <button class="save-btn" @click="saveLog">
-            <span>💦</span> Log It
+            <span>{{ editingLog ? '✅' : '💦' }}</span> {{ editingLog ? 'Save Changes' : 'Log It' }}
           </button>
         </div>
       </div>
@@ -514,74 +579,166 @@ defineExpose({ openAddModal })
 .logs-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: var(--space-sm);
 }
 
-.log-item {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
+.log-card {
   background: var(--white);
   border: 2px solid var(--lavender-100);
-  border-radius: var(--radius-md);
-  cursor: pointer;
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
   transition: all 0.2s;
 }
 
-.log-item:hover {
-  border-color: #EF4444;
-  background: #FEF2F2;
+.log-card-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
 }
 
-.log-icon {
+/* Big rating badge */
+.log-rating-badge {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.log-rating-badge.rating-fire {
+  background: linear-gradient(135deg, #D4A574, #C4956A);
+  border: 2px solid #A67C52;
+  box-shadow: 2px 2px 0 #8B6642;
+}
+
+.log-rating-badge.rating-ok {
+  background: linear-gradient(135deg, #E8D4BC, #D4C4AC);
+  border: 2px solid #C4A882;
+  box-shadow: 2px 2px 0 #A69070;
+}
+
+.log-rating-badge.rating-meh {
+  background: var(--lavender-100);
+  border: 2px solid var(--lavender-200);
+  box-shadow: 2px 2px 0 var(--lavender-200);
+}
+
+.log-rating-num {
+  font-family: var(--font-display);
+  font-weight: 800;
   font-size: 1.25rem;
-  margin-top: 2px;
+  color: white;
 }
 
-.log-content {
+.log-rating-badge.rating-meh .log-rating-num {
+  color: var(--text-secondary);
+}
+
+.log-rating-max {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: -2px;
+}
+
+.log-rating-badge.rating-meh .log-rating-max {
+  color: var(--text-tertiary);
+}
+
+/* Card info */
+.log-card-info {
   flex: 1;
   min-width: 0;
 }
 
-.log-title {
-  font-weight: 600;
-  font-size: 0.875rem;
+.log-card-date {
+  font-weight: 700;
+  font-size: 0.9375rem;
   color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
+  margin-bottom: 4px;
 }
 
-.regret-badge {
-  font-size: 0.75rem;
-}
-
-.log-meta {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-
-.log-rant {
+.log-card-time {
+  font-weight: 500;
   font-size: 0.75rem;
   color: var(--text-tertiary);
-  font-style: italic;
-  margin-top: 4px;
+}
+
+.log-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.log-tag {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
   white-space: nowrap;
+}
+
+.trigger-tag {
+  background: #FDF4E7;
+  color: #8B6642;
+}
+
+.horny-tag {
+  background: #FEE2E2;
+  color: #DC2626;
+}
+
+.regret-tag {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+/* Rant */
+.log-card-rant {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px dashed var(--lavender-100);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.log-delete {
-  font-size: 1.25rem;
-  color: var(--gray-400);
-  opacity: 0;
-  transition: opacity 0.2s;
+/* Actions */
+.log-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
-.log-item:hover .log-delete {
-  opacity: 1;
-  color: #EF4444;
+.log-action-btn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: var(--lavender-50);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.log-action-btn.edit-btn:hover {
+  background: #FDF4E7;
+}
+
+.log-action-btn.delete-btn:hover {
+  background: #FEE2E2;
 }
 
 /* Empty State */
@@ -671,6 +828,23 @@ defineExpose({ openAddModal })
   font-weight: 600;
   margin-bottom: var(--space-sm);
   color: var(--text-primary);
+}
+
+/* Date Input */
+.date-input {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 2px solid var(--lavender-100);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--white);
+}
+
+.date-input:focus {
+  outline: none;
+  border-color: #D4A574;
 }
 
 .range-value {
@@ -875,14 +1049,47 @@ defineExpose({ openAddModal })
   color: #9D8BC2 !important;
 }
 
-[data-theme="dark"] .nut-tracker .log-item {
+[data-theme="dark"] .nut-tracker .log-card {
   background: #1A1625 !important;
   border-color: #3D3456 !important;
 }
 
-[data-theme="dark"] .nut-tracker .log-item:hover {
-  background: rgba(239, 68, 68, 0.1) !important;
-  border-color: #EF4444 !important;
+[data-theme="dark"] .nut-tracker .log-card-date {
+  color: #E9D5FF !important;
+}
+
+[data-theme="dark"] .nut-tracker .log-card-time {
+  color: #9D8BC2 !important;
+}
+
+[data-theme="dark"] .nut-tracker .trigger-tag {
+  background: rgba(212, 165, 116, 0.15) !important;
+  color: #D4A574 !important;
+}
+
+[data-theme="dark"] .nut-tracker .horny-tag {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #FCA5A5 !important;
+}
+
+[data-theme="dark"] .nut-tracker .regret-tag {
+  background: rgba(251, 191, 36, 0.15) !important;
+  color: #FCD34D !important;
+}
+
+[data-theme="dark"] .nut-tracker .log-card-rant {
+  border-color: #3D3456 !important;
+  color: #9D8BC2 !important;
+}
+
+[data-theme="dark"] .nut-tracker .log-rating-badge.rating-meh {
+  background: #2D2640 !important;
+  border-color: #3D3456 !important;
+  box-shadow: 2px 2px 0 #3D3456 !important;
+}
+
+[data-theme="dark"] .nut-tracker .log-rating-badge.rating-meh .log-rating-num {
+  color: #9D8BC2 !important;
 }
 
 [data-theme="dark"] .nut-tracker .modal {
@@ -937,5 +1144,27 @@ defineExpose({ openAddModal })
   background: linear-gradient(135deg, #8B6642 0%, #6B5232 100%) !important;
   border-color: #5B4428 !important;
   box-shadow: 4px 4px 0 #3D2D1A !important;
+}
+
+[data-theme="dark"] .nut-tracker .date-input {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+  color: #E9D5FF !important;
+}
+
+[data-theme="dark"] .nut-tracker .date-input:focus {
+  border-color: #D4A574 !important;
+}
+
+[data-theme="dark"] .nut-tracker .log-action-btn {
+  background: #2D2640 !important;
+}
+
+[data-theme="dark"] .nut-tracker .log-action-btn.edit-btn:hover {
+  background: rgba(212, 165, 116, 0.2) !important;
+}
+
+[data-theme="dark"] .nut-tracker .log-action-btn.delete-btn:hover {
+  background: rgba(239, 68, 68, 0.2) !important;
 }
 </style>

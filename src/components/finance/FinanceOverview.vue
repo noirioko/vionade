@@ -28,12 +28,28 @@ const activeChallenges = computed(() => {
   return challenges.filter(c => c.status === 'active')
 })
 
+// Helper to get challenge start date (adjusted for period)
+function getChallengeStartDate(challenge) {
+  let startDate = new Date(challenge.startDate)
+
+  if (challenge.period === 'month') {
+    startDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1)
+  } else if (challenge.period === 'week') {
+    const day = startDate.getDay()
+    startDate = new Date(startDate)
+    startDate.setDate(startDate.getDate() - day) // Go back to Sunday
+    startDate.setHours(0, 0, 0, 0)
+  }
+
+  return startDate
+}
+
 // Helper functions to calculate per-challenge stats
 function getChallengeProgress(challenge) {
   if (!challenge) return 0
 
   if (challenge.type === 'limit-spending') {
-    const startDate = new Date(challenge.startDate)
+    const startDate = getChallengeStartDate(challenge)
     const expenses = store.transactions.value
       .filter(t => t.type === 'expense' && new Date(t.date) >= startDate)
       .reduce((sum, t) => sum + t.amount, 0)
@@ -41,7 +57,7 @@ function getChallengeProgress(challenge) {
   }
 
   if (challenge.type === 'save-amount') {
-    const startDate = new Date(challenge.startDate)
+    const startDate = getChallengeStartDate(challenge)
     const income = store.transactions.value
       .filter(t => t.type === 'income' && new Date(t.date) >= startDate)
       .reduce((sum, t) => sum + t.amount, 0)
@@ -55,7 +71,7 @@ function getChallengeProgress(challenge) {
 
 function getChallengeSpent(challenge) {
   if (!challenge) return 0
-  const startDate = new Date(challenge.startDate)
+  const startDate = getChallengeStartDate(challenge)
   return store.transactions.value
     .filter(t => t.type === 'expense' && new Date(t.date) >= startDate)
     .reduce((sum, t) => sum + t.amount, 0)
@@ -63,7 +79,7 @@ function getChallengeSpent(challenge) {
 
 function getChallengeSaved(challenge) {
   if (!challenge) return 0
-  const startDate = new Date(challenge.startDate)
+  const startDate = getChallengeStartDate(challenge)
   const income = store.transactions.value
     .filter(t => t.type === 'income' && new Date(t.date) >= startDate)
     .reduce((sum, t) => sum + t.amount, 0)
@@ -163,6 +179,39 @@ const recentOverviewTransactions = computed(() => {
   return [...overviewTransactions.value]
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 5)
+})
+
+// Expenses by wallet for the month
+const expensesByWallet = computed(() => {
+  const walletTotals = {}
+
+  // Initialize all wallets with 0
+  store.wallets.value.forEach(w => {
+    walletTotals[w.id] = {
+      wallet: w,
+      expense: 0,
+      income: 0,
+      transactions: 0
+    }
+  })
+
+  // Sum up transactions
+  overviewTransactions.value.forEach(t => {
+    if (walletTotals[t.walletId]) {
+      if (t.type === 'expense') {
+        walletTotals[t.walletId].expense += t.amount
+        walletTotals[t.walletId].transactions++
+      } else if (t.type === 'income') {
+        walletTotals[t.walletId].income += t.amount
+        walletTotals[t.walletId].transactions++
+      }
+    }
+  })
+
+  // Convert to array and filter out wallets with no transactions
+  return Object.values(walletTotals)
+    .filter(w => w.transactions > 0)
+    .sort((a, b) => b.expense - a.expense)
 })
 
 // Helpers
@@ -340,6 +389,37 @@ function getTransactionTitle(transaction) {
           <div class="wallet-card-name">{{ wallet.name }}</div>
           <div class="wallet-card-balance" :class="wallet.balance >= 0 ? 'positive' : 'negative'">
             {{ store.formatCurrency(wallet.balance) }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Spending by Wallet -->
+    <div v-if="expensesByWallet.length > 0" class="section">
+      <div class="section-header">
+        <h3 class="section-title">{{ overviewMonth }} by Wallet</h3>
+      </div>
+
+      <div class="wallet-breakdown">
+        <div
+          v-for="item in expensesByWallet"
+          :key="item.wallet.id"
+          class="wallet-breakdown-item"
+        >
+          <div class="wallet-breakdown-icon" :style="{ background: item.wallet.color + '20' }">
+            {{ item.wallet.icon }}
+          </div>
+          <div class="wallet-breakdown-info">
+            <div class="wallet-breakdown-name">{{ item.wallet.name }}</div>
+            <div class="wallet-breakdown-count">{{ item.transactions }} transactions</div>
+          </div>
+          <div class="wallet-breakdown-amounts">
+            <div v-if="item.income > 0" class="wallet-amount income">
+              +{{ store.formatCurrency(item.income) }}
+            </div>
+            <div v-if="item.expense > 0" class="wallet-amount expense">
+              -{{ store.formatCurrency(item.expense) }}
+            </div>
           </div>
         </div>
       </div>
@@ -623,6 +703,68 @@ function getTransactionTitle(transaction) {
   height: 30px;
   background: #FFD700;
   margin: 0 var(--space-sm);
+}
+
+/* Wallet Breakdown */
+.wallet-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.wallet-breakdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--white);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.wallet-breakdown-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.wallet-breakdown-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.wallet-breakdown-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.wallet-breakdown-count {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.wallet-breakdown-amounts {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.wallet-amount {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.wallet-amount.income {
+  color: var(--income-color);
+}
+
+.wallet-amount.expense {
+  color: var(--expense-color);
 }
 
 /* Challenge Section */
@@ -956,6 +1098,25 @@ function getTransactionTitle(transaction) {
   background: linear-gradient(135deg, #2D2640 0%, #1A1625 100%) !important;
 }
 
+[data-theme="dark"] .calendar-header {
+  background: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%) !important;
+  background-image: none !important;
+  border-radius: var(--radius-md);
+}
+
+[data-theme="dark"] .month-label {
+  color: #FFFFFF !important;
+}
+
+[data-theme="dark"] .month-nav {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: #FFFFFF !important;
+}
+
+[data-theme="dark"] .month-nav:hover:not(.disabled) {
+  background: rgba(255, 255, 255, 0.3) !important;
+}
+
 [data-theme="dark"] .challenge-new {
   background: linear-gradient(135deg, #2D2640 0%, rgba(139, 92, 246, 0.15) 100%) !important;
   border-color: #6D28D9 !important;
@@ -982,6 +1143,22 @@ function getTransactionTitle(transaction) {
   border-color: #8B5CF6 !important;
 }
 
+[data-theme="dark"] .period-btn {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+  color: #9D8BC2 !important;
+}
+
+[data-theme="dark"] .period-btn:hover {
+  border-color: #6D28D9 !important;
+}
+
+[data-theme="dark"] .period-btn.active {
+  background: #8B5CF6 !important;
+  border-color: #8B5CF6 !important;
+  color: white !important;
+}
+
 [data-theme="dark"] .challenge-card {
   background: #1A1625 !important;
   border-color: #3D3456 !important;
@@ -1006,5 +1183,18 @@ function getTransactionTitle(transaction) {
 [data-theme="dark"] .wallet-card {
   background: #1A1625 !important;
   border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .wallet-breakdown-item {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .wallet-breakdown-name {
+  color: #E9D5FF !important;
+}
+
+[data-theme="dark"] .wallet-breakdown-count {
+  color: #9D8BC2 !important;
 }
 </style>

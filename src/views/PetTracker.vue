@@ -1509,11 +1509,11 @@ onUnmounted(() => {
 
 .quick-water-btn {
   flex: 1;
-  padding: 8px 12px;
+  padding: 10px 14px;
   background: #7AD7F0;
   border: 2px solid #5BC4E0;
   border-radius: 10px;
-  font-size: 0.7rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   color: #0C4A6E;
   cursor: pointer;
@@ -1524,12 +1524,12 @@ onUnmounted(() => {
 .quick-water-btn:active { transform: scale(0.98); }
 
 .more-btn {
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   background: var(--lavender-100);
   border: 2px solid var(--lavender-300);
   border-radius: 10px;
-  font-size: 1.25rem;
+  font-size: 1.375rem;
   font-weight: 700;
   color: var(--lavender-600);
   cursor: pointer;
@@ -1599,12 +1599,14 @@ onUnmounted(() => {
 .action-btn-small {
   background: none;
   border: none;
-  font-size: 0.875rem;
+  font-size: 1rem;
   cursor: pointer;
-  padding: 4px;
+  padding: 6px;
   border-radius: 6px;
   opacity: 0.6;
   transition: all 0.15s;
+  min-width: 32px;
+  min-height: 32px;
 }
 
 .action-btn-small:hover { opacity: 1; background: var(--gray-100); }

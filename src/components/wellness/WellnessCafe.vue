@@ -30,44 +30,94 @@ const ratingOptions = [
 // Common cafes for quick selection
 const commonCafes = [
   'Starbucks',
-  'Kopi Kenangan',
-  'Fore Coffee',
-  'Janji Jiwa',
-  'Tomoro',
-  'Point Coffee',
-  'Gulu Gulu',
-  'Chatime',
-  'Kokumi',
-  'Local Cafe'
+  'Double Dose',
+  'Ombe Koffie',
+  'Joe & Dough',
+  'GA / GA',
+  'KOI Thé',
+  'Megaze Coffee',
 ]
 
-// Stats
-const cafeStats = computed(() => store.getCafeStats())
+// Sub-tabs
+const cafeTab = ref('visits') // 'visits' or 'overview'
 
-// Sorted visits (newest first)
-const sortedVisits = computed(() => {
-  return [...store.cafeVisits.value].sort((a, b) => {
-    const dateCompare = new Date(b.date) - new Date(a.date)
-    if (dateCompare !== 0) return dateCompare
-    return new Date(b.createdAt) - new Date(a.createdAt)
+// Month selector
+const viewDate = ref(new Date())
+
+// Generate all months from earliest visit to now
+const allMonthOptions = computed(() => {
+  const now = new Date()
+  let earliest = new Date(now.getFullYear(), now.getMonth(), 1)
+
+  store.cafeVisits.value.forEach(v => {
+    const d = new Date(v.date)
+    const monthStart = new Date(d.getFullYear(), d.getMonth(), 1)
+    if (monthStart < earliest) earliest = monthStart
   })
+
+  const months = []
+  const current = new Date(now.getFullYear(), now.getMonth(), 1)
+  const cursor = new Date(current)
+
+  while (cursor >= earliest) {
+    months.push({
+      key: `${cursor.getFullYear()}-${cursor.getMonth()}`,
+      year: cursor.getFullYear(),
+      month: cursor.getMonth(),
+      label: cursor.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+    })
+    cursor.setMonth(cursor.getMonth() - 1)
+  }
+
+  return months
 })
 
-// Group visits by month
-const visitsByMonth = computed(() => {
-  const groups = {}
-  sortedVisits.value.forEach(visit => {
-    const date = new Date(visit.date)
-    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-    const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+function onMonthSelect(event) {
+  const [year, month] = event.target.value.split('-').map(Number)
+  viewDate.value = new Date(year, month, 1)
+}
 
-    if (!groups[monthKey]) {
-      groups[monthKey] = { label: monthLabel, visits: [], total: 0 }
-    }
-    groups[monthKey].visits.push(visit)
-    groups[monthKey].total += visit.amount || 0
+// Visits for the selected month
+const monthVisits = computed(() => {
+  const year = viewDate.value.getFullYear()
+  const month = viewDate.value.getMonth()
+  return [...store.cafeVisits.value]
+    .filter(v => {
+      const d = new Date(v.date)
+      return d.getFullYear() === year && d.getMonth() === month
+    })
+    .sort((a, b) => {
+      const dateCompare = new Date(b.date) - new Date(a.date)
+      if (dateCompare !== 0) return dateCompare
+      return new Date(b.createdAt) - new Date(a.createdAt)
+    })
+})
+
+const monthTotal = computed(() => {
+  return monthVisits.value.reduce((sum, v) => sum + (v.amount || 0), 0)
+})
+
+// Overview stats
+const totalVisits = computed(() => store.cafeVisits.value.length)
+const totalSpent = computed(() => store.cafeVisits.value.reduce((sum, v) => sum + (v.amount || 0), 0))
+const avgPerVisit = computed(() => totalVisits.value ? Math.round(totalSpent.value / totalVisits.value) : 0)
+
+const topCafes = computed(() => {
+  const counts = {}
+  store.cafeVisits.value.forEach(v => {
+    if (!counts[v.cafe]) counts[v.cafe] = { name: v.cafe, visits: 0, spent: 0 }
+    counts[v.cafe].visits++
+    counts[v.cafe].spent += v.amount || 0
   })
-  return groups
+  return Object.values(counts).sort((a, b) => b.visits - a.visits).slice(0, 5)
+})
+
+const ratingBreakdown = computed(() => {
+  const counts = { worth: 0, meh: 0, regret: 0 }
+  store.cafeVisits.value.forEach(v => {
+    if (counts[v.rating] !== undefined) counts[v.rating]++
+  })
+  return counts
 })
 
 function openAddModal() {
@@ -176,41 +226,54 @@ defineExpose({ openAddModal })
 
 <template>
   <div class="cafe-tracker">
-    <!-- Stats Card -->
-    <div class="cafe-stats">
-      <div class="stat-item">
-        <span class="stat-emoji">☕</span>
-        <div class="stat-info">
-          <div class="stat-value">{{ cafeStats.thisMonthVisits }}</div>
-          <div class="stat-label">This Month</div>
-        </div>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <span class="stat-emoji">💸</span>
-        <div class="stat-info">
-          <div class="stat-value">{{ formatCurrency(cafeStats.thisMonthSpent) }}</div>
-          <div class="stat-label">Spent</div>
-        </div>
-      </div>
+    <!-- Sub Tabs -->
+    <div class="cafe-tabs">
+      <button class="cafe-tab" :class="{ active: cafeTab === 'visits' }" @click="cafeTab = 'visits'">☕ Visits</button>
+      <button class="cafe-tab" :class="{ active: cafeTab === 'overview' }" @click="cafeTab = 'overview'">📊 Overview</button>
     </div>
 
-    <!-- Visit List -->
-    <div class="visits-list">
-      <div v-if="sortedVisits.length === 0" class="empty-state">
-        <span class="empty-emoji">☕</span>
-        <p>No cafe visits logged yet</p>
-        <p class="empty-hint">Tap + to log your first visit!</p>
+    <!-- VISITS TAB -->
+    <template v-if="cafeTab === 'visits'">
+      <!-- Month Selector -->
+      <div class="month-selector">
+        <span class="month-selector-icon">📅</span>
+        <select class="month-select" :value="viewDate.getFullYear() + '-' + viewDate.getMonth()" @change="onMonthSelect($event)">
+          <option
+            v-for="m in allMonthOptions"
+            :key="m.key"
+            :value="m.key"
+          >{{ m.label }}</option>
+        </select>
       </div>
 
-      <template v-for="(group, monthKey) in visitsByMonth" :key="monthKey">
-        <div class="month-header">
-          <span class="month-label">{{ group.label }}</span>
-          <span class="month-total">{{ formatCurrency(group.total) }}</span>
+      <!-- Month Stats -->
+      <div class="month-stats">
+        <div class="month-stat-box">
+          <span class="month-stat-emoji">☕</span>
+          <div class="month-stat-info">
+            <div class="month-stat-value">{{ monthVisits.length }}</div>
+            <div class="month-stat-label">visit{{ monthVisits.length !== 1 ? 's' : '' }}</div>
+          </div>
+        </div>
+        <div class="month-stat-box">
+          <span class="month-stat-emoji">💸</span>
+          <div class="month-stat-info">
+            <div class="month-stat-value">{{ formatCurrency(monthTotal) }}</div>
+            <div class="month-stat-label">spent</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Visit List -->
+      <div class="visits-list">
+        <div v-if="monthVisits.length === 0" class="empty-state">
+          <span class="empty-emoji">☕</span>
+          <p>No cafe visits this month</p>
+          <p class="empty-hint">Tap + to log a visit!</p>
         </div>
 
         <div
-          v-for="visit in group.visits"
+          v-for="visit in monthVisits"
           :key="visit.id"
           class="visit-card"
           @click="openEditModal(visit)"
@@ -228,8 +291,73 @@ defineExpose({ openAddModal })
           </div>
           <div class="visit-amount">{{ formatCurrency(visit.amount) }}</div>
         </div>
-      </template>
-    </div>
+      </div>
+    </template>
+
+    <!-- OVERVIEW TAB -->
+    <template v-if="cafeTab === 'overview'">
+      <div class="overview-grid">
+        <!-- All-time Stats -->
+        <div class="overview-card">
+          <div class="overview-card-icon">☕</div>
+          <div class="overview-card-value">{{ totalVisits }}</div>
+          <div class="overview-card-label">Total Visits</div>
+        </div>
+        <div class="overview-card">
+          <div class="overview-card-icon">💸</div>
+          <div class="overview-card-value">{{ formatCurrency(totalSpent) }}</div>
+          <div class="overview-card-label">Total Spent</div>
+        </div>
+        <div class="overview-card">
+          <div class="overview-card-icon">📊</div>
+          <div class="overview-card-value">{{ formatCurrency(avgPerVisit) }}</div>
+          <div class="overview-card-label">Avg / Visit</div>
+        </div>
+      </div>
+
+      <!-- Rating Breakdown -->
+      <div class="overview-section">
+        <h3 class="overview-section-title">Vibes Check</h3>
+        <div class="rating-bars">
+          <div class="rating-bar-row">
+            <span class="rating-bar-label">😋 Worth it</span>
+            <div class="rating-bar-track">
+              <div class="rating-bar-fill worth" :style="{ width: totalVisits ? (ratingBreakdown.worth / totalVisits * 100) + '%' : '0%' }"></div>
+            </div>
+            <span class="rating-bar-count">{{ ratingBreakdown.worth }}</span>
+          </div>
+          <div class="rating-bar-row">
+            <span class="rating-bar-label">😐 Meh</span>
+            <div class="rating-bar-track">
+              <div class="rating-bar-fill meh" :style="{ width: totalVisits ? (ratingBreakdown.meh / totalVisits * 100) + '%' : '0%' }"></div>
+            </div>
+            <span class="rating-bar-count">{{ ratingBreakdown.meh }}</span>
+          </div>
+          <div class="rating-bar-row">
+            <span class="rating-bar-label">😞 Regret</span>
+            <div class="rating-bar-track">
+              <div class="rating-bar-fill regret" :style="{ width: totalVisits ? (ratingBreakdown.regret / totalVisits * 100) + '%' : '0%' }"></div>
+            </div>
+            <span class="rating-bar-count">{{ ratingBreakdown.regret }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Cafes -->
+      <div v-if="topCafes.length > 0" class="overview-section">
+        <h3 class="overview-section-title">Fave Spots</h3>
+        <div class="top-cafes-list">
+          <div v-for="(cafe, i) in topCafes" :key="cafe.name" class="top-cafe-item">
+            <span class="top-cafe-rank">{{ i === 0 ? '👑' : '#' + (i + 1) }}</span>
+            <div class="top-cafe-info">
+              <div class="top-cafe-name">{{ cafe.name }}</div>
+              <div class="top-cafe-meta">{{ cafe.visits }} visit{{ cafe.visits !== 1 ? 's' : '' }}</div>
+            </div>
+            <div class="top-cafe-spent">{{ formatCurrency(cafe.spent) }}</div>
+          </div>
+        </div>
+      </div>
+    </template>
 
     <!-- Add/Edit Modal -->
     <Teleport to="body">
@@ -344,75 +472,257 @@ defineExpose({ openAddModal })
   width: 100%;
 }
 
-/* Stats */
-.cafe-stats {
+/* Sub Tabs */
+.cafe-tabs {
+  display: flex;
+  gap: var(--space-xs);
+  background: var(--white);
+  border: 2px solid var(--lavender-100);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.cafe-tab {
+  flex: 1;
+  padding: var(--space-sm);
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cafe-tab.active {
+  background: linear-gradient(135deg, #FDF4E7, #FEF3C7);
+  color: #92400E;
+}
+
+/* Month Selector */
+.month-selector {
   display: flex;
   align-items: center;
-  background: var(--bg-card);
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: linear-gradient(135deg, #FDF4E7, #FEF3C7);
+  border: 2px solid #F59E0B;
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-sm);
+}
+
+.month-selector-icon {
+  font-size: 1.25rem;
+}
+
+.month-select {
+  flex: 1;
+  padding: var(--space-sm) var(--space-md);
+  border: 2px solid #D97706;
+  border-radius: var(--radius-md);
+  background: white;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: #92400E;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2392400E' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+.month-select:focus {
+  outline: none;
+  border-color: #F59E0B;
+}
+
+/* Month Stats Boxes */
+.month-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.month-stat-box {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--white);
+  border: 2px solid var(--lavender-100);
+  border-radius: var(--radius-lg);
+}
+
+.month-stat-emoji {
+  font-size: 1.5rem;
+}
+
+.month-stat-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.month-stat-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  color: var(--text-primary);
+}
+
+.month-stat-label {
+  font-size: 0.6875rem;
+  color: var(--text-tertiary);
+}
+
+/* Overview Grid */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.overview-card {
+  background: var(--white);
+  border: 2px solid var(--lavender-100);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  text-align: center;
+}
+
+.overview-card-icon {
+  font-size: 1.5rem;
+  margin-bottom: var(--space-xs);
+}
+
+.overview-card-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.overview-card-label {
+  font-size: 0.6875rem;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+/* Overview Sections */
+.overview-section {
+  background: var(--white);
   border: 2px solid var(--lavender-100);
   border-radius: var(--radius-lg);
   padding: var(--space-md);
   margin-bottom: var(--space-md);
 }
 
-.stat-item {
-  flex: 1;
+.overview-section-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-md);
+}
+
+/* Rating Bars */
+.rating-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.rating-bar-row {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
 }
 
-.stat-emoji {
-  font-size: 1.5rem;
+.rating-bar-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  width: 90px;
+  flex-shrink: 0;
 }
 
-.stat-info {
+.rating-bar-track {
   flex: 1;
+  height: 12px;
+  background: var(--lavender-50);
+  border-radius: var(--radius-full);
+  overflow: hidden;
 }
 
-.stat-value {
-  font-family: var(--font-display);
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--text-primary);
+.rating-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.4s ease;
 }
 
-.stat-label {
+.rating-bar-fill.worth { background: #10B981; }
+.rating-bar-fill.meh { background: #F59E0B; }
+.rating-bar-fill.regret { background: #EF4444; }
+
+.rating-bar-count {
   font-size: 0.75rem;
+  font-weight: 700;
   color: var(--text-secondary);
+  width: 24px;
+  text-align: right;
 }
 
-.stat-divider {
-  width: 1px;
-  height: 40px;
-  background: var(--gray-200);
-  margin: 0 var(--space-md);
-}
-
-/* Month Header */
-.month-header {
+/* Top Cafes */
+.top-cafes-list {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.top-cafe-item {
+  display: flex;
   align-items: center;
-  padding: var(--space-sm) 0;
-  margin-top: var(--space-md);
-  border-bottom: 2px solid var(--lavender-100);
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  background: var(--lavender-50);
+  border-radius: var(--radius-md);
 }
 
-.month-header:first-of-type {
-  margin-top: 0;
+.top-cafe-rank {
+  font-size: 1rem;
+  width: 28px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--text-tertiary);
 }
 
-.month-label {
+.top-cafe-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.top-cafe-name {
   font-weight: 600;
+  font-size: 0.875rem;
   color: var(--text-primary);
-  font-size: 0.875rem;
 }
 
-.month-total {
+.top-cafe-meta {
+  font-size: 0.6875rem;
+  color: var(--text-tertiary);
+}
+
+.top-cafe-spent {
+  font-family: var(--font-display);
   font-weight: 600;
-  color: var(--expense-color);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 /* Visit Cards */
@@ -654,17 +964,61 @@ defineExpose({ openAddModal })
 
 <style>
 /* Dark mode */
-[data-theme="dark"] .cafe-stats {
+[data-theme="dark"] .cafe-tabs {
   background: #1A1625 !important;
   border-color: #3D3456 !important;
 }
 
-[data-theme="dark"] .stat-divider {
-  background: #3D3456 !important;
+[data-theme="dark"] .cafe-tab.active {
+  background: #2D2640 !important;
+  color: #C4B5FD !important;
 }
 
-[data-theme="dark"] .month-header {
-  border-bottom-color: #3D3456 !important;
+[data-theme="dark"] .month-selector {
+  background: linear-gradient(135deg, #2D2640, #1A1625) !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .month-select {
+  background-color: #1A1625 !important;
+  border-color: #3D3456 !important;
+  color: #E9D5FF !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23C4B5FD' d='M6 8L1 3h10z'/%3E%3C/svg%3E") !important;
+}
+
+[data-theme="dark"] .month-select:focus {
+  border-color: #8B5CF6 !important;
+}
+
+[data-theme="dark"] .month-stat-box {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .overview-card {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .overview-section {
+  background: #1A1625 !important;
+  border-color: #3D3456 !important;
+}
+
+[data-theme="dark"] .overview-section-title {
+  color: #E9D5FF !important;
+}
+
+[data-theme="dark"] .rating-bar-track {
+  background: #2D2640 !important;
+}
+
+[data-theme="dark"] .top-cafe-item {
+  background: #2D2640 !important;
+}
+
+[data-theme="dark"] .top-cafe-rank {
+  color: #9D8BC2 !important;
 }
 
 [data-theme="dark"] .visit-card {

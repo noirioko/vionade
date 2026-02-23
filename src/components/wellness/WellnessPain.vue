@@ -179,11 +179,11 @@ function isTypeSelected(typeId) {
 }
 
 // Functions
-function openAddModal() {
+function openAddModal(initialType = 'headache') {
   editingLog.value = null
   editingDayLogs.value = null
   form.value = {
-    types: ['headache'],
+    types: [initialType],
     intensity: 1,
     note: '',
     date: getLocalDateString(),
@@ -268,8 +268,7 @@ function formatDate(dateString) {
 
 // Quick add with a specific type
 function quickAdd(typeId) {
-  form.value.types = [typeId]
-  openAddModal()
+  openAddModal(typeId)
 }
 
 // Expose for FAB

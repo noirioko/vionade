@@ -9,6 +9,8 @@ export const PAIN_TYPES = [
   { id: 'shoulder-left', label: 'Left Shoulder', icon: '💪', color: '#8B5CF6' },
   { id: 'shoulder-right', label: 'Right Shoulder', icon: '💪', color: '#8B5CF6' },
   { id: 'back', label: 'Back', icon: '🔙', color: '#EC4899' },
+  { id: 'wrist-left', label: 'Left Wrist', icon: '🤚', color: '#06B6D4' },
+  { id: 'wrist-right', label: 'Right Wrist', icon: '🤚', color: '#06B6D4' },
   { id: 'stomach', label: 'Stomach', icon: '😣', color: '#10B981' },
   { id: 'other', label: 'Other', icon: '😞', color: '#6B7280' },
 ]

@@ -26,10 +26,12 @@ const useCustomPoster = ref(false)
 const isUploadingImage = ref(false)
 const rating = ref(7)
 const watchedDate = ref(new Date().toISOString().split('T')[0])
+const finishedDate = ref('') // For books - when finished reading
 const notes = ref('')
 const wouldWatchAgain = ref('yes') // 'yes', 'maybe', 'no'
 const didFinish = ref('yes') // 'yes', 'no', 'reading', 'dropped' (for books), 'watching' (for series)
 const currentEpisode = ref(1) // Episode tracker for series
+const currentPage = ref('') // Page tracker for books
 
 // Search state
 const searchQuery = ref('')
@@ -46,8 +48,10 @@ watch(() => props.movie, (movie) => {
     useCustomPoster.value = false
     rating.value = movie.rating
     watchedDate.value = movie.watchedDate
+    finishedDate.value = movie.finishedDate || ''
     notes.value = movie.notes || ''
     currentEpisode.value = movie.currentEpisode || 1
+    currentPage.value = movie.currentPage || ''
     // Handle didFinish - convert boolean to string if needed
     if (typeof movie.didFinish === 'boolean') {
       didFinish.value = movie.didFinish ? 'yes' : 'no'
@@ -66,10 +70,12 @@ watch(() => props.movie, (movie) => {
     useCustomPoster.value = false
     rating.value = 7
     watchedDate.value = new Date().toISOString().split('T')[0]
+    finishedDate.value = ''
     notes.value = ''
     didFinish.value = 'yes'
     wouldWatchAgain.value = 'yes'
     currentEpisode.value = 1
+    currentPage.value = ''
   }
 }, { immediate: true })
 
@@ -211,6 +217,12 @@ function handleSave() {
   // Add episode tracking for series
   if (props.mediaType === 'series') {
     mediaData.currentEpisode = currentEpisode.value
+  }
+
+  // Add finished date and page tracking for books
+  if (props.mediaType === 'book') {
+    mediaData.finishedDate = finishedDate.value || null
+    mediaData.currentPage = currentPage.value ? parseInt(currentPage.value) : null
   }
 
   if (props.mediaType === 'series') {
@@ -481,7 +493,7 @@ function handleImageUpload(event) {
             @click="didFinish = 'dropped'"
           >Dropped</button>
         </div>
-        <!-- Books: finished/reading/dropped -->
+        <!-- Books: finished/reading/owned/dropped -->
         <div class="finish-options book-options" v-else>
           <button
             class="finish-btn"
@@ -495,10 +507,25 @@ function handleImageUpload(event) {
           >Still reading</button>
           <button
             class="finish-btn"
+            :class="{ active: didFinish === 'owned' }"
+            @click="didFinish = 'owned'"
+          >Owned</button>
+          <button
+            class="finish-btn"
             :class="{ active: didFinish === 'dropped' }"
             @click="didFinish = 'dropped'"
           >Dropped</button>
         </div>
+      </div>
+
+      <!-- Finished Date (for books when finished) -->
+      <div class="input-group" v-if="isBook && didFinish === 'yes'">
+        <label class="input-label">Finished Reading</label>
+        <input
+          v-model="finishedDate"
+          type="date"
+          class="input"
+        />
       </div>
 
       <!-- Episode tracker for series (when watching or on hiatus) -->
@@ -514,6 +541,18 @@ function handleImageUpload(event) {
           />
           <button class="episode-btn" @click="currentEpisode++">+</button>
         </div>
+      </div>
+
+      <!-- Page tracker for books (when still reading) -->
+      <div class="input-group" v-if="isBook && didFinish === 'reading'">
+        <label class="input-label">On Page</label>
+        <input
+          v-model="currentPage"
+          type="number"
+          class="input"
+          placeholder="e.g. 142"
+          min="1"
+        />
       </div>
 
       <!-- Notes -->
